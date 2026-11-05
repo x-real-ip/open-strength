@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: overload-config
+data:
+  PUBLIC_URL: "https://fitness.lan.stamx.nl" # CHANGE-ME
+
+  AI_PROVIDER: anthropic
+  AI_LANGUAGE: English
+
+  # Step 1: run with "none" (only reachable on the LAN/VPN) or "password".
+  # Step 2: create the Authentik provider (see README) and switch to "oidc".
+  AUTH_MODE: none
+  OIDC_ISSUER: "https://authentik.lan.stamx.nl/application/o/overload/" # CHANGE-ME
+  OIDC_CLIENT_ID: "overload" # CHANGE-ME: Client ID from the Authentik provider
+  OIDC_SCOPES: "openid profile email"
+  OIDC_PROVIDER_NAME: Authentik
+  # Example: only members of this Authentik group get in.
+  ALLOWED_GROUPS: ""

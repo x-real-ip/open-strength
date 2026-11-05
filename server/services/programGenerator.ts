@@ -1,0 +1,173 @@
+import { z } from 'zod';
+import type { Profile, Program } from '../../shared/types.ts';
+import { aiConfigured, config } from '../config.ts';
+import { AiError, complete, extractJson, type ChatMessage } from './ai.ts';
+import { alternativesFor, availableExercises, getExercise, isAvailable } from './exercises.ts';
+import type { ProgramDraft } from './programs.ts';
+import { buildTemplateProgram, exercisesPerSession } from './programTemplates.ts';
+import { detectStalls, historyDigest } from './stats.ts';
+
+const num = (min: number, max: number) => z.coerce.number().transform((v) => Math.min(max, Math.max(min, Math.round(v))));
+
+const aiProgramSchema = z.object({
+  name: z.string().min(1).max(120),
+  weeks: num(3, 12),
+  deloadWeek: z.union([z.coerce.number(), z.null()]).optional(),
+  rationale: z.string().default(''),
+  days: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(60),
+        focus: z.string().default(''),
+        exercises: z
+          .array(
+            z.object({
+              exerciseId: z.string(),
+              sets: num(1, 6),
+              repMin: num(1, 30),
+              repMax: num(1, 30),
+              restSeconds: num(30, 300),
+              startWeight: z.coerce.number().optional(),
+              notes: z.string().optional(),
+            }),
+          )
+          .min(1),
+      }),
+    )
+    .min(1),
+});
+
+const GOAL_TEXT: Record<Profile['goal'], string> = {
+  hypertrophy: 'muscle growth (hypertrophy)',
+  strength: 'maximal strength',
+  conditioning: 'general conditioning and work capacity',
+  fat_loss: 'fat loss while keeping muscle',
+};
+
+function systemPrompt(): string {
+  return [
+    'You are an experienced, evidence-based strength coach who designs training programs.',
+    'You reply with exactly one JSON object and nothing else.',
+    `Write all human-readable text (name, focus, rationale, notes) in ${config.ai.language}.`,
+  ].join(' ');
+}
+
+async function buildPrompt(profile: Profile, opts: { current?: Program | null; instructions?: string }): Promise<string> {
+  const catalogue = availableExercises(profile.equipment)
+    .map((e) => `${e.id} | ${e.name} | primary: ${e.primary} | pattern: ${e.pattern} | load: ${e.loadType}${e.weightNote ? ` (${e.weightNote})` : ''}`)
+    .join('\n');
+  const stalls = await detectStalls();
+  const history = await historyDigest(4);
+  const current = opts.current
+    ? opts.current.days
+        .map((d) => `${d.name}: ${d.exercises.map((e) => `${e.name} [${e.exerciseId}] ${e.sets}x${e.repMin}-${e.repMax}`).join('; ')}`)
+        .join('\n')
+    : null;
+
+  return `Design a training program for this person.
+
+PROFILE
+- Age: ${profile.age}, height: ${profile.heightCm} cm, body weight: ${profile.weightKg} kg
+- Training level: ${profile.level}
+- Goal: ${GOAL_TEXT[profile.goal]}
+- Training days per week: ${profile.daysPerWeek}
+- Time per session: ${profile.sessionMinutes} minutes (roughly ${exercisesPerSession(profile.sessionMinutes)} exercises)
+- Limitations / points of attention: ${profile.limitations || 'none'}
+
+ALLOWED EXERCISES (use only these ids; equipment is already filtered to what is available)
+${catalogue}
+
+TRAINING HISTORY (most recent sessions per exercise, weight x reps)
+${history}
+
+${stalls.length ? `STALLING EXERCISES (no progress over 3+ sessions): ${stalls.map((s) => s.name).join(', ')}. Consider a variation or a different rep range for these.\n` : ''}${
+    current ? `CURRENT PROGRAM\n${current}\n` : ''
+  }${opts.instructions ? `REQUESTED CHANGES FROM THE USER\n${opts.instructions}\n` : ''}
+RULES
+- Exactly ${profile.daysPerWeek} day(s) in "days", in the order they should be trained.
+- Spread muscle groups sensibly across the week and allow recovery between sessions that train the same muscles.
+- Put compound lifts first, isolation work later.
+- Weekly volume: roughly 10–20 hard sets per major muscle group for hypertrophy, fewer and heavier for strength; beginners start at the low end.
+- Fit each session in the available time (count about 2–3 minutes per set including rest).
+- Use rep ranges with at least 2 reps between repMin and repMax so double progression works (e.g. 8–12, 4–6, 10–15).
+- restSeconds: 120–240 for heavy compounds, 60–120 for accessories.
+- startWeight in kg: a conservative weight for the first session with 2–3 reps in reserve (per hand for dumbbells, 0 for bodyweight). These are only a first estimate; the app adjusts weights from logged results and overrides your estimate when history exists.
+- Respect the limitations: avoid exercises that are likely to aggravate them and mention adaptations in notes.
+- weeks between 4 and 8. For intermediate and advanced lifters set deloadWeek to the last week; otherwise null.
+- notes: at most one short technique cue per exercise, or an empty string.
+
+OUTPUT FORMAT (JSON only)
+{
+  "name": "short program name",
+  "weeks": 6,
+  "deloadWeek": 6,
+  "rationale": "2–4 sentences explaining the split, volume and how it fits the goal and limitations",
+  "days": [
+    { "name": "Upper A", "focus": "chest, back, shoulders",
+      "exercises": [ { "exerciseId": "barbell_bench_press", "sets": 3, "repMin": 6, "repMax": 10, "restSeconds": 150, "startWeight": 40, "notes": "" } ] }
+  ]
+}`;
+}
+
+/** Validate and repair an AI program so it only contains usable, available exercises. */
+export function sanitizeAiProgram(raw: unknown, profile: Profile): ProgramDraft {
+  const parsed = aiProgramSchema.parse(raw);
+  if (parsed.days.length < profile.daysPerWeek) throw new AiError(`Expected ${profile.daysPerWeek} days, got ${parsed.days.length}`);
+
+  const days = parsed.days.slice(0, profile.daysPerWeek).map((d) => {
+    const used = new Set<string>();
+    const exercises = d.exercises.flatMap((e) => {
+      let def = getExercise(e.exerciseId);
+      if (def && !isAvailable(def, profile.equipment)) def = alternativesFor(def.id, profile.equipment, [...used])[0];
+      if (!def || used.has(def.id)) return [];
+      used.add(def.id);
+      const repMin = Math.min(e.repMin, e.repMax);
+      let repMax = Math.max(e.repMin, e.repMax);
+      if (repMax - repMin < 2) repMax = Math.min(30, repMin + 2);
+      return [{ exerciseId: def.id, sets: e.sets, repMin, repMax, restSeconds: e.restSeconds, startWeight: e.startWeight, notes: (e.notes ?? '').slice(0, 200) }];
+    });
+    if (exercises.length === 0) throw new AiError(`Day "${d.name}" has no usable exercises`);
+    return { name: d.name, focus: d.focus.slice(0, 120), exercises };
+  });
+
+  const deload = parsed.deloadWeek && parsed.deloadWeek >= 1 && parsed.deloadWeek <= parsed.weeks ? Math.round(parsed.deloadWeek) : null;
+  return { name: parsed.name.slice(0, 80), weeks: parsed.weeks, deloadWeek: deload, source: 'ai', rationale: parsed.rationale.slice(0, 1500), days };
+}
+
+export interface GenerateResult {
+  draft: ProgramDraft;
+  notice: string | null;
+}
+
+export async function generateProgram(profile: Profile, opts: { current?: Program | null; instructions?: string; useAi?: boolean } = {}): Promise<GenerateResult> {
+  if (opts.useAi === false || !aiConfigured()) {
+    return {
+      draft: buildTemplateProgram(profile),
+      notice: aiConfigured() ? null : 'AI is not configured, so a rule-based program was created. Add an API key to get AI-designed programs.',
+    };
+  }
+
+  const prompt = await buildPrompt(profile, opts);
+  let lastError = '';
+  let lastText = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
+    if (attempt > 0 && lastText) {
+      messages.push({ role: 'assistant', content: lastText.slice(0, 12000) });
+      messages.push({ role: 'user', content: `That answer was rejected: ${lastError}. Reply again with one valid JSON object that follows all rules.` });
+    }
+    try {
+      lastText = '';
+      const text = await complete({ system: systemPrompt(), messages, maxTokens: 6000, json: true });
+      lastText = text;
+      return { draft: sanitizeAiProgram(extractJson(text), profile), notice: null };
+    } catch (err) {
+      lastError = err instanceof z.ZodError ? err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') : (err as Error).message;
+      if (err instanceof AiError && err.status >= 503) break; // not configured or timed out: don't retry
+    }
+  }
+  return {
+    draft: buildTemplateProgram(profile),
+    notice: `The AI program could not be used (${lastError.slice(0, 160)}). A rule-based program was created instead.`,
+  };
+}

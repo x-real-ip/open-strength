@@ -1,0 +1,71 @@
+import type { Decision, MuscleGroup } from '@shared/types.ts';
+
+export function kg(weight: number): string {
+  return Number.isInteger(weight) ? String(weight) : weight.toFixed(2).replace(/0$/, '');
+}
+
+export function weightLabel(weight: number, loadType: string): string {
+  return loadType === 'bodyweight' ? 'Bodyweight' : `${kg(weight)} kg`;
+}
+
+export function repRange(min: number, max: number): string {
+  return min === max ? `${min}` : `${min}–${max}`;
+}
+
+export function rest(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s ? `${m}:${String(s).padStart(2, '0')}` : `${m} min`;
+}
+
+export function clock(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+export function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+export function relativeDay(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const days = Math.round((new Date(today.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  return shortDate(iso);
+}
+
+export function compact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${Math.round(n / 1000)}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(Math.round(n));
+}
+
+export const DECISION_LABEL: Record<Decision, string> = {
+  start: 'Starting weight',
+  increase: 'Increase',
+  hold: 'Hold',
+  decrease: 'Decrease',
+  reps: 'Add difficulty',
+  deload: 'Deload',
+};
+
+export const MUSCLE_LABEL: Record<MuscleGroup, string> = {
+  chest: 'Chest',
+  back: 'Back',
+  shoulders: 'Shoulders',
+  quads: 'Quads',
+  hamstrings: 'Hamstrings',
+  glutes: 'Glutes',
+  biceps: 'Biceps',
+  triceps: 'Triceps',
+  calves: 'Calves',
+  core: 'Core',
+};

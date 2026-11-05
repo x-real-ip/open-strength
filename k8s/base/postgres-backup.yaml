@@ -1,0 +1,97 @@
+# Nightly pg_dump (custom format) to its own volume, keeping BACKUP_KEEP_DAYS days.
+# Restore: kubectl -n overload exec -i overload-postgres-0 -- pg_restore --clean --if-exists -U overload -d overload < overload-YYYYMMDD-HHMM.dump
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: overload-backups
+  labels:
+    app.kubernetes.io/name: overload
+    app.kubernetes.io/component: backup
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: overload-postgres-backup
+  labels:
+    app.kubernetes.io/name: overload
+    app.kubernetes.io/component: backup
+spec:
+  schedule: "17 3 * * *"
+  timeZone: Europe/Amsterdam
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: overload
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+            fsGroup: 70
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: pg-dump
+              image: postgres:17-alpine
+              command:
+                - sh
+                - -ec
+                - |
+                  file="/backups/overload-$(date +%Y%m%d-%H%M).dump"
+                  pg_dump -Fc -f "$file.partial"
+                  mv "$file.partial" "$file"
+                  find /backups -name 'overload-*.dump' -mtime +"$BACKUP_KEEP_DAYS" -delete
+                  ls -lh /backups
+              env:
+                - name: PGHOST
+                  value: overload-postgres
+                - name: BACKUP_KEEP_DAYS
+                  value: "14"
+                - name: PGDATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: overload-db
+                      key: POSTGRES_DB
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: overload-db
+                      key: POSTGRES_USER
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: overload-db
+                      key: POSTGRES_PASSWORD
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 256Mi
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: overload-backups

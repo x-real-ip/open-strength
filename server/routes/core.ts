@@ -1,0 +1,65 @@
+import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import type { AppInfo } from '../../shared/types.ts';
+import { checkPassword, clearFailures, loginAllowed, logout, oidcCallback, oidcLoginRedirect, passwordLogin, recordFailure } from '../auth.ts';
+import { aiConfigured, config } from '../config.ts';
+import { one } from '../db.ts';
+import { EXERCISES } from '../services/exercises.ts';
+import { getProfile, saveProfile } from '../services/profile.ts';
+
+export async function coreRoutes(app: FastifyInstance) {
+  // Liveness: the process is up.
+  app.get('/api/health', async () => ({ ok: true }));
+
+  // Readiness: the database answers.
+  app.get('/api/ready', async (_req, reply) => {
+    try {
+      await one('SELECT 1');
+      return { ok: true };
+    } catch {
+      return reply.code(503).send({ ok: false, error: 'Database unavailable' });
+    }
+  });
+
+  app.get('/api/info', async (req): Promise<AppInfo> => ({
+    aiConfigured: aiConfigured(),
+    aiProvider: config.ai.provider,
+    aiModel: config.ai.model,
+    authMode: config.auth.mode,
+    authRequired: config.auth.mode !== 'none',
+    authenticated: Boolean(req.user),
+    user: req.user ?? null,
+    oidcProviderName: config.auth.oidcProviderName,
+    version: config.version,
+  }));
+
+  app.post('/api/auth/login', async (req, reply) => {
+    if (config.auth.mode !== 'password') return reply.code(400).send({ error: 'Password sign-in is not enabled' });
+    const { password } = z.object({ password: z.string() }).parse(req.body);
+    if (!loginAllowed(req.ip)) return reply.code(429).send({ error: 'Too many attempts. Try again in 15 minutes.' });
+    if (!checkPassword(password)) {
+      recordFailure(req.ip);
+      return reply.code(401).send({ error: 'Wrong password' });
+    }
+    clearFailures(req.ip);
+    passwordLogin(req, reply);
+    return { ok: true };
+  });
+
+  app.get('/api/auth/oidc/login', async (req, reply) => {
+    if (config.auth.mode !== 'oidc') return reply.code(404).send({ error: 'OIDC is not enabled' });
+    return oidcLoginRedirect(req, reply);
+  });
+
+  app.get('/api/auth/oidc/callback', async (req, reply) => {
+    if (config.auth.mode !== 'oidc') return reply.code(404).send({ error: 'OIDC is not enabled' });
+    return oidcCallback(req, reply);
+  });
+
+  app.post('/api/auth/logout', async (req, reply) => ({ ok: true, redirect: await logout(req, reply) }));
+
+  app.get('/api/exercises', async () => EXERCISES);
+
+  app.get('/api/profile', async () => ({ profile: await getProfile() }));
+  app.put('/api/profile', async (req) => ({ profile: await saveProfile(req.body) }));
+}

@@ -1,0 +1,33 @@
+# Non-secret settings. Secrets (AI key, session secret, OIDC client secret,
+# database credentials) live in the overload-secrets and overload-db Secrets.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: overload-config
+data:
+  PORT: "8080"
+  # Public URL of the app; required for OIDC redirects.
+  PUBLIC_URL: "https://fitness.example.com"
+
+  # Database (credentials come from the overload-db Secret).
+  PGHOST: overload-postgres
+  PGPORT: "5432"
+  DB_POOL_SIZE: "10"
+
+  # AI: anthropic or openai (any OpenAI-compatible API, e.g. Ollama).
+  AI_PROVIDER: anthropic
+  AI_MODEL: ""
+  AI_BASE_URL: ""
+  AI_LANGUAGE: English
+
+  # Auth: none | password | proxy | oidc. Start with "none" behind a VPN, or
+  # "password", and switch to "oidc" once the Authentik provider exists.
+  AUTH_MODE: none
+  SESSION_DAYS: "30"
+  OIDC_ISSUER: ""
+  OIDC_CLIENT_ID: ""
+  OIDC_SCOPES: "openid profile email"
+  OIDC_PROVIDER_NAME: Authentik
+  # Optional allowlists (comma separated). Checked for both oidc and proxy mode.
+  ALLOWED_USERS: ""
+  ALLOWED_GROUPS: ""

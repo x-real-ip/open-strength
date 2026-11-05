@@ -1,0 +1,44 @@
+# Temporary pod to copy dumps out of the backup volume:
+#   kubectl apply -f k8s/backup-browser.yaml
+#   kubectl -n overload cp backup-browser:/backups/overload-YYYYMMDD-HHMM.dump ./restore.dump
+#   kubectl delete -f k8s/backup-browser.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backup-browser
+  namespace: overload
+  labels:
+    app.kubernetes.io/name: overload
+    app.kubernetes.io/component: backup
+spec:
+  automountServiceAccountToken: false
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 70
+    runAsGroup: 70
+    fsGroup: 70
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: shell
+      image: postgres:17-alpine
+      command: ["sleep", "3600"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          memory: 64Mi
+      volumeMounts:
+        - name: backups
+          mountPath: /backups
+  volumes:
+    - name: backups
+      persistentVolumeClaim:
+        claimName: overload-backups

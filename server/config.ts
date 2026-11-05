@@ -1,0 +1,93 @@
+import path from 'node:path';
+
+const env = process.env;
+
+/** Empty strings (common in .env files and ConfigMaps) count as unset. */
+function str(name: string): string | undefined {
+  const v = env[name]?.trim();
+  return v ? v : undefined;
+}
+
+function num(name: string, fallback: number): number {
+  const v = Number(env[name]);
+  return Number.isFinite(v) && v > 0 ? v : fallback;
+}
+
+function bool(name: string, fallback: boolean): boolean {
+  const v = str(name)?.toLowerCase();
+  if (v === undefined) return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(v);
+}
+
+function list(name: string): string[] {
+  return (str(name) ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export type AiProvider = 'anthropic' | 'openai';
+export type AuthMode = 'none' | 'password' | 'proxy' | 'oidc';
+
+const provider: AiProvider = str('AI_PROVIDER') === 'openai' ? 'openai' : 'anthropic';
+
+function authMode(): AuthMode {
+  const m = str('AUTH_MODE')?.toLowerCase();
+  if (m === 'none' || m === 'password' || m === 'proxy' || m === 'oidc') return m;
+  // Backwards compatible default: a password turns on password mode.
+  return str('APP_PASSWORD') ? 'password' : 'none';
+}
+
+export const config = {
+  port: num('PORT', 8080),
+  host: str('HOST') ?? '0.0.0.0',
+  webDir: path.resolve(str('WEB_DIR') ?? './web/dist'),
+  /** Public base URL, e.g. https://fitness.lan.example.com (needed for OIDC redirects). */
+  publicUrl: (str('PUBLIC_URL') ?? '').replace(/\/$/, ''),
+
+  // Database: DATABASE_URL, or the standard PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE variables.
+  databaseUrl: str('DATABASE_URL') ?? '',
+  dbPoolSize: num('DB_POOL_SIZE', 10),
+  dbSsl: bool('DB_SSL', false),
+  dbSslVerify: bool('DB_SSL_VERIFY', true),
+
+  auth: {
+    mode: authMode(),
+    password: str('APP_PASSWORD') ?? '',
+    sessionSecret: str('SESSION_SECRET') ?? '',
+    sessionDays: num('SESSION_DAYS', 30),
+    // Forward-auth / reverse proxy (e.g. Authentik proxy outpost) passes the user in a header.
+    proxyUserHeader: (str('PROXY_USER_HEADER') ?? 'x-authentik-username').toLowerCase(),
+    proxyEmailHeader: (str('PROXY_EMAIL_HEADER') ?? 'x-authentik-email').toLowerCase(),
+    proxyGroupsHeader: (str('PROXY_GROUPS_HEADER') ?? 'x-authentik-groups').toLowerCase(),
+    // Authentik proxy outposts serve this path on the application's own domain.
+    proxyLogoutUrl: str('PROXY_LOGOUT_URL') ?? '/outpost.goauthentik.io/sign_out',
+    // Native OpenID Connect (e.g. Authentik OAuth2/OpenID provider).
+    oidcIssuer: str('OIDC_ISSUER') ?? '',
+    oidcClientId: str('OIDC_CLIENT_ID') ?? '',
+    oidcClientSecret: str('OIDC_CLIENT_SECRET') ?? '',
+    oidcScopes: str('OIDC_SCOPES') ?? 'openid profile email',
+    oidcProviderName: str('OIDC_PROVIDER_NAME') ?? 'Authentik',
+    oidcAllowInsecure: bool('OIDC_ALLOW_INSECURE', false),
+    // Optional allowlists, checked against username/email and the groups claim/header.
+    allowedUsers: list('ALLOWED_USERS').map((u) => u.toLowerCase()),
+    allowedGroups: list('ALLOWED_GROUPS'),
+  },
+
+  ai: {
+    provider,
+    apiKey: str('AI_API_KEY') ?? str('ANTHROPIC_API_KEY') ?? str('OPENAI_API_KEY') ?? '',
+    baseUrl: (str('AI_BASE_URL') ?? (provider === 'anthropic' ? 'https://api.anthropic.com' : 'https://api.openai.com/v1')).replace(/\/$/, ''),
+    model: str('AI_MODEL') ?? (provider === 'anthropic' ? 'claude-sonnet-5-5' : 'gpt-4o-mini'),
+    /** Language for AI-written text such as program rationale and exercise notes. */
+    language: str('AI_LANGUAGE') ?? 'English',
+    timeoutMs: num('AI_TIMEOUT_MS', 90_000),
+  },
+  version: '1.1.0',
+};
+
+/** OpenAI-compatible local servers (Ollama, LM Studio) often need no key. */
+export function aiConfigured(): boolean {
+  if (config.ai.provider === 'openai') return Boolean(config.ai.apiKey || str('AI_BASE_URL'));
+  return Boolean(config.ai.apiKey);
+}

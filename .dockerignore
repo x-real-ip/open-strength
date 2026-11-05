@@ -1,0 +1,9 @@
+node_modules
+web/node_modules
+web/dist
+server/tests
+k8s
+data
+*.db
+.env
+.git

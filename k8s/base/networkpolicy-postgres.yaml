@@ -1,0 +1,24 @@
+# Only the app and the backup job may talk to Postgres.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: overload-postgres
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: overload
+      app.kubernetes.io/component: database
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: overload
+              app.kubernetes.io/component: app
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: overload
+              app.kubernetes.io/component: backup
+      ports:
+        - protocol: TCP
+          port: 5432
