@@ -3,6 +3,7 @@
 // The language is module state: App sets it from /api/info and remounts the screens when it changes.
 import type { Language } from '@shared/types.ts';
 
+// Keeps the name from before the rename to Open Strength, so data already on devices survives.
 const STORAGE_KEY = 'overload-language';
 
 function initial(): Language {

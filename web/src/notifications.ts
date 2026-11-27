@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import { api } from './api.ts';
 
+// Keeps the name from before the rename to Open Strength, so data already on devices survives.
 const ENDPOINT_KEY = 'overload-push-endpoint';
 
 export type PushSupport = 'supported' | 'unsupported' | 'install-first';

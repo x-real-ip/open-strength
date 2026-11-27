@@ -7,6 +7,7 @@ export interface RestState {
   duration: number;
 }
 
+// Keeps the name from before the rename to Open Strength, so data already on devices survives.
 const KEY = 'overload.rest';
 
 export function loadRest(): RestState | null {

@@ -26,7 +26,7 @@ COPY shared ./shared
 COPY --from=web /app/web/dist ./web/dist
 
 # Own non-root user; the same uid/gid is set in the deployment's securityContext.
-RUN addgroup -g 3001 overload && adduser -u 3001 -G overload -S -H overload
+RUN addgroup -g 3001 open-strength && adduser -u 3001 -G open-strength -S -H open-strength
 USER 3001:3001
 
 EXPOSE 8080

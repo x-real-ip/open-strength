@@ -32,7 +32,7 @@ async function ensurePush(): Promise<Vapid> {
   const fresh = webpush.generateVAPIDKeys();
   vapid = JSON.parse(await ensureSetting('vapid', JSON.stringify(fresh))) as Vapid;
   // The subject identifies the sender to push services: the app's URL, or a mailto fallback.
-  const subject = config.publicUrl.startsWith('https://') ? config.publicUrl : 'mailto:overload@localhost';
+  const subject = config.publicUrl.startsWith('https://') ? config.publicUrl : 'mailto:open-strength@localhost';
   webpush.setVapidDetails(subject, vapid.publicKey, vapid.privateKey);
   return vapid;
 }

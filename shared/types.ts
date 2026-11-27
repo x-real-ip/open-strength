@@ -81,8 +81,8 @@ export interface Profile {
 
 export type ExerciseCategory = 'strength' | 'powerlifting' | 'olympic' | 'strongman' | 'plyometrics' | 'stretching' | 'cardio';
 export type ExerciseLevel = 'beginner' | 'intermediate' | 'expert';
-/** `overload`: curated, with a Dutch guide. `free-exercise-db`: imported, English names and steps. */
-export type ExerciseSource = 'overload' | 'free-exercise-db';
+/** `curated`: hand-picked, with a Dutch guide. `free-exercise-db`: imported, English names and steps. */
+export type ExerciseSource = 'curated' | 'free-exercise-db';
 
 /** Any exercise in the library; only programmable ones can be part of a program. */
 export interface LibraryExercise {

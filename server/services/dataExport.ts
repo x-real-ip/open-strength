@@ -8,7 +8,7 @@ export async function exportJson() {
   const tables: Record<string, unknown[]> = {};
   for (const t of TABLES) tables[t] = await all(`SELECT * FROM ${t}`);
   const version = (await one<{ v: number }>('SELECT max(version) AS v FROM schema_migrations'))?.v ?? 0;
-  return { app: 'overload', format: 2, schemaVersion: version, exportedAt: new Date().toISOString(), tables };
+  return { app: 'open-strength', format: 2, schemaVersion: version, exportedAt: new Date().toISOString(), tables };
 }
 
 type ColumnInfo = { column_name: string; data_type: string };
@@ -33,8 +33,12 @@ function renameLegacy(table: string, row: Record<string, unknown>): Record<strin
   return Object.fromEntries(Object.entries(row).map(([k, v]) => [map[k] && !(map[k] in row) ? map[k] : k, v]));
 }
 
+/** Exports made before the rename to Open Strength say `overload`; they import the same way. */
+const EXPORT_APPS = ['open-strength', 'overload'];
+
 export async function importJson(data: any) {
-  if (!data || data.app !== 'overload' || typeof data.tables !== 'object') throw new UserError(400, 'This is not an Overload export file', 'Dit is geen exportbestand van Overload');
+  if (!data || !EXPORT_APPS.includes(data.app) || typeof data.tables !== 'object')
+    throw new UserError(400, 'This is not an Open Strength export file', 'Dit is geen exportbestand van Open Strength');
   await tx(async (c) => {
     await run(`TRUNCATE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`, [], c);
     for (const t of TABLES) {
