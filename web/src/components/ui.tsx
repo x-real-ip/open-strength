@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import type { Decision } from '@shared/types.ts';
-import { decisionLabel } from '../format.ts';
+import { decisionLabel, versionLabel } from '../format.ts';
 import { t } from '../i18n.ts';
 import { IconCoach, IconExercises, IconProfile, IconProgram, IconProgress, IconToday } from './Icons.tsx';
 
@@ -18,7 +18,7 @@ export function BottomNav({ version }: { version: string }) {
   return (
     <nav className="nav" aria-label={t('Main menu', 'Hoofdmenu')}>
       <div className="nav-brand" aria-hidden="true">
-        OVERLOAD <span className="version">v{version}</span>
+        OVERLOAD <span className="version">{versionLabel(version)}</span>
       </div>
       {items.map((i) => (
         <NavLink key={i.to} to={i.to} end={i.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>

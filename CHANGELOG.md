@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.8.1 — 2026-11-27
+New entries go under *Unreleased*; the version is chosen when the release is published.
+
+## Unreleased
 
 - **Desktop browsers**: from 900 px wide the bottom menu becomes a sidebar with the logo and version, the content column is wider (760 px), and sheets such as *Swap exercise* open as centred dialogs. Example photos are capped at 360 px high.
 - **Rows of chips** (filters in the library, coach suggestions, the exercise strip in a workout) wrap onto more lines when you use a mouse or trackpad, instead of being cut off; a mouse cannot swipe a hidden scrollbar. On phones they still scroll sideways, now with a faded edge that shows there is more.

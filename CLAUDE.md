@@ -25,6 +25,13 @@ Working agreements for this repository.
   `server/db.ts`; never edit a migration that has shipped. Migrations must stay
   idempotent (`npm run migrate` runs as an init container on every rollout).
 
+## Versions
+
+- The release tag decides the version. CI passes it into the image as `APP_VERSION` (tag `v1.2.3` → `1.2.3`);
+  other builds show `dev-<commit>`. `package.json` has no version.
+- No version numbers in PRs or commits: not in titles, descriptions or files. Changelog entries go under
+  `## Unreleased`; the version is chosen when the release is published.
+
 ## Deployment
 
 - Deploy only via `x-real-ip/gitops` (`manifests/overload/`). No Kubernetes manifests in

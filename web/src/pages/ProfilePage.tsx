@@ -4,6 +4,7 @@ import type { Equipment, Goal, Language, Level, Profile } from '@shared/types.ts
 import { api } from '../api.ts';
 import { useInfo, useRefreshInfo, useSetLanguage } from '../App.tsx';
 import { ErrorState, Loading, toast, useLoad } from '../components/ui.tsx';
+import { versionLabel } from '../format.ts';
 import { getLang, t } from '../i18n.ts';
 
 const equipmentOptions = (): { id: Equipment; label: string }[] => [
@@ -366,7 +367,7 @@ function AboutSection() {
           </div>
         )}
         <div>
-          {t('Version', 'Versie')} {info.version}
+          {t('Version', 'Versie')} {versionLabel(info.version)}
         </div>
       </div>
       {info.authMode !== 'none' && (
