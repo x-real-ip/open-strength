@@ -11,6 +11,8 @@ export default function TodayPage() {
   const info = useInfo();
   const navigate = useNavigate();
   const { data, error, loading, reload } = useLoad(() => api.today());
+  // Loaded after the page, never blocking it: notes from Open Nutrilog when the apps are linked.
+  const nutrition = useLoad(() => api.linkedNutrition().catch(() => null));
   const [busy, setBusy] = useState(false);
 
   if (loading && !data) return <Loading />;
@@ -214,6 +216,7 @@ export default function TodayPage() {
                 <div className="grow">
                   <div className="title">{s.name}</div>
                   <div className="sub">{t(`No progress in ${s.sessions} sessions`, `Geen vooruitgang in ${s.sessions} trainingen`)}</div>
+                  {nutrition.data?.stallNotes[s.exerciseId] && <div className="sub stall-note">{nutrition.data.stallNotes[s.exerciseId]}</div>}
                 </div>
               </Link>
             ))}

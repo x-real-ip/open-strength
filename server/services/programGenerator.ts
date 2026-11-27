@@ -8,6 +8,7 @@ import { loadPrefs } from './exercisePrefs.ts';
 import { normalizeSupersets, type ProgramDraft } from './programs.ts';
 import { buildTemplateProgram, exercisesPerSession, useSupersets } from './programTemplates.ts';
 import { detectStalls, historyDigest } from './stats.ts';
+import { nutritionFacts, nutritionPhase } from './nutrilog.ts';
 
 const num = (min: number, max: number) => z.coerce.number().transform((v) => Math.min(max, Math.max(min, Math.round(v))));
 
@@ -74,6 +75,8 @@ async function buildPrompt(profile: Profile, opts: { current?: Program | null; i
     .join('\n');
   const stalls = await detectStalls();
   const history = await historyDigest(4);
+  // From Open Nutrilog when linked: a big deficit or little protein calls for less volume, not lighter weights.
+  const nutrition = await nutritionPhase();
   const current = opts.current
     ? opts.current.days
         .map((d) => `${d.name}: ${d.exercises.map((e) => `${e.name} [${e.exerciseId}] ${e.sets}x${e.repMin}-${e.repMax}${e.superset ? ` (superset ${e.superset})` : ''}`).join('; ')}`)
@@ -106,6 +109,10 @@ TRAINING HISTORY (most recent sessions per exercise, weight x reps)
 ${history}
 
 ${stalls.length ? `STALLING EXERCISES (no progress over 3+ sessions): ${stalls.map((s) => s.name).join(', ')}. Consider a variation or a different rep range for these.\n` : ''}${
+    nutrition
+      ? `NUTRITION (last 14 days, from the person's nutrition app; context only, starting weights come from the app)\n${nutritionFacts(nutrition, 'en')}\nIn a large deficit or with little protein, keep volume moderate and favour recovery.\n`
+      : ''
+  }${
     current ? `CURRENT PROGRAM\n${current}\n` : ''
   }${opts.instructions ? `REQUESTED CHANGES FROM THE USER\n${opts.instructions}\n` : ''}
 RULES

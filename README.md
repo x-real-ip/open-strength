@@ -31,11 +31,29 @@ A personal, self-hosted strength training app: AI-designed training programs, lo
 - **Rest notifications**: turn them on under Profile → Notifications (per device). When you switch away from the app during a rest, the server sends a push notification when the rest is over; coming back cancels it and the app beeps as before. On iPhone and iPad this needs the app on the home screen.
 - **Statistics**: estimated 1RM per exercise, volume per week, sets per muscle group per week (recent versus the period before), personal records and stall detection.
 - **Data**: export as JSON (everything) and CSV (sets), import of a JSON export.
+- **Nutrition (optional)**: linked with [Open Nutrilog](https://github.com/x-real-ip/open-nutrilog), the coach and program design also see how you ate over the last two weeks (phase, deficit or surplus, protein per kg), a stall gets a note when a big deficit (over 20 % below maintenance) or little protein (under 1.6 g/kg) explains it, and the profile warns gently when your training goal and nutrition phase pull different ways. Your weight is then kept in Open Nutrilog: weigh-ins here are sent there too, and its weigh-ins arrive here. Training weights never depend on any of this. Without the link, or when Open Nutrilog is down, everything works as before.
 
 AI is optional: without a key everything works, just without AI.
 
 - **AI settings** (Profile → AI settings and usage): provider, model, API key, how much the model thinks (separately for the coach and for programs) and a monthly budget. These settings live in the database and take precedence over the environment variables, which are only the defaults. The key is never sent to the browser. *Test connection* checks key and model.
 - **Usage**: every AI call is recorded with tokens and estimated cost (from the price list). You see this month, per feature, per day and the latest calls. When the monthly budget is used up, the AI stops until next month and the app falls back to rule-based programs.
+
+## Linking with Open Nutrilog
+
+Both apps talk over a small versioned HTTP API inside the cluster, each with its own token per direction:
+
+| Variable | Meaning |
+|---|---|
+| `INTEGRATION_TOKEN` | The token Open Nutrilog sends to `/api/integration/v1/*` here. Without it those routes don't exist (404) |
+| `NUTRILOG_URL`, `NUTRILOG_TOKEN` | How this app reaches Open Nutrilog, e.g. `http://open-nutrilog.tools.svc.cluster.local`, and the token Open Nutrilog accepts |
+
+`/api/integration/v1/*` accepts only `Authorization: Bearer <token>` (compared in constant time), never a session or proxy header:
+
+- `GET /workouts?from=YYYY-MM-DD&to=YYYY-MM-DD`: workouts in progress or finished, by their day in the Netherlands (`id, date, startedAt, finishedAt, status, durationMinutes, dayName, isDeload, totalSets, volumeKg`).
+- `GET /body-weights?from&to`, `PUT /body-weights/:date` (`{ weightKg }`), `DELETE /body-weights/:date`: weigh-ins from Open Nutrilog; stored here and never sent back.
+- `GET /profile`: `{ goal, level, age, heightCm, weightKg, language }`.
+
+Calls to Open Nutrilog time out after 2 s and are cached for a minute; pages never wait for them (the PWA asks `/api/linked/nutrition` after rendering). Weigh-ins that can't be sent wait in `integration_outbox` and are retried every minute.
 
 ## Deployment
 
@@ -119,6 +137,7 @@ All settings are environment variables. For local use they are in `.env.example`
 | `ALLOWED_USERS`, `ALLOWED_GROUPS` | Optional allowlists (comma-separated) for `oidc` and `proxy`. `ALLOWED_USERS` matches the username or email address |
 | `AI_PROVIDER` | `anthropic` (Claude, the default) or `openai` (any OpenAI-compatible API, including Ollama, LM Studio or LiteLLM). Like the other `AI_*` variables only a default: the AI settings in the app take precedence |
 | `ANTHROPIC_API_KEY` or `AI_API_KEY` | AI key; stays on the server |
+| `INTEGRATION_TOKEN`, `NUTRILOG_URL`, `NUTRILOG_TOKEN`, `NUTRILOG_TIMEOUT_MS` | The optional link with Open Nutrilog (see [Linking with Open Nutrilog](#linking-with-open-nutrilog)) |
 | `AI_MODEL`, `AI_BASE_URL` | Model (`claude-sonnet-5-5` by default, or `gpt-4o-mini` for `openai`) and endpoint |
 
 The language the AI writes in follows the language in the profile; `AI_LANGUAGE` is no longer used.
@@ -167,7 +186,8 @@ server/                   Fastify API (TypeScript, Node 22+), also serves the bu
     exercisePrefs.ts      favourites and "never use"; swapping excluded exercises out of the program
     workouts.ts           starting a workout, saving sets (idempotent), finishing and advice
     stats.ts              statistics, stall detection, history for the AI
-    coach.ts              AI coach with training context
+    coach.ts              AI coach with training context (and nutrition context when linked)
+    nutrilog.ts           the link with Open Nutrilog: status, nutrition facts, stall notes, goal clash, weigh-in outbox
     dataExport.ts         JSON/CSV export and import (also the v1 format)
   data/free-exercise-db.json  the imported list, pinned to one commit of the fork
   scripts/importExercises.ts  npm run import:exercises [ref]: fetch the list again from the fork

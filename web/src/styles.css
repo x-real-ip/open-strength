@@ -1821,3 +1821,9 @@ details.why summary::-webkit-details-marker {
     max-height: 360px;
   }
 }
+
+/* A stall that the eating explains (from Open Nutrilog). */
+.stall-note {
+  margin-top: 4px;
+  color: var(--plate-yellow);
+}

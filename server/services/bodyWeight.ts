@@ -1,7 +1,12 @@
 // Body weight over time, one entry per day. The latest entry is the profile's weight, so the
 // heuristic starting weights (weights.ts) always use your current body weight.
+//
+// When linked with Open Nutrilog, that app owns body weight: weigh-ins logged here are also sent there (queued when
+// it is down), and weigh-ins from there arrive through the integration API (applyBodyWeight), which doesn't send
+// them back.
 import type { BodyWeightEntry, Profile } from '../../shared/types.ts';
 import { all, getPool, nowIso, one, run, type Queryable } from '../db.ts';
+import { sendWeight } from './nutrilog.ts';
 import { getProfile, saveProfile } from './profile.ts';
 
 /** Today in the Netherlands as YYYY-MM-DD; the client normally sends its own date. */
@@ -31,18 +36,32 @@ async function syncProfile(): Promise<void> {
 }
 
 export async function logBodyWeight(weightKg: number, date?: string): Promise<BodyWeightEntry[]> {
-  await recordBodyWeight(weightKg, date);
+  const day = date ?? today();
+  await recordBodyWeight(weightKg, day);
   await syncProfile();
+  await sendWeight(day, weightKg);
   return listBodyWeights();
 }
 
 export async function deleteBodyWeight(id: number): Promise<BodyWeightEntry[]> {
+  const row = await one<{ day: string }>('SELECT measured_on AS day FROM body_weights WHERE id = $1', [id]);
   await run('DELETE FROM body_weights WHERE id = $1', [id]);
   await syncProfile();
+  if (row) await sendWeight(row.day, null);
   return listBodyWeights();
 }
 
 /** Editing the weight in the profile also counts as today's weigh-in. */
 export async function noteProfileWeight(before: Profile | null, after: Profile): Promise<void> {
-  if (!before || before.weightKg !== after.weightKg) await recordBodyWeight(after.weightKg);
+  if (!before || before.weightKg !== after.weightKg) {
+    await recordBodyWeight(after.weightKg);
+    await sendWeight(today(), after.weightKg);
+  }
+}
+
+/** A weigh-in from Open Nutrilog (or its removal): stored here, never sent back. */
+export async function applyBodyWeight(day: string, weightKg: number | null): Promise<void> {
+  if (weightKg === null) await run('DELETE FROM body_weights WHERE measured_on = $1', [day]);
+  else await recordBodyWeight(Math.round(weightKg * 10) / 10, day);
+  await syncProfile();
 }

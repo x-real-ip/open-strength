@@ -5,7 +5,8 @@ import { complete } from './ai.ts';
 import { listBodyWeights } from './bodyWeight.ts';
 import { activeProgramId, loadProgram } from './programs.ts';
 import { detectStalls, getStats, historyDigest } from './stats.ts';
-import { AI_LANGUAGE, formatKg, langOf, type Lang } from '../i18n.ts';
+import { AI_LANGUAGE, formatKg, langOf, pick, type Lang } from '../i18n.ts';
+import { nutritionFacts, nutritionPhase, stallNote } from './nutrilog.ts';
 
 export async function listMessages(limit = 100): Promise<CoachMessage[]> {
   const rows = await all('SELECT * FROM coach_messages ORDER BY id DESC LIMIT $1', [limit]);
@@ -78,6 +79,15 @@ export async function trainingFacts(profile: Profile | null): Promise<string> {
   }
   const stallList = stalls.map((s) => `${s.name} (${T(`no progress in ${s.sessions} sessions`, `geen vooruitgang in ${s.sessions} trainingen`)})`).join(', ');
   lines.push(stalls.length ? T(`Stalling exercises: ${stallList}.`, `Stagnerende oefeningen: ${stallList}.`) : T('No stalling exercises.', 'Geen stagnerende oefeningen.'));
+  // Eating over the last two weeks, from Open Nutrilog when linked: context for the advice, never for the weights.
+  const nutrition = await nutritionPhase();
+  if (nutrition) {
+    lines.push(nutritionFacts(nutrition, lang));
+    for (const s of stalls) {
+      const note = stallNote(s.name, s.sessions, nutrition);
+      if (note) lines.push(pick(note, lang));
+    }
+  }
   return lines.join('\n');
 }
 
@@ -86,6 +96,7 @@ async function systemPrompt(profile: Profile | null): Promise<string> {
 
 Rules:
 - Base every statement about the user's progress on the data below. If the data is insufficient, say so instead of guessing.
+- Nutrition (from Open Nutrilog, when shown) is context: use it to explain progress and recovery, never to change weights.
 - You do not set training weights. Next-session weights are calculated by the app's progression engine from logged sets (double progression). Explain those recommendations when asked, but never invent different numbers.
 - If the program should change (exercise swaps, volume, split), say what you would change and why, and tell the user they can tap the button to adjust the program with this advice, so the app rebuilds it with that request.
 - Keep answers concise and structured for a phone screen: short paragraphs or a few bullets.

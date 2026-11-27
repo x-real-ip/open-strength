@@ -85,6 +85,17 @@ Working agreements for this repository (Open Strength; called Overload until the
   needs unit tests in `server/tests/`. Keep the spec example green: 12/11/10 at 40 kg with
   8–12 reps → stay at 40 kg, aim for 12/12/11.
 
+## Open Nutrilog (optional link)
+
+- Nutrition from Open Nutrilog is **context only**: the coach, program design, stall notes and a goal-clash note. It
+  never reaches `progression.ts` or start weights; `server/tests/integration.test.ts` proves the advice is identical with
+  and without it. Keep it that way.
+- `/api/integration/v1/*` is bearer-token only (`INTEGRATION_TOKEN`, constant-time; 404 when unset), handled before the
+  session in `authHook`. Calls out to Open Nutrilog (`services/nutrilog.ts`) have a short timeout, a 60 s cache and never
+  throw; pages never wait for them (the PWA loads `/api/linked/nutrition` after rendering).
+- When linked, Open Nutrilog owns body weight: local weigh-ins are also sent there (`integration_outbox` while it is
+  down); weigh-ins from there are applied with `applyBodyWeight` and never sent back.
+
 ## Checks before a PR
 
 ```bash

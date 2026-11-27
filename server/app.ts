@@ -15,6 +15,7 @@ import { programRoutes } from './routes/programs.ts';
 import { settingsRoutes } from './routes/settings.ts';
 import { bodyRoutes } from './routes/body.ts';
 import { workoutRoutes } from './routes/workouts.ts';
+import { integrationRoutes } from './routes/integration.ts';
 
 export async function buildApp(opts: { logger?: boolean | { level: string } } = {}) {
   const app = Fastify({ logger: opts.logger ?? false, trustProxy: true, bodyLimit: 2 * 1024 * 1024 });
@@ -42,6 +43,7 @@ export async function buildApp(opts: { logger?: boolean | { level: string } } = 
   await app.register(dataRoutes);
   await app.register(settingsRoutes);
   await app.register(bodyRoutes);
+  await app.register(integrationRoutes);
 
   // Serve the built PWA with an SPA fallback.
   if (fs.existsSync(path.join(config.webDir, 'index.html'))) {
