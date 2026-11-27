@@ -45,6 +45,7 @@ test('password: login sets a session cookie; wrong password and changed password
   config.auth.mode = 'password';
   config.auth.password = 'hunter2';
   assert.equal((await get('/api/today')).statusCode, 401);
+  assert.equal((await get('/healthz')).statusCode, 200, 'probes never need a session');
   const bad = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { password: 'nope' } });
   assert.equal(bad.statusCode, 401);
   const ok = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { password: 'hunter2' } });

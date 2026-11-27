@@ -3,9 +3,9 @@ import { initAuth } from './auth.ts';
 import { aiConfigured, config } from './config.ts';
 import { closeDb, openDb } from './db.ts';
 
-await openDb();
+await openDb(undefined, { migrate: config.migrateOnStart });
 await initAuth();
-const app = await buildApp({ logger: true });
+const app = await buildApp({ logger: { level: config.logLevel } });
 
 app.log.info(
   `AI: ${aiConfigured() ? `${config.ai.provider} (${config.ai.model})` : 'not configured, using rule-based programs'}; auth: ${config.auth.mode}`,

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 const env = process.env;
@@ -38,18 +39,38 @@ function authMode(): AuthMode {
   return str('APP_PASSWORD') ? 'password' : 'none';
 }
 
+const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
+type LogLevel = (typeof LOG_LEVELS)[number];
+
+function logLevel(): LogLevel {
+  const v = str('LOG_LEVEL')?.toLowerCase();
+  return (LOG_LEVELS as readonly string[]).includes(v ?? '') ? (v as LogLevel) : 'info';
+}
+
+/** Single source of truth for the version: package.json, which sits next to server/ in the image. */
+function packageVersion(): string {
+  try {
+    return JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version ?? '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
 export const config = {
   port: num('PORT', 8080),
   host: str('HOST') ?? '0.0.0.0',
   webDir: path.resolve(str('WEB_DIR') ?? './web/dist'),
-  /** Public base URL, e.g. https://fitness.lan.example.com (needed for OIDC redirects). */
-  publicUrl: (str('PUBLIC_URL') ?? '').replace(/\/$/, ''),
+  logLevel: logLevel(),
+  /** Public base URL, e.g. https://fitness.lan.stamx.nl (needed for OIDC redirects). PUBLIC_URL is the old name. */
+  publicUrl: (str('APP_URL') ?? str('PUBLIC_URL') ?? '').replace(/\/$/, ''),
 
   // Database: DATABASE_URL, or the standard PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE variables.
   databaseUrl: str('DATABASE_URL') ?? '',
   dbPoolSize: num('DB_POOL_SIZE', 10),
   dbSsl: bool('DB_SSL', false),
   dbSslVerify: bool('DB_SSL_VERIFY', true),
+  /** Run pending migrations at startup. Turn off when an init container runs `npm run migrate`. */
+  migrateOnStart: bool('MIGRATE_ON_START', true),
 
   auth: {
     mode: authMode(),
@@ -63,7 +84,8 @@ export const config = {
     // Authentik proxy outposts serve this path on the application's own domain.
     proxyLogoutUrl: str('PROXY_LOGOUT_URL') ?? '/outpost.goauthentik.io/sign_out',
     // Native OpenID Connect (e.g. Authentik OAuth2/OpenID provider).
-    oidcIssuer: str('OIDC_ISSUER') ?? '',
+    // OIDC_ISSUER is the old name.
+    oidcIssuer: str('OIDC_ISSUER_URL') ?? str('OIDC_ISSUER') ?? '',
     oidcClientId: str('OIDC_CLIENT_ID') ?? '',
     oidcClientSecret: str('OIDC_CLIENT_SECRET') ?? '',
     oidcScopes: str('OIDC_SCOPES') ?? 'openid profile email',
@@ -83,7 +105,7 @@ export const config = {
     language: str('AI_LANGUAGE') ?? 'English',
     timeoutMs: num('AI_TIMEOUT_MS', 90_000),
   },
-  version: '1.1.0',
+  version: packageVersion(),
 };
 
 /** OpenAI-compatible local servers (Ollama, LM Studio) often need no key. */

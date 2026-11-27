@@ -1,5 +1,5 @@
-// JSON/CSV export and JSON import. Database-level backups (pg_dump) are handled
-// outside the app, e.g. by the Kubernetes CronJob in k8s/.
+// JSON/CSV export and JSON import. Database-level backups (pg_dump, storage
+// snapshots) are handled outside the app.
 import { all, IDENTITY_TABLES, one, run, TABLES, tx } from '../db.ts';
 import { getExercise } from './exercises.ts';
 

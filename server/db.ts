@@ -126,16 +126,29 @@ export function getPool(): pg.Pool {
   return pool;
 }
 
-/** Connects (DATABASE_URL or the standard PG* variables) and runs pending migrations. */
-export async function openDb(connectionString = config.databaseUrl): Promise<pg.Pool> {
+/**
+ * Connects (DATABASE_URL or the standard PG* variables). Pending migrations run first
+ * unless `migrate` is false, e.g. when an init container already ran `npm run migrate`.
+ */
+export async function openDb(connectionString = config.databaseUrl, opts: { migrate?: boolean } = {}): Promise<pg.Pool> {
   pool = new pg.Pool({
     connectionString: connectionString || undefined,
     max: config.dbPoolSize,
     ssl: config.dbSsl ? { rejectUnauthorized: config.dbSslVerify } : undefined,
   });
   pool.on('error', (err) => console.error('Postgres pool error:', err.message));
-  await migrate(pool);
+  if (opts.migrate ?? true) await migrate(pool);
   return pool;
+}
+
+/** True when the database answers a trivial query. */
+export async function databaseReady(): Promise<boolean> {
+  try {
+    await getPool().query('SELECT 1');
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function closeDb() {
@@ -146,13 +159,18 @@ export async function closeDb() {
 // Fixed key so concurrent replicas never migrate at the same time.
 const MIGRATION_LOCK = 742_031_337;
 
-async function migrate(p: pg.Pool) {
+/**
+ * Applies pending migrations and returns how many ran. Idempotent: a second run is a
+ * no-op. The advisory lock keeps concurrent runs (init container + app) from colliding.
+ */
+export async function migrate(p: pg.Pool = getPool()): Promise<{ from: number; to: number }> {
   const client = await p.connect();
   try {
     await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK]);
     await client.query('CREATE TABLE IF NOT EXISTS schema_migrations (version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
     const { rows } = await client.query<{ v: number | null }>('SELECT max(version) AS v FROM schema_migrations');
-    for (let v = rows[0].v ?? 0; v < migrations.length; v++) {
+    const from = rows[0].v ?? 0;
+    for (let v = from; v < migrations.length; v++) {
       await client.query('BEGIN');
       try {
         await client.query(migrations[v]);
@@ -163,6 +181,7 @@ async function migrate(p: pg.Pool) {
         throw err;
       }
     }
+    return { from, to: Math.max(from, migrations.length) };
   } finally {
     await client.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK]).catch(() => {});
     client.release();

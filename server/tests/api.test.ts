@@ -7,7 +7,7 @@ const testDb = await startTestDb();
 delete process.env.AI_API_KEY;
 delete process.env.ANTHROPIC_API_KEY;
 
-const { openDb, closeDb } = await import('../db.ts');
+const { openDb, closeDb, migrate } = await import('../db.ts');
 const { initAuth } = await import('../auth.ts');
 const { buildApp } = await import('../app.ts');
 
@@ -41,6 +41,14 @@ const profile = {
   limitations: '',
   increments: { barbell: 2.5, dumbbell: 2, machine: 5, cable: 2.5, kettlebell: 4 },
 };
+
+test('healthz reports the database without auth; migrations are idempotent', async () => {
+  const health = await call('GET', '/healthz');
+  assert.equal(health.status, 200);
+  assert.deepEqual(health.body, { status: 'ok', database: 'ok' });
+  const again = await migrate();
+  assert.equal(again.from, again.to, 'a second migrate run is a no-op');
+});
 
 test('full flow: profile, program, workout, progression, stats, export', async () => {
   const info = await call('GET', '/api/info');
