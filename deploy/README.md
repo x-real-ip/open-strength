@@ -106,15 +106,18 @@ nergens in een repo. Eén nieuwe waarde verzegelen:
 
 ```bash
 printf '%s' 'de-nieuwe-waarde' > /tmp/w
-kubeseal --scope cluster-wide --raw --from-file=/tmp/w
+kubeseal --controller-name sealed-secrets --controller-namespace kube-system \
+  --scope cluster-wide --raw --from-file=/tmp/w
 rm /tmp/w
 ```
 
 Let op: `printf '%s'` en niet `echo`, anders komt er een newline in de waarde
-terecht en klopt het wachtwoord niet meer. Zonder toegang tot het cluster:
-`--cert <publiek certificaat van de controller>` toevoegen; haal dat op met
-`kubeseal --fetch-cert`. Een oud certificaat werkt niet meer zodra de
-controller zijn sleutel heeft vernieuwd.
+terecht en klopt het wachtwoord niet meer. De controller heet `sealed-secrets`
+in `kube-system`, niet de standaardnaam van kubeseal; zonder die vlaggen faalt
+het commando. Zonder toegang tot het cluster: `--cert <bestand>` met het
+certificaat van `kubeseal … --fetch-cert`. Gebruik een vers opgehaald
+certificaat: de controller vernieuwt zijn sleutel, en `sealed-secret-tls-2.crt`
+is niet meer het actuele certificaat.
 
 Wijzig je het wachtwoord in `overload-db-credentials`, dan moet `DATABASE_URL`
 mee: daar staat hetzelfde wachtwoord in.
