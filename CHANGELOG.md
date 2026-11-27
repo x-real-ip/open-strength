@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0 — 2026-11-27
+
+Eerste release die via GitOps naar het cluster gaat.
+
+- **Uitrol via `x-real-ip/gitops`**: `k8s/` is weg. De manifests (CloudNativePG-cluster, SealedSecrets, deployment met migrate-initContainer, HTTPRoute op `fitness.lan.stamx.nl`) staan in de gitops-repo; zie `deploy/README.md`.
+- **CI**: typecheck, tests, PWA-build, migraties tegen Postgres 18 (twee keer, plus `/healthz`), image naar `ghcr.io/x-real-ip/overload`, en bij een `v*`-tag een dispatch naar de gitops-repo. Labeler, release-drafter, release-monitor en yamllint zoals in depart.
+- **Health en migraties**: `GET /healthz` (`{"status":"ok","database":"ok"}`, 503 bij een databasefout). Migraties als los commando `npm run migrate` (idempotent, advisory lock); `MIGRATE_ON_START=false` slaat ze bij het opstarten over.
+- **Supersets**: sessies van 45 minuten of korter krijgen paren van oefeningen die elkaar niet in de weg zitten. In de training ga je na een set direct naar de partner; de rusttimer loopt na de ronde. De AI mag supersets voorstellen, de app repareert ze waar nodig.
+- **Offline**: niet-gesynchroniseerde sets staan nu in IndexedDB in plaats van localStorage. Een wachtrij uit 1.1 wordt automatisch overgezet.
+- Een nieuw profiel begint met sessies van 30 minuten.
+- Nieuwe namen voor omgevingsvariabelen, de oude blijven werken: `APP_URL` (was `PUBLIC_URL`), `OIDC_ISSUER_URL` (was `OIDC_ISSUER`). Nieuw: `LOG_LEVEL`, `MIGRATE_ON_START`.
+- De image draait als uid/gid 3001. Docker Compose gebruikt Postgres 18 en `DATABASE_URL`.
+- `CLAUDE.md` met de werkafspraken voor deze repo.
+
 ## 1.1.0 — 2026-10-30
 
 - Database van SQLite naar PostgreSQL (`pg`), migraties met advisory lock, readiness-probe `/api/ready`.
