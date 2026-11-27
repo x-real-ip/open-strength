@@ -21,7 +21,7 @@ const profile = await saveProfile({
   weightKg: 82,
   level: 'intermediate',
   goal: 'hypertrophy',
-  daysPerWeek: 3,
+  trainingDays: 3,
   sessionMinutes: 60,
   equipment: ['barbell', 'dumbbell', 'bench', 'machine', 'cable', 'pullup_bar'],
   limitations: '',

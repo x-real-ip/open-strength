@@ -5,86 +5,75 @@ import { t } from '../i18n.ts';
 import { addStep, deloadPreview } from '../workoutMath.ts';
 
 interface Session {
+  /** 0-based position in the block; the workout number is index + 1. */
   index: number;
-  week: number;
   dayIndex: number;
+  deload: boolean;
   status: 'done' | 'next' | 'planned';
 }
 
-/** Every session of the block in order. Days rotate, so the next one follows the last completed day. */
+/** Every workout of the block in order. Days rotate, so the next one follows the last completed day. */
 function sessionsOf(program: Program): Session[] {
   const n = program.days.length;
   const done = program.completedWorkouts;
-  return Array.from({ length: program.weeks * n }, (_, i) => ({
+  return Array.from({ length: program.totalWorkouts }, (_, i) => ({
     index: i,
-    week: Math.floor(i / n) + 1,
     dayIndex: i < done ? i % n : (program.nextDayIndex + (i - done)) % n,
+    deload: program.deloadFrom !== null && i + 1 >= program.deloadFrom,
     status: i < done ? 'done' : i === done ? 'next' : 'planned',
   }));
 }
 
-const status = (s: Session['status']) => ({ done: t('done', 'gedaan'), next: t('next', 'volgende'), planned: t('planned', 'gepland') })[s];
-
 export function ProgramLookahead({ program }: { program: Program }) {
   const sessions = sessionsOf(program);
   const [open, setOpen] = useState<number | null>(program.isComplete ? null : program.completedWorkouts);
-  const weeks = Array.from({ length: program.weeks }, (_, w) => sessions.filter((s) => s.week === w + 1));
 
   if (program.isComplete) {
     return <p className="muted">{t('This block is done. Make the next block on the Today screen.', 'Dit blok is afgerond. Maak het volgende blok op het Vandaag-scherm.')}</p>;
   }
 
+  const done = program.completedWorkouts;
+  const upcoming = sessions.filter((s) => s.status !== 'done');
+
   return (
     <div className="stack">
       <p className="faint small" style={{ margin: 0 }}>
         {t(
-          'Weights in later weeks are your current targets. They go up once you reach the top of the rep range; the next step is shown.',
-          'Gewichten in latere weken zijn je huidige doelen. Ze gaan omhoog zodra je de bovenkant van de herhalingen haalt; de volgende stap staat erbij.',
+          `The block is ${program.totalWorkouts} workouts, whenever you train them. Weights further on are your current targets; they go up once you reach the top of the rep range, and the next step is shown.`,
+          `Het blok is ${program.totalWorkouts} trainingen, wanneer je ze ook doet. Gewichten verderop zijn je huidige doelen; ze gaan omhoog zodra je de bovenkant van de herhalingen haalt, en de volgende stap staat erbij.`,
         )}
       </p>
-      {weeks.map((list, w) => {
-        const week = w + 1;
-        const deload = program.deloadWeek === week;
-        const allDone = list.every((s) => s.status === 'done');
-        return (
-          <section key={week}>
-            <div className="spread" style={{ marginBottom: 8 }}>
-              <h3>
-                Week {week}
-                {week === program.currentWeek ? t(' (now)', ' (nu)') : ''}
-              </h3>
-              {deload && <span className="tag deload">Deload</span>}
-              {allDone && <span className="faint small">{t('done', 'afgerond')}</span>}
+      {done > 0 && (
+        <p className="small muted" style={{ margin: 0 }}>
+          {t(`${done} of ${program.totalWorkouts} workouts done.`, `${done} van ${program.totalWorkouts} trainingen gedaan.`)}
+        </p>
+      )}
+      <div className="list">
+        {upcoming.map((s) => {
+          const day = program.days[s.dayIndex];
+          const expanded = open === s.index;
+          return (
+            <div key={s.index}>
+              <button className="list-row" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : s.index)}>
+                <span className="num faint" style={{ minWidth: 28 }}>
+                  {s.index + 1}
+                </span>
+                <div className="grow">
+                  <div className="title">{day.name}</div>
+                  <div className="sub">
+                    {s.status === 'next' ? t('next', 'volgende') : t(`after ${s.index - done} more`, `na nog ${s.index - done}`)}
+                  </div>
+                </div>
+                {s.deload && <span className="tag deload">Deload</span>}
+                <span className="faint" aria-hidden="true">
+                  {expanded ? '−' : '+'}
+                </span>
+              </button>
+              {expanded && <SessionPreview program={program} dayIndex={s.dayIndex} deload={s.deload} />}
             </div>
-            {!allDone && (
-              <div className="list">
-                {list.map((s) => {
-                  const day = program.days[s.dayIndex];
-                  const expanded = open === s.index;
-                  return (
-                    <div key={s.index}>
-                      <button className="list-row" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : s.index)}>
-                        <div className="grow">
-                          <div className="title" style={s.status === 'done' ? { color: 'var(--chalk-3)' } : undefined}>
-                            {day.name}
-                          </div>
-                          <div className="sub">
-                            {t(`Workout ${s.index + 1} of ${sessions.length}`, `Training ${s.index + 1} van ${sessions.length}`)}, {status(s.status)}
-                          </div>
-                        </div>
-                        <span className="faint" aria-hidden="true">
-                          {expanded ? '−' : '+'}
-                        </span>
-                      </button>
-                      {expanded && <SessionPreview program={program} dayIndex={s.dayIndex} deload={deload} />}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

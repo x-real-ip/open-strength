@@ -544,29 +544,37 @@ button.list-row:active {
   margin-left: 2px;
 }
 
-.week-track {
+.block-track {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   margin-top: 12px;
 }
 
-.week-track span {
+.block-track span {
   flex: 1;
   height: 6px;
-  border-radius: 3px;
+  border-radius: 2px;
   background: var(--deck-3);
 }
 
-.week-track span.done {
+.block-track span.done {
   background: var(--chalk);
 }
 
-.week-track span.deload {
+.block-track span.deload {
   background: color-mix(in srgb, var(--plate-blue) 55%, var(--deck-3));
 }
 
-.week-track span.done.deload {
+.block-track span.done.deload {
   background: var(--plate-blue);
+}
+
+.brand .version {
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--chalk-3);
 }
 
 .stat-row {

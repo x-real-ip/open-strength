@@ -40,8 +40,8 @@ export async function trainingFacts(profile: Profile | null): Promise<string> {
       `Afgeronde trainingen: ${stats.totals.workouts}; sets: ${stats.totals.sets}; totaal volume: ${stats.totals.volumeKg} kg.`,
     ),
   );
-  const planned = profile ? T(` (planned: ${profile.daysPerWeek})`, ` (gepland: ${profile.daysPerWeek})`) : '';
-  lines.push(T(`Average workouts per week (last 4 weeks): ${num(avgPerWeek)}${planned}.`, `Gemiddeld aantal trainingen per week (laatste 4 weken): ${num(avgPerWeek)}${planned}.`));
+  // Frequency varies on purpose; it is a fact to report, not a target to meet.
+  lines.push(T(`Average workouts per week (last 4 weeks): ${num(avgPerWeek)}.`, `Gemiddeld aantal trainingen per week (laatste 4 weken): ${num(avgPerWeek)}.`));
   const weekly = stats.weekly.map((w) => w.volumeKg).join(', ');
   lines.push(T(`Volume per week (kg), oldest first: ${weekly}.`, `Volume per week (kg), oudste eerst: ${weekly}.`));
   if (stats.muscles.length) {
@@ -49,12 +49,12 @@ export async function trainingFacts(profile: Profile | null): Promise<string> {
     lines.push(T(`Sets per week per muscle group, last 4 weeks (the 4 weeks before): ${muscles}.`, `Sets per week per spiergroep, laatste 4 weken (4 weken daarvoor): ${muscles}.`));
   }
   if (program) {
-    const deload = program.deloadWeek ? T(`, deload in week ${program.deloadWeek}`, `, deload in week ${program.deloadWeek}`) : '';
+    const deload = program.deloadFrom ? T(`, deload from workout ${program.deloadFrom}`, `, deload vanaf training ${program.deloadFrom}`) : '';
     const done = program.isComplete ? T(' (completed)', ' (afgerond)') : '';
     lines.push(
       T(
-        `Active program: "${program.name}", week ${program.currentWeek} of ${program.weeks}${deload}${done}.`,
-        `Actief programma: "${program.name}", week ${program.currentWeek} van ${program.weeks}${deload}${done}.`,
+        `Active program: "${program.name}", next is workout ${program.workoutNumber} of ${program.totalWorkouts}, rotating through ${program.days.length} training days${deload}${done}.`,
+        `Actief programma: "${program.name}", volgende is training ${program.workoutNumber} van ${program.totalWorkouts}, rouleert door ${program.days.length} trainingsdagen${deload}${done}.`,
       ),
     );
     for (const d of program.days) {
@@ -82,7 +82,7 @@ Rules:
 - Reply in ${AI_LANGUAGE[langOf(profile)]} unless the user's latest message is clearly in another language.
 
 USER PROFILE
-${profile ? `Age ${profile.age}, ${profile.heightCm} cm, ${profile.weightKg} kg, ${profile.level}, goal: ${profile.goal}, ${profile.daysPerWeek} days/week, ${profile.sessionMinutes} min/session. Limitations: ${profile.limitations || 'none'}.` : 'No profile yet.'}
+${profile ? `Age ${profile.age}, ${profile.heightCm} cm, ${profile.weightKg} kg, ${profile.level}, goal: ${profile.goal}, ${profile.trainingDays} training days in rotation (frequency varies), ${profile.sessionMinutes} min/session. Limitations: ${profile.limitations || 'none'}.` : 'No profile yet.'}
 
 TRAINING SUMMARY
 ${await trainingFacts(profile)}

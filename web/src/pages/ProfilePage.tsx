@@ -57,7 +57,7 @@ const empty = (): Profile => ({
   weightKg: 80,
   level: 'beginner',
   goal: 'hypertrophy',
-  daysPerWeek: 3,
+  trainingDays: 3,
   sessionMinutes: 30,
   equipment: ['barbell', 'dumbbell', 'bench', 'machine', 'cable', 'pullup_bar'],
   limitations: '',
@@ -194,14 +194,20 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="field">
-          <span>{t('Training days per week', 'Trainingsdagen per week')}</span>
+          <span>{t('Training days in the rotation', 'Trainingsdagen in de rotatie')}</span>
           <div className="seg">
             {[1, 2, 3, 4, 5, 6].map((d) => (
-              <button key={d} type="button" aria-pressed={p.daysPerWeek === d} onClick={() => set('daysPerWeek', d)}>
+              <button key={d} type="button" aria-pressed={p.trainingDays === d} onClick={() => set('trainingDays', d)}>
                 {d}
               </button>
             ))}
           </div>
+          <p className="faint small" style={{ margin: '6px 0 0' }}>
+            {t(
+              'How many different workouts (A, B, C…) the program rotates through. It is not tied to the week: train as often as you can, the next workout is always the next one in the rotation.',
+              'Hoeveel verschillende trainingen (A, B, C…) het programma afwisselt. Het hangt niet aan de week: train zo vaak als het uitkomt, de volgende training is altijd de volgende in de rotatie.',
+            )}
+          </p>
         </div>
         <div className="field">
           <span>{t('Time per session', 'Tijd per training')}</span>

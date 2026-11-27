@@ -21,12 +21,24 @@ function coerce(value: unknown, type: string): unknown {
   return value;
 }
 
+/** Columns renamed by migration 5; exports from older versions still use the old names. */
+const LEGACY_COLUMNS: Record<string, Record<string, string>> = {
+  programs: { weeks: 'rounds', deload_week: 'deload_round' },
+  workouts: { week: 'round' },
+};
+
+function renameLegacy(table: string, row: Record<string, unknown>): Record<string, unknown> {
+  const map = LEGACY_COLUMNS[table];
+  if (!map) return row;
+  return Object.fromEntries(Object.entries(row).map(([k, v]) => [map[k] && !(map[k] in row) ? map[k] : k, v]));
+}
+
 export async function importJson(data: any) {
   if (!data || data.app !== 'overload' || typeof data.tables !== 'object') throw new UserError(400, 'This is not an Overload export file', 'Dit is geen exportbestand van Overload');
   await tx(async (c) => {
     await run(`TRUNCATE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`, [], c);
     for (const t of TABLES) {
-      const rows = data.tables[t];
+      const rows = (data.tables[t] as Record<string, unknown>[] | undefined)?.map((r) => renameLegacy(t, r));
       if (!Array.isArray(rows) || rows.length === 0) continue;
       const columns = await all<ColumnInfo>('SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1 AND table_schema = current_schema()', [t], c);
       const types = new Map(columns.map((col) => [col.column_name, col.data_type]));

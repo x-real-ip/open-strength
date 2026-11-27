@@ -19,8 +19,8 @@ export interface ProgramDraftExercise {
 
 export interface ProgramDraft {
   name: string;
-  weeks: number;
-  deloadWeek: number | null;
+  rounds: number;
+  deloadRound: number | null;
   source: 'ai' | 'template';
   rationale: string;
   days: { name: string; focus: string; exercises: ProgramDraftExercise[] }[];
@@ -69,8 +69,26 @@ export function normalizeSupersets<T extends { superset?: string | null }>(exerc
   });
 }
 
-export function weekFor(completed: number, daysPerWeek: number): number {
-  return Math.floor(completed / Math.max(1, daysPerWeek)) + 1;
+/**
+ * Where you are in a block: rounds through the training days, counted in workouts, never in
+ * calendar weeks. The deload is the whole of `deloadRound` (normally the last round).
+ */
+export function blockProgress(completed: number, days: number, rounds: number, deloadRound: number | null) {
+  const perRound = Math.max(1, days);
+  const totalWorkouts = rounds * perRound;
+  const isComplete = completed >= totalWorkouts;
+  const workoutNumber = Math.min(completed + 1, totalWorkouts);
+  const round = Math.min(Math.floor(completed / perRound) + 1, rounds);
+  const deloadFrom = deloadRound ? (deloadRound - 1) * perRound + 1 : null;
+  return {
+    totalWorkouts,
+    workoutNumber,
+    round,
+    deloadFrom,
+    isComplete,
+    /** Whether the next workout is a deload workout. */
+    nextIsDeload: !isComplete && deloadRound !== null && round === deloadRound,
+  };
 }
 
 export interface SessionSets {
@@ -187,8 +205,8 @@ export async function saveProgram(draft: ProgramDraft, profile: Profile): Promis
     await run("UPDATE programs SET status = 'archived' WHERE status = 'active'", [], c);
     const ts = nowIso();
     const program = await one<{ id: number }>(
-      'INSERT INTO programs (name, weeks, deload_week, source, rationale, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-      [draft.name, draft.weeks, draft.deloadWeek, draft.source, draft.rationale, 'active', ts],
+      'INSERT INTO programs (name, rounds, deload_round, source, rationale, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+      [draft.name, draft.rounds, draft.deloadRound, draft.source, draft.rationale, 'active', ts],
       c,
     );
     const programId = program!.id;
@@ -267,21 +285,22 @@ export async function loadProgram(id: number, profile: Profile | null): Promise<
     focus: pick(d.focus, lang),
     exercises: exercises.filter((e) => e.program_day_id === d.id).map((r) => mapExercise(r, profile)),
   }));
-  const weeks = p.weeks;
-  const currentWeek = weekFor(completed, mappedDays.length);
+  const block = blockProgress(completed, mappedDays.length, p.rounds, p.deload_round);
   return {
     id: p.id,
     name: pick(p.name, lang),
-    weeks,
-    deloadWeek: p.deload_week,
+    rounds: p.rounds,
+    deloadRound: p.deload_round,
     source: p.source,
     rationale: pick(p.rationale, lang),
     status: p.status,
     createdAt: p.created_at,
     days: mappedDays,
     completedWorkouts: completed,
-    currentWeek: Math.min(currentWeek, weeks),
-    isComplete: currentWeek > weeks,
+    totalWorkouts: block.totalWorkouts,
+    workoutNumber: block.workoutNumber,
+    deloadFrom: block.deloadFrom,
+    isComplete: block.isComplete,
     nextDayIndex: lastDay && mappedDays.length ? (lastDay.day_index + 1) % mappedDays.length : 0,
   };
 }

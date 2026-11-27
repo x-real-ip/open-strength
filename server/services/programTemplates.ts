@@ -135,7 +135,7 @@ const GOAL_LABEL: Record<'en' | 'nl', Record<Goal, string>> = {
 };
 
 export function buildTemplateProgram(profile: Profile, prefs: Prefs = NO_PREFS): ProgramDraft {
-  const split = splitFor(profile.daysPerWeek);
+  const split = splitFor(profile.trainingDays);
   const perSession = exercisesPerSession(profile.sessionMinutes);
   const deload = profile.level === 'beginner' ? null : 6;
 
@@ -167,22 +167,28 @@ export function buildTemplateProgram(profile: Profile, prefs: Prefs = NO_PREFS):
     return { name: encode(t.name), focus: encode(t.focus), exercises };
   });
 
-  const d = profile.daysPerWeek;
+  const d = profile.trainingDays;
+  const rounds = 6;
+  const total = rounds * d;
+  const deloadFrom = total - d + 1;
+  const deloadRange = d === 1 ? `${total}` : `${deloadFrom}–${total}`;
   return {
     name: encode(loc(`${split.label.en} for ${GOAL_LABEL.en[profile.goal]}`, `${split.label.nl} voor ${GOAL_LABEL.nl[profile.goal]}`)),
-    weeks: 6,
-    deloadWeek: deload,
+    rounds,
+    deloadRound: deload ? rounds : null,
     source: 'template',
     rationale: encode(
       loc(
-        `${split.label.en} split for ${d} ${d === 1 ? 'day' : 'days'} a week, about ${perSession} exercises per session. ` +
+        `${split.label.en}: ${d} training ${d === 1 ? 'day' : 'days'} in rotation, about ${perSession} exercises per session. ` +
+          `The block is ${total} workouts (${rounds} rounds through the days); train as often as suits your week, the next workout is always the next day. ` +
           'Compound lifts come first, while you are fresh; weights go up with double progression.' +
           (supersets ? ' Exercises are paired into supersets of opposing muscle groups so the session fits the time: one set of each, then rest.' : '') +
-          (deload ? ' Week 6 is a lighter deload week to recover before the next block.' : ''),
-        `Schema ${split.label.nl} voor ${d} ${d === 1 ? 'dag' : 'dagen'} per week, ongeveer ${perSession} oefeningen per training. ` +
+          (deload ? ` Workout${d === 1 ? '' : 's'} ${deloadRange} ${d === 1 ? 'is a lighter deload' : 'are a lighter deload'} to recover before the next block.` : ''),
+        `${split.label.nl}: ${d} ${d === 1 ? 'trainingsdag' : 'trainingsdagen'} die rouleren, ongeveer ${perSession} oefeningen per training. ` +
+          `Het blok is ${total} trainingen (${rounds} rondes door de dagen); train zo vaak als in je week past, de volgende training is altijd de volgende dag. ` +
           'Samengestelde oefeningen komen eerst, als je nog fris bent; de gewichten gaan omhoog met double progression.' +
           (supersets ? ' Oefeningen zijn gekoppeld tot supersets van tegengestelde spiergroepen, zodat de training in de tijd past: één set van elk, dan rust.' : '') +
-          (deload ? ' Week 6 is een lichtere deloadweek om te herstellen voor het volgende blok.' : ''),
+          (deload ? ` Training ${deloadRange} ${d === 1 ? 'is een lichtere deload' : 'zijn een lichtere deload'} om te herstellen voor het volgende blok.` : ''),
       ),
     ),
     days,

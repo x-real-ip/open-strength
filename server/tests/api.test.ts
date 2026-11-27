@@ -36,7 +36,7 @@ const profile = {
   weightKg: 80,
   level: 'intermediate',
   goal: 'hypertrophy',
-  daysPerWeek: 3,
+  trainingDays: 3,
   sessionMinutes: 60,
   equipment: ['barbell', 'dumbbell', 'bench', 'cable', 'machine', 'pullup_bar'],
   limitations: '',
@@ -69,7 +69,8 @@ test('full flow: profile, program, workout, progression, stats, export', async (
 
   const today = await call('GET', '/api/today');
   assert.equal(today.body.nextDay.id, program.days[0].id);
-  assert.equal(today.body.program.currentWeek, 1);
+  assert.equal(today.body.program.workoutNumber, 1);
+  assert.equal(today.body.program.totalWorkouts, program.days.length * 6, 'a block of 6 rounds, counted in workouts');
 
   const started = await call('POST', '/api/workouts', { programDayId: today.body.nextDay.id });
   const workout = started.body.workout;
@@ -204,6 +205,8 @@ test('imports an export from the SQLite-based version 1.0', async () => {
   assert.equal((await call('POST', '/api/import/json', v1)).status, 200);
   const active = await call('GET', '/api/programs/active');
   assert.equal(active.body.program.name, 'Old program');
+  assert.equal(active.body.program.rounds, 6, 'old exports use weeks/deload_week; they map onto rounds');
+  assert.equal(active.body.program.deloadRound, 6);
   assert.equal(active.body.program.days[0].exercises[0].target.weight, 42.5);
   assert.deepEqual(active.body.program.days[0].exercises[0].target.repTargets, [8, 8, 8]);
   assert.equal((await call('GET', '/api/stats')).body.totals.workouts, 1);
@@ -216,7 +219,7 @@ test('30-minute sessions get superset pairs that reach the workout screen', asyn
   const today = await call('GET', '/api/today');
   if (today.body.inProgressWorkoutId) await call('DELETE', `/api/workouts/${today.body.inProgressWorkoutId}`);
 
-  assert.equal((await call('PUT', '/api/profile', { ...profile, daysPerWeek: 2, sessionMinutes: 30 })).status, 200);
+  assert.equal((await call('PUT', '/api/profile', { ...profile, trainingDays: 2, sessionMinutes: 30 })).status, 200);
   const gen = await call('POST', '/api/programs/generate', {});
   assert.equal(gen.status, 200);
   const day = gen.body.program.days[0];
@@ -241,7 +244,7 @@ test('the active program explains how it was built and which day is next', async
   const { program, explanation } = res.body;
   assert.equal(program.nextDayIndex, 0, 'no workouts done in this program yet');
   const titles = explanation.map((s: any) => s.title);
-  for (const t of ['Who made it', 'Schedule', 'Exercises per session', 'Sets, reps and rest', 'Starting weights', 'How weights change', 'Deload week']) {
+  for (const t of ['Who made it', 'Schedule', 'Exercises per session', 'Sets, reps and rest', 'Starting weights', 'How weights change', 'Deload']) {
     assert.ok(titles.includes(t), `has section ${t}`);
   }
   const sets = explanation.find((s: any) => s.title === 'Sets, reps and rest');
@@ -249,6 +252,13 @@ test('the active program explains how it was built and which day is next', async
   assert.ok(sets.bullets.some((b: string) => b.includes('superset')), 'superset rest is explained for 30-minute sessions');
   const perSession = explanation.find((s: any) => s.title === 'Exercises per session');
   assert.equal(perSession.bullets.length, program.days.length, 'one line per training day');
+});
+
+test('profiles saved with daysPerWeek (before 1.8) read as trainingDays', async () => {
+  const current = (await call('GET', '/api/profile')).body.profile;
+  const { trainingDays, ...rest } = current;
+  assert.equal((await call('PUT', '/api/profile', { ...rest, daysPerWeek: trainingDays })).status, 200);
+  assert.equal((await call('GET', '/api/profile')).body.profile.trainingDays, trainingDays);
 });
 
 test('everything the user sees follows the language in the profile', async () => {

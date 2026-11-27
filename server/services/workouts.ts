@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Decision, ExerciseOutcome, Profile, TodayResponse, Workout, WorkoutExercise, WorkoutSummary } from '../../shared/types.ts';
+import type { Decision, ExerciseOutcome, Profile, Program, TodayResponse, Workout, WorkoutExercise, WorkoutSummary } from '../../shared/types.ts';
 import { all, nowIso, one, run, tx } from '../db.ts';
 import { encode, formatKg, langOf, pick, loc, UserError } from '../i18n.ts';
 import { exerciseName, getExercise, localizeExercise } from './exercises.ts';
@@ -17,9 +17,15 @@ export function deloadPrescription(sets: number, weight: number, increment: numb
 }
 
 const DELOAD_REASON = loc(
-  'Deload week: fewer sets at about 90% of your working weight to recover. Progression continues next week.',
-  'Deloadweek: minder sets op ongeveer 90% van je werkgewicht om te herstellen. Volgende week gaat de progressie weer verder.',
+  'Deload: fewer sets at about 90% of your working weight to recover. Progression continues in the next block.',
+  'Deload: minder sets op ongeveer 90% van je werkgewicht om te herstellen. In het volgende blok gaat de progressie weer verder.',
 );
+
+/** The next workout falls in the deload round: the block's last `days` workouts when the deload is the last round. */
+function nextIsDeload(program: Program): boolean {
+  if (program.isComplete || program.deloadFrom === null) return false;
+  return program.workoutNumber >= program.deloadFrom && program.workoutNumber < program.deloadFrom + program.days.length;
+}
 
 export async function getToday(profile: Profile | null): Promise<TodayResponse> {
   const pid = await activeProgramId();
@@ -39,15 +45,17 @@ export async function getToday(profile: Profile | null): Promise<TodayResponse> 
       ? {
           id: program.id,
           name: program.name,
-          weeks: program.weeks,
-          deloadWeek: program.deloadWeek,
-          currentWeek: program.currentWeek,
+          rounds: program.rounds,
+          deloadRound: program.deloadRound,
+          totalWorkouts: program.totalWorkouts,
+          workoutNumber: program.workoutNumber,
+          deloadFrom: program.deloadFrom,
           isComplete: program.isComplete,
           completedWorkouts: program.completedWorkouts,
         }
       : null,
     nextDay,
-    isDeload: Boolean(program && !program.isComplete && program.deloadWeek === program.currentWeek),
+    isDeload: Boolean(program && nextIsDeload(program)),
     inProgressWorkoutId: inProgress?.id ?? null,
     lastWorkout: last ? { id: last.id, dayName: pick(last.day_name, langOf(profile)), finishedAt: last.finished_at } : null,
     workoutsThisWeek: thisWeek,
@@ -61,10 +69,10 @@ export async function startWorkout(programDayId: number, profile: Profile | null
   const day = await one('SELECT pd.*, p.id AS pid FROM program_days pd JOIN programs p ON p.id = pd.program_id WHERE pd.id = $1', [programDayId]);
   if (!day) throw new UserError(404, 'Training day not found', 'Trainingsdag niet gevonden');
   const program = (await loadProgram(day.pid, profile))!;
-  const isDeload = program.deloadWeek === program.currentWeek && !program.isComplete;
+  const round = Math.ceil(program.workoutNumber / Math.max(1, program.days.length));
   const row = await one<{ id: number }>(
-    'INSERT INTO workouts (program_id, program_day_id, day_name, week, is_deload, status, started_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-    [day.pid, programDayId, day.name, program.currentWeek, isDeload, 'in_progress', nowIso()],
+    'INSERT INTO workouts (program_id, program_day_id, day_name, round, is_deload, status, started_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+    [day.pid, programDayId, day.name, round, nextIsDeload(program), 'in_progress', nowIso()],
   );
   return row!.id;
 }
@@ -132,7 +140,7 @@ export async function getWorkout(id: number, profile: Profile | null): Promise<W
     status: w.status,
     startedAt: w.started_at,
     finishedAt: w.finished_at,
-    week: w.week,
+    round: w.round,
     isDeload,
     exercises,
   };
@@ -229,7 +237,7 @@ export async function finishWorkout(id: number, profile: Profile | null): Promis
           'deload',
           t?.weight ?? ex.targetWeight,
           t?.rep_targets ?? [],
-          encode(loc('Deload session logged. Next week you go back to your normal working weight.', 'Deloadtraining gelogd. Volgende week ga je terug naar je normale werkgewicht.')),
+          encode(loc('Deload workout logged. After the deload you go back to your normal working weight.', 'Deloadtraining gelogd. Na de deload ga je terug naar je normale werkgewicht.')),
         );
         continue;
       }

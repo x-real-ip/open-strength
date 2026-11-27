@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.ts';
+import { useInfo } from '../App.tsx';
 import { ErrorState, Loading, toast, useLoad } from '../components/ui.tsx';
 import { kg, relativeDay, repRange, supersetLabels } from '../format.ts';
 import { t } from '../i18n.ts';
 import { deloadPreview } from '../workoutMath.ts';
 
 export default function TodayPage() {
+  const info = useInfo();
   const navigate = useNavigate();
   const { data, error, loading, reload } = useLoad(() => api.today());
   const [busy, setBusy] = useState(false);
@@ -66,7 +68,9 @@ export default function TodayPage() {
   return (
     <main className="page">
       <div className="page-head">
-        <div className="brand">OVERLOAD</div>
+        <div className="brand">
+          OVERLOAD <span className="version">v{info.version}</span>
+        </div>
         {data.lastWorkout && (
           <Link to={`/workout/${data.lastWorkout.id}/summary`} className="faint small">
             {t('Last', 'Laatst')}: {data.lastWorkout.dayName}, {relativeDay(data.lastWorkout.finishedAt).toLowerCase()}
@@ -103,8 +107,8 @@ export default function TodayPage() {
           <h2>{t('Block complete', 'Blok afgerond')}</h2>
           <p className="muted" style={{ margin: 0 }}>
             {t(
-              `You did all ${program.weeks} weeks of ${program.name}. Make the next block; your current weights carry over.`,
-              `Je hebt alle ${program.weeks} weken van ${program.name} gedaan. Maak het volgende blok; je huidige gewichten gaan mee.`,
+              `You did all ${program.totalWorkouts} workouts of ${program.name}. Make the next block; your current weights carry over.`,
+              `Je hebt alle ${program.totalWorkouts} trainingen van ${program.name} gedaan. Maak het volgende blok; je huidige gewichten gaan mee.`,
             )}
           </p>
           <button
@@ -122,15 +126,26 @@ export default function TodayPage() {
           <header>
             <div className="spread">
               <span className="muted small">
-                {t(`Next workout, week ${program.currentWeek} of ${program.weeks}`, `Volgende training, week ${program.currentWeek} van ${program.weeks}`)}
+                {t(`Workout ${program.workoutNumber} of ${program.totalWorkouts}`, `Training ${program.workoutNumber} van ${program.totalWorkouts}`)}
               </span>
-              {data.isDeload && <span className="tag deload">{t('Deload week', 'Deloadweek')}</span>}
+              {data.isDeload && <span className="tag deload">Deload</span>}
             </div>
             <div className="day-name">{nextDay.name}</div>
             {nextDay.focus && <div className="muted small" style={{ marginTop: 6 }}>{nextDay.focus}</div>}
-            <div className="week-track" aria-label={t(`Week ${program.currentWeek} of ${program.weeks}`, `Week ${program.currentWeek} van ${program.weeks}`)}>
-              {Array.from({ length: program.weeks }, (_, i) => (
-                <span key={i} className={`${i + 1 < program.currentWeek ? 'done' : ''} ${program.deloadWeek === i + 1 ? 'deload' : ''}`} />
+            {/* One segment per workout in the block; the deload ones are tinted. */}
+            <div
+              className="block-track"
+              role="img"
+              aria-label={t(
+                `${program.completedWorkouts} of ${program.totalWorkouts} workouts done`,
+                `${program.completedWorkouts} van ${program.totalWorkouts} trainingen gedaan`,
+              )}
+            >
+              {Array.from({ length: program.totalWorkouts }, (_, i) => (
+                <span
+                  key={i}
+                  className={`${i < program.completedWorkouts ? 'done' : ''} ${program.deloadFrom !== null && i + 1 >= program.deloadFrom ? 'deload' : ''}`}
+                />
               ))}
             </div>
           </header>
@@ -176,15 +191,15 @@ export default function TodayPage() {
               <div className="label">{t('this week', 'deze week')}</div>
             </div>
             <div className="stat">
-              <div className="value">{program.completedWorkouts}</div>
-              <div className="label">{t('in this program', 'in dit programma')}</div>
+              <div className="value">
+                {program.completedWorkouts}
+                <span className="faint" style={{ fontSize: 20 }}>/{program.totalWorkouts}</span>
+              </div>
+              <div className="label">{t('in this block', 'in dit blok')}</div>
             </div>
             <div className="stat">
-              <div className="value">
-                {program.currentWeek}
-                <span className="faint" style={{ fontSize: 20 }}>/{program.weeks}</span>
-              </div>
-              <div className="label">{t('week', 'week')}</div>
+              <div className="value">{Math.max(0, program.totalWorkouts - program.completedWorkouts)}</div>
+              <div className="label">{t('to go', 'te gaan')}</div>
             </div>
           </div>
         </section>

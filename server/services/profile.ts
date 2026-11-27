@@ -5,14 +5,14 @@ import { DEFAULT_INCREMENTS } from './weights.ts';
 
 const step = z.number().min(0.25).max(20);
 
-export const profileSchema = z.object({
+const fields = z.object({
   name: z.string().trim().max(60).default(''),
   age: z.number().int().min(12).max(100),
   heightCm: z.number().min(100).max(250),
   weightKg: z.number().min(30).max(300),
   level: z.enum(['beginner', 'intermediate', 'advanced']),
   goal: z.enum(['hypertrophy', 'strength', 'conditioning', 'fat_loss']),
-  daysPerWeek: z.number().int().min(1).max(6),
+  trainingDays: z.number().int().min(1).max(6),
   sessionMinutes: z.number().int().min(20).max(180),
   equipment: z
     .array(z.enum(['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'pullup_bar', 'bench', 'bands', 'bodyweight']))
@@ -23,6 +23,15 @@ export const profileSchema = z.object({
     .default(DEFAULT_INCREMENTS),
   language: z.enum(['en', 'nl']).default('en'),
 });
+
+/** Profiles saved before 1.8 call the number of training days `daysPerWeek`. */
+export const profileSchema = z.preprocess((input) => {
+  if (input && typeof input === 'object' && !('trainingDays' in input) && 'daysPerWeek' in input) {
+    const { daysPerWeek, ...rest } = input as Record<string, unknown>;
+    return { ...rest, trainingDays: daysPerWeek };
+  }
+  return input;
+}, fields);
 
 export async function getProfile(): Promise<Profile | null> {
   const row = await one<{ data: unknown; updated_at: string }>('SELECT data, updated_at FROM profile WHERE id = 1');

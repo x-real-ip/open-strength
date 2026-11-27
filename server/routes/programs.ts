@@ -24,7 +24,7 @@ export async function programRoutes(app: FastifyInstance) {
   });
 
   app.get('/api/programs', async () => ({
-    programs: await all('SELECT id, name, weeks, source, status, created_at AS "createdAt" FROM programs ORDER BY id DESC'),
+    programs: await all('SELECT id, name, rounds, source, status, created_at AS "createdAt" FROM programs ORDER BY id DESC'),
   }));
 
   app.get('/api/programs/:id', async (req) => {

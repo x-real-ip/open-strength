@@ -75,8 +75,10 @@ export default function ProgramPage() {
     <main className="page">
       <div className="page-head" style={{ display: 'block' }}>
         <div className="muted small">
-          {t(`Week ${program.currentWeek} of ${program.weeks}`, `Week ${program.currentWeek} van ${program.weeks}`)}
-          {program.deloadWeek ? `, deload in week ${program.deloadWeek}` : ''}
+          {program.isComplete
+            ? t(`All ${program.totalWorkouts} workouts done`, `Alle ${program.totalWorkouts} trainingen gedaan`)
+            : t(`Workout ${program.workoutNumber} of ${program.totalWorkouts}`, `Training ${program.workoutNumber} van ${program.totalWorkouts}`)}
+          {program.deloadFrom ? t(`, deload from workout ${program.deloadFrom}`, `, deload vanaf training ${program.deloadFrom}`) : ''}
           {program.source === 'ai' ? t(', designed by AI', ', ontworpen door AI') : t(', rule-based', ', regelgebaseerd')}
         </div>
         <h1 style={{ marginTop: 4 }}>{program.name}</h1>

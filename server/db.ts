@@ -148,6 +148,13 @@ const migrations: string[] = [
     updated_at timestamptz NOT NULL
   );
   `,
+  // 5: a program block is a number of rounds through its training days, not a number of calendar
+  // weeks. The values keep their meaning (a "week" was already one round), only the names change.
+  `
+  ALTER TABLE programs RENAME COLUMN weeks TO rounds;
+  ALTER TABLE programs RENAME COLUMN deload_week TO deload_round;
+  ALTER TABLE workouts RENAME COLUMN week TO round;
+  `,
 ];
 
 let pool: pg.Pool | null = null;
