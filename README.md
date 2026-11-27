@@ -86,13 +86,14 @@ npm run migrate              # run migrations on their own (idempotent)
 npm run dev                  # API on :8080 (also migrates on start)
 npm --prefix web run dev     # frontend on :5173, proxies /api to :8080
 npm test                     # starts a temporary embedded Postgres per test file
+npm run test:e2e             # browser tests (Playwright); needs E2E_DATABASE_URL and npm run build
 npm run typecheck            # server and PWA
 npm run build                # builds the PWA into web/dist
 npm run seed:demo            # fills an EMPTY database with ~5 weeks of demo workouts
 npm run import:exercises     # re-import free-exercise-db from the fork (optionally a ref)
 ```
 
-`npm test` needs no running database. To use an existing test database, set `TEST_DATABASE_URL`. Note: its `public` schema is wiped.
+`npm test` needs no running database. `npm run test:e2e` runs the main flow (profile → program → workout → summary, in English and Dutch, on a phone and a desktop viewport) in Chromium; it starts the app itself, wipes the database in `E2E_DATABASE_URL` before every test, and runs in CI before the image is built. Install the browser once with `npx playwright install chromium`. To use an existing test database, set `TEST_DATABASE_URL`. Note: its `public` schema is wiped.
 
 Dependabot opens weekly PRs for npm packages (server and web) and GitHub Actions; minor and patch updates are grouped. The node base image is watched by the *Check releases* workflow.
 

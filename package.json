@@ -11,6 +11,7 @@
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.ts",
     "migrate": "node --disable-warning=ExperimentalWarning server/migrate.ts",
     "test": "node --disable-warning=ExperimentalWarning --test 'server/tests/*.test.ts'",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
     "typecheck": "tsc --noEmit && npm --prefix web run typecheck",
     "build": "npm --prefix web run build",
     "build:web": "npm --prefix web run build",
@@ -28,6 +29,7 @@
     "zod": "^4.6.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
     "@types/web-push": "^3.6.4",

@@ -4,7 +4,7 @@ Working agreements for this repository.
 
 ## Language
 
-- Code, comments, commits, PRs, release notes and documentation (`README.md`, `CHANGELOG.md`): **English**.
+- Code, comments, commits, PRs, release notes and documentation (`README.md`): **English**.
 - Everything the user sees exists in **English (default) and Dutch**; the profile's `language` picks one.
   - Web: write text in place as `t('English', 'Nederlands')` (`web/src/i18n.ts`). Numbers through `kg()`/`decimal()`
     (42.5 in English, 42,5 in Dutch), dates through `locale()`.
@@ -29,8 +29,10 @@ Working agreements for this repository.
 
 - The release tag decides the version. CI passes it into the image as `APP_VERSION` (tag `v1.2.3` → `1.2.3`);
   other builds show `dev-<commit>`. `package.json` has no version.
-- No version numbers in PRs or commits: not in titles, descriptions or files. Changelog entries go under
-  `## Unreleased`; the version is chosen when the release is published.
+- No version numbers in PRs or commits: not in titles, descriptions or files; the version is chosen when the
+  release is published.
+- Release notes come from release-drafter (PR titles and labels). PRs do not edit `CHANGELOG.md`: every PR
+  adding lines at the same spot made each next PR conflict. Write a clear PR title instead.
 
 ## Deployment
 
@@ -82,6 +84,9 @@ Working agreements for this repository.
 ```bash
 npm run typecheck && npm test && npm run build
 yamllint .
+E2E_DATABASE_URL=postgres://… npm run test:e2e   # browser tests; also run in CI
 ```
+
+Change UI text or flows? Update `e2e/flow.spec.ts` too: it clicks through the app by visible text, in both languages.
 
 CI builds the image from the `Dockerfile`; there is no Docker setup for local use.
