@@ -3,6 +3,7 @@ import type {
   AiSettingsView,
   AiUsageSummary,
   AppInfo,
+  BodyWeightEntry,
   CoachMessage,
   ExerciseDef,
   ExerciseHistory,
@@ -82,6 +83,13 @@ export const api = {
     ),
 
   stats: () => request<StatsResponse>('GET', '/api/stats'),
+  bodyWeights: () => request<{ entries: BodyWeightEntry[] }>('GET', '/api/body-weights'),
+  logBodyWeight: (weightKg: number, date: string) => request<{ entries: BodyWeightEntry[] }>('POST', '/api/body-weights', { weightKg, date }),
+  deleteBodyWeight: (id: number) => request<{ entries: BodyWeightEntry[] }>('DELETE', `/api/body-weights/${id}`),
+  pushKey: () => request<{ publicKey: string }>('GET', '/api/push/key'),
+  pushSubscribe: (sub: PushSubscriptionJSON) => request<{ ok: true }>('POST', '/api/push/subscriptions', sub),
+  pushUnsubscribe: (endpoint: string) => request<{ ok: true }>('DELETE', '/api/push/subscriptions', { endpoint }),
+  pushTest: () => request<{ sent: number }>('POST', '/api/push/test'),
   exerciseUsage: () => request<Record<string, ExerciseUsage>>('GET', '/api/stats/exercise-usage'),
   exerciseHistory: (exerciseId: string) => request<ExerciseHistory>('GET', `/api/stats/exercises/${encodeURIComponent(exerciseId)}`),
 

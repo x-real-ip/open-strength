@@ -8,6 +8,7 @@ import { langOf, UserError } from '../i18n.ts';
 import { aiConfigured, getAiSettings } from '../services/aiSettings.ts';
 import { databaseReady } from '../db.ts';
 import { libraryFor } from '../services/exercises.ts';
+import { noteProfileWeight } from '../services/bodyWeight.ts';
 import { getProfile, saveProfile } from '../services/profile.ts';
 
 export async function coreRoutes(app: FastifyInstance) {
@@ -73,5 +74,10 @@ export async function coreRoutes(app: FastifyInstance) {
   });
 
   app.get('/api/profile', async () => ({ profile: await getProfile() }));
-  app.put('/api/profile', async (req) => ({ profile: await saveProfile(req.body) }));
+  app.put('/api/profile', async (req) => {
+    const before = await getProfile();
+    const profile = await saveProfile(req.body);
+    await noteProfileWeight(before, profile);
+    return { profile };
+  });
 }
