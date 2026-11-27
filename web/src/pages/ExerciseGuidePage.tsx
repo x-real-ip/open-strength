@@ -2,14 +2,17 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ExerciseGuide } from '../components/ExerciseGuide.tsx';
 import { PreferenceButtons } from '../components/PreferenceButtons.tsx';
 import { IconBack } from '../components/Icons.tsx';
-import { ErrorState, Loading } from '../components/ui.tsx';
-import { CATEGORY_LABEL, equipmentText, LEVEL_LABEL, MUSCLE_LABEL, PATTERN_LABEL } from '../format.ts';
+import { api } from '../api.ts';
+import { ErrorState, Loading, useLoad } from '../components/ui.tsx';
+import { CATEGORY_LABEL, equipmentText, kg, LEVEL_LABEL, MUSCLE_LABEL, PATTERN_LABEL, relativeDay, repRange } from '../format.ts';
 import { useExercises } from '../exercises.ts';
 
 export default function ExerciseGuidePage() {
   const { exerciseId = '' } = useParams();
   const navigate = useNavigate();
   const exercises = useExercises();
+  // Your own history with the exercise and where it sits in the program; optional extras.
+  const { data: mine } = useLoad(() => Promise.all([api.activeProgram(), api.exerciseUsage()]), [exerciseId]);
 
   if (!exercises) return <Loading />;
   const ex = exercises.get(exerciseId);
@@ -40,6 +43,27 @@ export default function ExerciseGuidePage() {
             : 'Deze oefening kan niet in een programma: de app plant alleen krachtoefeningen met sets, herhalingen en gewicht.'}
         </p>
       )}
+
+      {(() => {
+        const usage = mine?.[1][ex.id];
+        const onDays = (mine?.[0].program?.days ?? []).flatMap((d) => d.exercises.filter((e) => e.exerciseId === ex.id).map((e) => ({ day: d.name, e })));
+        if (!usage && onDays.length === 0) return null;
+        return (
+          <div className="pills stacked" style={{ marginBottom: 16 }}>
+            {onDays.map(({ day, e }) => (
+              <span key={day} className="pill program">
+                In je programma: {day}, {e.sets} × {repRange(e.repMin, e.repMax)}
+              </span>
+            ))}
+            {usage && (
+              <span className="pill done">
+                {usage.sessions}× gedaan ({usage.sets} sets), laatst {relativeDay(usage.lastDone).toLowerCase()}
+                {usage.topWeight > 0 ? ` · zwaarste set ${kg(usage.topWeight)} kg × ${usage.topReps}` : ` · beste set ${usage.topReps} herhalingen`}
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {ex.programmable && (
         <section className="stack" style={{ marginBottom: 20 }}>

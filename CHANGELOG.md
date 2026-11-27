@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 — 2026-11-27
+
+- **Oefeningen in het menu**: de bibliotheek heeft een eigen knop in het menu onderin (tussen Programma en Voortgang) en hoeft niet meer via Programma of Profiel.
+- **Wat je met een oefening doet**: per oefening zie je op welke dagen hij in je programma staat en hoe vaak je hem al deed, met de datum van de laatste keer. Nieuwe filters: *In mijn programma*, per trainingsdag in de volgorde van je programma, en *Gedaan*, het vaakst gedane eerst. De uitleg van een oefening toont ook de sets en herhalingen in je programma, het aantal sets dat je deed en je zwaarste set.
+- `GET /api/stats/exercise-usage`: per oefening het aantal afgeronde trainingen en sets, de laatste keer en de zwaarste set.
+- De uitleg bovenaan de bibliotheek is ingeklapt (*Hoe werkt deze lijst?*).
+
 ## 1.5.0 — 2026-11-27
 
 - **Favorieten en "niet gebruiken"**: markeer oefeningen als favoriet (de ster in de bibliotheek) of zet ze op *Niet gebruiken* (in de uitleg van een oefening of vanuit je programma). De AI krijgt je favorieten gemarkeerd en zet ze in het schema waar ze passen. Uitgesloten oefeningen staan niet meer in de lijst voor de AI en worden vervangen als de AI ze toch kiest. Het regelgebaseerde programma kiest per bewegingspatroon eerst een favoriet, ook uit de import, en slaat uitgesloten oefeningen over.

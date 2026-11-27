@@ -2,12 +2,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import type { Decision } from '@shared/types.ts';
 import { DECISION_LABEL } from '../format.ts';
-import { IconCoach, IconProfile, IconProgram, IconProgress, IconToday } from './Icons.tsx';
+import { IconCoach, IconExercises, IconProfile, IconProgram, IconProgress, IconToday } from './Icons.tsx';
 
 export function BottomNav() {
   const items = [
     { to: '/', label: 'Vandaag', icon: <IconToday /> },
     { to: '/program', label: 'Programma', icon: <IconProgram /> },
+    { to: '/exercises', label: 'Oefeningen', icon: <IconExercises /> },
     { to: '/progress', label: 'Voortgang', icon: <IconProgress /> },
     { to: '/coach', label: 'Coach', icon: <IconCoach /> },
     { to: '/profile', label: 'Profiel', icon: <IconProfile /> },

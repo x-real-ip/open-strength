@@ -459,7 +459,7 @@ button.list-row:active {
   bottom: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   height: calc(var(--nav-h) + var(--safe-b));
   padding-bottom: var(--safe-b);
   background: color-mix(in srgb, var(--floor) 92%, transparent);
@@ -474,12 +474,21 @@ button.list-row:active {
   gap: 3px;
   color: var(--chalk-3);
   text-decoration: none;
-  font-size: 12px;
+  /* Six items: small enough that "Oefeningen" fits on a 360 px wide phone. */
+  font-size: 11px;
   font-weight: 600;
+  min-width: 0;
 }
 
 .nav a.active {
   color: var(--chalk);
+}
+
+@media (max-width: 380px) {
+  .nav a {
+    font-size: 10px;
+    letter-spacing: -0.01em;
+  }
 }
 
 /* ---------- Today ---------- */
@@ -1617,4 +1626,44 @@ details.why summary::-webkit-details-marker {
   color: var(--chalk-3);
   text-decoration: line-through;
   text-decoration-color: var(--plate-red);
+}
+
+/* ---------- Library rows: in the program, trained before ---------- */
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pill {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.pill.program {
+  background: color-mix(in srgb, var(--plate-blue) 22%, transparent);
+  color: #a9c8f8;
+}
+
+.pill.done {
+  background: color-mix(in srgb, var(--plate-green) 22%, transparent);
+  color: #8fd6a9;
+}
+
+/* On the guide page the pills are full sentences: one per line. */
+.pills.stacked {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.pills.stacked .pill {
+  line-height: 1.35;
+  padding: 4px 10px;
 }

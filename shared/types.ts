@@ -107,6 +107,17 @@ export interface LibraryExercise {
   weightNote?: string;
 }
 
+/** What the user has done with an exercise, from completed workouts. */
+export interface ExerciseUsage {
+  /** Completed workouts that included it. */
+  sessions: number;
+  sets: number;
+  lastDone: string;
+  /** Heaviest logged weight (kg; 0 for bodyweight work) and the best reps at that weight. */
+  topWeight: number;
+  topReps: number;
+}
+
 export type ExercisePreference = 'favorite' | 'excluded';
 
 /** Exercises the user marked: favourites go into programs where they fit, excluded ones never. */

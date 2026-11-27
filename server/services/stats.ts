@@ -1,4 +1,4 @@
-import type { ExerciseHistory, MuscleGroup, StatsResponse } from '../../shared/types.ts';
+import type { ExerciseHistory, ExerciseUsage, MuscleGroup, StatsResponse } from '../../shared/types.ts';
 import { all } from '../db.ts';
 import { getExercise } from './exercises.ts';
 import { e1rm } from './weights.ts';
@@ -31,6 +31,22 @@ function byExercise(rows: SetRow[]): Map<string, SetRow[]> {
     map.set(r.exercise_id, list);
   }
   return map;
+}
+
+/** Per exercise: how often and how recently it was trained, and the heaviest set. */
+export async function exerciseUsage(): Promise<Record<string, ExerciseUsage>> {
+  const rows = await all<{ exercise_id: string; sessions: number; sets: number; last_done: string; top_weight: number; top_reps: number }>(
+    `SELECT s.exercise_id, count(DISTINCT s.workout_id)::int AS sessions, count(*)::int AS sets, max(w.finished_at) AS last_done,
+            max(s.weight) AS top_weight,
+            max(s.reps) FILTER (WHERE s.weight = (SELECT max(s2.weight) FROM workout_sets s2 JOIN workouts w2 ON w2.id = s2.workout_id
+                                                  WHERE w2.status = 'completed' AND s2.completed AND s2.exercise_id = s.exercise_id))::int AS top_reps
+     FROM workout_sets s JOIN workouts w ON w.id = s.workout_id
+     WHERE w.status = 'completed' AND s.completed
+     GROUP BY s.exercise_id`,
+  );
+  return Object.fromEntries(
+    rows.map((r) => [r.exercise_id, { sessions: r.sessions, sets: r.sets, lastDone: r.last_done, topWeight: r.top_weight, topReps: r.top_reps ?? 0 }]),
+  );
 }
 
 export async function exerciseHistory(exerciseId: string): Promise<ExerciseHistory> {
