@@ -1,4 +1,4 @@
-import type { Decision, Equipment, MuscleGroup } from '@shared/types.ts';
+import type { Decision, Equipment, MovementPattern, MuscleGroup } from '@shared/types.ts';
 
 export function kg(weight: number): string {
   // Dutch decimal comma: 42,5.
@@ -98,3 +98,23 @@ export const EQUIPMENT_LABEL: Record<Equipment, string> = {
 export function equipmentText(equipment: Equipment[]): string {
   return equipment.filter((e) => e !== 'bodyweight').map((e) => EQUIPMENT_LABEL[e]).join(', ') || 'Geen apparatuur';
 }
+
+export const PATTERN_LABEL: Record<MovementPattern, string> = {
+  horizontal_push: 'Horizontaal duwen',
+  vertical_push: 'Verticaal duwen',
+  horizontal_pull: 'Horizontaal trekken',
+  vertical_pull: 'Verticaal trekken',
+  squat: 'Squat',
+  lunge: 'Eén been',
+  hinge: 'Heupscharnier',
+  chest_iso: 'Borst (isolatie)',
+  shoulder_iso: 'Schouders (isolatie)',
+  rear_delt: 'Achterkant schouders',
+  quad_iso: 'Quadriceps (isolatie)',
+  hamstring_iso: 'Hamstrings (isolatie)',
+  glute_iso: 'Billen',
+  calf: 'Kuiten',
+  biceps: 'Biceps',
+  triceps: 'Triceps',
+  core: 'Core',
+};

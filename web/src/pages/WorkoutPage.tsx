@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ExerciseDef, LoggedSet, Workout, WorkoutExercise } from '@shared/types.ts';
 import { api, dropQueuedSet, flushQueue, pendingCount, pendingFor, queueSet } from '../api.ts';
+import { ExerciseGuide } from '../components/ExerciseGuide.tsx';
 import { IconCheck, IconClose, IconSwap } from '../components/Icons.tsx';
+import { useExercises } from '../exercises.ts';
 import { loadRest, primeAudio, RestTimer, saveRest, type RestState } from '../components/RestTimer.tsx';
 import { DecisionTag, ErrorState, Loading, Sheet, toast } from '../components/ui.tsx';
 import { clock, equipmentText, kg, relativeDay, repRange, rest as restLabel, supersetLabels } from '../format.ts';
@@ -65,6 +67,8 @@ export default function WorkoutPage() {
   const [unsynced, setUnsynced] = useState(pendingCount());
   const [finishing, setFinishing] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const library = useExercises();
   const stripRef = useRef<HTMLDivElement>(null);
 
   const posKey = `overload.workout.${workoutId}.current`;
@@ -329,6 +333,11 @@ export default function WorkoutPage() {
             {ex.superset ? ' na de ronde' : ''}
           </span>
         </div>
+        {library?.get(ex.exerciseId)?.steps.length ? (
+          <button className="link-btn small" style={{ marginTop: 6 }} onClick={() => setGuideOpen(true)}>
+            Hoe doe je dit?
+          </button>
+        ) : null}
         {ex.superset && (
           <p className="ss-note">
             Superset met{' '}
@@ -504,6 +513,13 @@ export default function WorkoutPage() {
             )}
           </div>
         </div>
+      )}
+
+      {library?.get(ex.exerciseId) && (
+        <Sheet open={guideOpen} onClose={() => setGuideOpen(false)} label={ex.name}>
+          <h2 style={{ marginBottom: 12 }}>{ex.name}</h2>
+          <ExerciseGuide exercise={library.get(ex.exerciseId)!} />
+        </Sheet>
       )}
 
       <SwapSheet

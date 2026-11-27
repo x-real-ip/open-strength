@@ -1367,3 +1367,114 @@ details.why summary::-webkit-details-marker {
   color: var(--chalk-2);
   font-size: 14px;
 }
+
+/* ---------- Exercise demo: start and end photo crossfade like a slow animation ---------- */
+
+.demo {
+  position: relative;
+  margin: 0;
+  border-radius: var(--r-panel);
+  overflow: hidden;
+  background: #fff;
+}
+
+.demo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: contain;
+}
+
+.demo img + img {
+  position: absolute;
+  inset: 0;
+  animation: demo-swap 2.4s infinite;
+}
+
+@keyframes demo-swap {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  50%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.demo figcaption {
+  padding: 8px 12px;
+  background: var(--deck-2);
+  color: var(--chalk-2);
+  font-size: 13px;
+}
+
+/* Without motion: show start and end next to each other. */
+@media (prefers-reduced-motion: reduce) {
+  .demo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .demo img + img {
+    position: static;
+    animation: none;
+  }
+  .demo figcaption {
+    grid-column: 1 / -1;
+  }
+}
+
+.steps {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+  color: var(--chalk);
+  line-height: 1.45;
+}
+
+.thumb {
+  width: 56px;
+  height: 38px;
+  flex: none;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #fff;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chips button {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--deck-3);
+  background: transparent;
+  color: var(--chalk-2);
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.chips button[aria-pressed='true'] {
+  border-color: var(--chalk);
+  color: var(--chalk);
+}
+
+.list-row.unavailable .title {
+  color: var(--chalk-3);
+}

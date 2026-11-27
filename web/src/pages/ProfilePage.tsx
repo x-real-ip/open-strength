@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { Equipment, Goal, Level, Profile } from '@shared/types.ts';
 import { api } from '../api.ts';
 import { useInfo } from '../App.tsx';
@@ -173,7 +173,12 @@ export default function ProfilePage() {
       </section>
 
       <section className="section stack">
-        <h2>Apparatuur</h2>
+        <div className="spread">
+          <h2>Apparatuur</h2>
+          <Link className="link-btn small" to="/exercises">
+            Bekijk de oefeningen
+          </Link>
+        </div>
         <div className="toggles">
           {PRESETS.map((pr) => (
             <button key={pr.label} type="button" className="link-btn small" onClick={() => set('equipment', pr.equipment)}>

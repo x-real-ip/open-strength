@@ -75,6 +75,9 @@ export default function ProgramPage() {
           {program.source === 'ai' ? ', ontworpen door AI' : ', regelgebaseerd'}
         </div>
         <h1 style={{ marginTop: 4 }}>{program.name}</h1>
+        <Link className="link-btn small" to="/exercises" style={{ display: 'inline-block', marginTop: 8 }}>
+          Alle oefeningen bekijken
+        </Link>
       </div>
 
       {program.rationale && (
@@ -220,6 +223,9 @@ function ExerciseSheet({ exercise, onClose, onChanged }: { exercise: ProgramExer
               Volgende keer {kg(weight)} kg
             </button>
           )}
+          <Link className="btn block" to={`/exercises/${exercise.exerciseId}`}>
+            Hoe doe je dit?
+          </Link>
           <button className="btn block" onClick={() => setSwap(true)}>
             Wisselen voor een andere oefening
           </button>

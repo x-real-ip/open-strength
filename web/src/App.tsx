@@ -5,6 +5,8 @@ import { api, flushQueue } from './api.ts';
 import { BottomNav, ErrorState, Loading, ToastHost } from './components/ui.tsx';
 import CoachPage from './pages/CoachPage.tsx';
 import ExerciseDetail from './pages/ExerciseDetail.tsx';
+import ExerciseGuidePage from './pages/ExerciseGuidePage.tsx';
+import ExercisesPage from './pages/ExercisesPage.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
 import ProgramPage from './pages/ProgramPage.tsx';
@@ -53,6 +55,8 @@ export default function App() {
         <Route path="/program" element={<ProgramPage />} />
         <Route path="/progress" element={<ProgressPage />} />
         <Route path="/progress/:exerciseId" element={<ExerciseDetail />} />
+        <Route path="/exercises" element={<ExercisesPage />} />
+        <Route path="/exercises/:exerciseId" element={<ExerciseGuidePage />} />
         <Route path="/coach" element={<CoachPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/workout/:id" element={<WorkoutPage />} />
