@@ -6,6 +6,9 @@
 - **Oefeningenbibliotheek in de app**: alle 67 oefeningen die in een programma kunnen komen, per spiergroep, met zoeken en een filter op je apparatuur.
 - **Hoe doe je dit?**: per oefening Nederlandse stappen en twee voorbeeldfoto's (begin- en eindpositie, als korte animatie) uit free-exercise-db (publiek domein), offline beschikbaar. Te openen tijdens de training, vanuit het programma en vanuit de bibliotheek.
 - **Programma: hoe het is opgebouwd**: uitleg in gewone taal van schema, oefeningkeuze, sets/herhalingen/rust bij je doel, startgewichten, progressie en deload, gemaakt uit dezelfde regels die het programma bouwen.
+- **AI-instellingen in de app**: aanbieder, model, API-sleutel, denkniveau per onderdeel (standaard: coach laag, programma's middel) en een maandbudget, opgeslagen in de database. Omgevingsvariabelen zijn alleen nog de standaard. Met een knop test je de verbinding.
+- **Verbruik**: elke AI-aanroep wordt bijgehouden (migratie 3) met tokens en geschatte kosten; per maand, per onderdeel, per dag en de laatste aanroepen. Bij het bereiken van het maandbudget stopt de AI.
+- Claude wordt nu aangeroepen via de officiële Anthropic SDK, met een expliciet denkniveau en genoeg ruimte voor nadenken (coach 4.000, programma 16.000 tokens). Weigeringen en afgekapte antwoorden worden herkend; Sonnet 5.5 en Opus 5.5 vallen bij een weigering automatisch terug op een ander model.
 - **Programma: vooruitkijken**: alle trainingen van het blok per week, met de deloadweek, de geplande gewichten en per oefening de volgende stap.
 
 ## 1.2.0 — 2026-11-27

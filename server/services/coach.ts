@@ -69,7 +69,7 @@ ${await historyDigest(5)}`;
 }
 
 async function offlineAnswer(profile: Profile | null): Promise<string> {
-  return `Er is geen AI ingesteld op de server, dus hier zijn de feiten uit je gelogde trainingen:\n\n${await trainingFacts(profile)}\n\nMet een AI-sleutel krijg je een geschreven analyse en antwoord op je vragen.`;
+  return `AI staat uit, dus hier zijn de feiten uit je gelogde trainingen:\n\n${await trainingFacts(profile)}\n\nZet AI aan via Profiel → AI-instellingen voor een geschreven analyse en antwoord op je vragen.`;
 }
 
 export async function sendMessage(content: string, profile: Profile | null): Promise<CoachMessage[]> {

@@ -25,6 +25,14 @@ Working agreements for this repository.
 - A release tag `v*` deploys: CI dispatches to gitops, which pins the image tag. Never
   push to `main` of gitops directly; Argo CD applies it immediately. Use a PR.
 
+## AI
+
+- Claude calls go through the official `@anthropic-ai/sdk` (`server/services/ai.ts`); other providers through
+  the OpenAI-compatible chat API. Every call is recorded in `ai_usage`.
+- AI settings saved in the app (`services/aiSettings.ts`, settings key `ai`) win over `AI_*` environment
+  variables. Never send the API key to the browser.
+- Keep `MODEL_PRICES` in `aiSettings.ts` in line with the published price list.
+
 ## Exercise library
 
 - `server/services/exercises.ts` is the only list programs may use. Every exercise needs a Dutch guide in

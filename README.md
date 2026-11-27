@@ -30,6 +30,9 @@ Persoonlijke, self-hosted krachttrainingsapp: AI-gegenereerde trainingsprogramma
 
 AI is optioneel: zonder sleutel werkt alles, alleen zonder AI.
 
+- **AI-instellingen** (Profiel → AI-instellingen en verbruik): aanbieder, model, API-sleutel, hoeveel het model nadenkt (apart voor de coach en voor programma's) en een maandbudget. Deze instellingen staan in de database en gaan voor de omgevingsvariabelen; die zijn alleen nog de standaard. De sleutel gaat nooit naar de browser. Met *Verbinding testen* controleer je sleutel en model.
+- **Verbruik**: elke AI-aanroep wordt bijgehouden met tokens en geschatte kosten (op basis van de prijslijst). Je ziet deze maand, per onderdeel, per dag en de laatste aanroepen. Is het maandbudget op, dan stopt de AI tot de volgende maand en valt de app terug op regelgebaseerde programma's.
+
 ## Uitrollen
 
 De manifests staan in [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops) onder `manifests/overload/`, niet in deze repo. Daar staan ook de database (CloudNativePG), de migrate-initContainer en de SealedSecrets.
@@ -106,7 +109,7 @@ Alle instellingen zijn omgevingsvariabelen. Voor lokaal staan ze in `.env.exampl
 | `NODE_EXTRA_CA_CERTS` | Extra CA voor uitgaande TLS, zoals de Stamx CA voor Authentik |
 | `PROXY_USER_HEADER`, `PROXY_EMAIL_HEADER`, `PROXY_GROUPS_HEADER`, `PROXY_LOGOUT_URL` | Proxy-modus (standaard de Authentik-headers) |
 | `ALLOWED_USERS`, `ALLOWED_GROUPS` | Optionele allowlists (kommagescheiden) voor `oidc` en `proxy`. `ALLOWED_USERS` matcht op gebruikersnaam of e-mailadres |
-| `AI_PROVIDER` | `anthropic` (Claude, standaard) of `openai` (elke OpenAI-compatibele API, ook Ollama, LM Studio of LiteLLM) |
+| `AI_PROVIDER` | `anthropic` (Claude, standaard) of `openai` (elke OpenAI-compatibele API, ook Ollama, LM Studio of LiteLLM). Net als de andere `AI_*`-variabelen alleen de standaard: de AI-instellingen in de app gaan voor |
 | `ANTHROPIC_API_KEY` of `AI_API_KEY` | AI-sleutel; blijft op de server |
 | `AI_MODEL`, `AI_BASE_URL` | Model (standaard `claude-sonnet-5-5`, of `gpt-4o-mini` voor `openai`) en endpoint |
 | `AI_LANGUAGE` | Taal van door de AI geschreven programmateksten. De coach antwoordt in de taal van je vraag |

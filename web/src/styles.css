@@ -1498,3 +1498,27 @@ details.why summary::-webkit-details-marker {
 .preview-line:first-child {
   border-top: 0;
 }
+
+/* ---------- Budget meter: chalk while there is room, yellow near the limit, red at the limit ---------- */
+
+.meter {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--deck-2);
+  overflow: hidden;
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--chalk-2);
+}
+
+.meter span.high {
+  background: var(--plate-yellow);
+}
+
+.meter span.full {
+  background: var(--plate-red);
+}

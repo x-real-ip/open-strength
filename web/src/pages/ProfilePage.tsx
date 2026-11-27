@@ -276,9 +276,12 @@ function AboutSection() {
   return (
     <section className="section stack">
       <h2>Over de app</h2>
+      <Link className="btn block" to="/ai">
+        AI-instellingen en verbruik
+      </Link>
       <div className="panel small muted stack" style={{ gap: 4 }}>
         <div>
-          AI: {info.aiConfigured ? `${info.aiProvider}, model ${info.aiModel}` : 'niet ingesteld (regelgebaseerde programma’s, de coach toont alleen feiten)'}
+          AI: {info.aiConfigured ? `aan, ${info.aiModel}` : 'uit (regelgebaseerde programma’s, de coach toont alleen feiten)'}
         </div>
         {info.user && info.authMode !== 'none' && <div>Ingelogd als {info.user.name ?? info.user.username}</div>}
         <div>Versie {info.version}</div>

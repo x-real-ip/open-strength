@@ -160,7 +160,7 @@ export default function ProgramPage() {
                 {busy ? 'Bezig…' : 'Opnieuw opbouwen vanuit profiel'}
               </button>
               <p className="faint small" style={{ margin: 0 }}>
-                Geschreven wensen hebben AI nodig. Zet daarvoor een API-sleutel op de server. Zonder AI kun je nog steeds oefeningen wisselen en opnieuw opbouwen vanuit je profiel.
+                Geschreven wensen hebben AI nodig; zet die aan via Profiel → AI-instellingen. Zonder AI kun je nog steeds oefeningen wisselen en opnieuw opbouwen vanuit je profiel.
               </p>
             </>
           )}

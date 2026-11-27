@@ -1,4 +1,7 @@
 import type {
+  AiSettingsUpdate,
+  AiSettingsView,
+  AiUsageSummary,
   AppInfo,
   CoachMessage,
   ExerciseDef,
@@ -76,6 +79,11 @@ export const api = {
   clearCoach: () => request<{ ok: true }>('DELETE', '/api/coach/messages'),
 
   importJson: (data: unknown) => request<{ ok: true }>('POST', '/api/import/json', data),
+
+  aiSettings: () => request<AiSettingsView>('GET', '/api/settings/ai'),
+  saveAiSettings: (update: AiSettingsUpdate) => request<AiSettingsView>('PUT', '/api/settings/ai', update),
+  testAi: () => request<{ ok: true; reply: string; ms: number }>('POST', '/api/settings/ai/test'),
+  usage: () => request<AiUsageSummary>('GET', '/api/usage'),
 };
 
 // ---------------------------------------------------------------------------

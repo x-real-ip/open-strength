@@ -104,7 +104,7 @@ export default function CoachPage() {
           </p>
           <p className="faint small" style={{ margin: 0 }}>
             De coach legt gewichten uit maar verandert ze nooit; je volgende gewichten komen altijd uit je gelogde sets.
-            {!info.aiConfigured && ' Er is geen AI ingesteld op de server, dus de coach toont alleen feiten uit je trainingen.'}
+            {!info.aiConfigured && ' AI staat uit, dus de coach toont alleen feiten uit je trainingen. Zet AI aan via Profiel → AI-instellingen.'}
           </p>
         </div>
       )}

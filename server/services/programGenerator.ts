@@ -153,7 +153,7 @@ export async function generateProgram(profile: Profile, opts: { current?: Progra
   if (opts.useAi === false || !aiConfigured()) {
     return {
       draft: buildTemplateProgram(profile),
-      notice: aiConfigured() ? null : 'Er is geen AI ingesteld, dus er is een regelgebaseerd programma gemaakt. Met een API-sleutel ontwerpt de AI je programma’s.',
+      notice: aiConfigured() ? null : 'AI staat uit, dus er is een regelgebaseerd programma gemaakt. Zet AI aan via Profiel → AI-instellingen om programma’s door de AI te laten ontwerpen.',
     };
   }
 
