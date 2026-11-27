@@ -32,9 +32,13 @@ export function linked(): boolean {
 let lastStatus: LinkStatus = 'off';
 const cache = new Map<string, { at: number; value: unknown }>();
 const CACHE_MS = 60_000;
+/** After a failed call the other app is left alone for a while, so pages don't each wait for the timeout. */
+const RETRY_AFTER_MS = 15_000;
+let failedAt = 0;
 
 export function clearNutrilogCache() {
   cache.clear();
+  failedAt = 0;
 }
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -61,12 +65,17 @@ async function cachedGet<T>(path: string): Promise<T | null> {
   }
   const hit = cache.get(path);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.value as T;
+  if (Date.now() - failedAt < RETRY_AFTER_MS) {
+    lastStatus = 'unreachable';
+    return null;
+  }
   try {
     const value = await call<T>('GET', path);
     cache.set(path, { at: Date.now(), value });
     return value;
   } catch {
     lastStatus = 'unreachable';
+    failedAt = Date.now();
     return null;
   }
 }
