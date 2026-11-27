@@ -7,7 +7,7 @@ const testDb = await startTestDb();
 delete process.env.AI_API_KEY;
 delete process.env.ANTHROPIC_API_KEY;
 
-const { openDb, closeDb } = await import('../db.ts');
+const { openDb, closeDb, migrate } = await import('../db.ts');
 const { initAuth } = await import('../auth.ts');
 const { buildApp } = await import('../app.ts');
 
@@ -41,6 +41,14 @@ const profile = {
   limitations: '',
   increments: { barbell: 2.5, dumbbell: 2, machine: 5, cable: 2.5, kettlebell: 4 },
 };
+
+test('healthz reports the database without auth; migrations are idempotent', async () => {
+  const health = await call('GET', '/healthz');
+  assert.equal(health.status, 200);
+  assert.deepEqual(health.body, { status: 'ok', database: 'ok' });
+  const again = await migrate();
+  assert.equal(again.from, again.to, 'a second migrate run is a no-op');
+});
 
 test('full flow: profile, program, workout, progression, stats, export', async () => {
   const info = await call('GET', '/api/info');
@@ -160,4 +168,27 @@ test('imports an export from the SQLite-based version 1.0', async () => {
   // Identity sequences continue after imported ids.
   const regen = await call('POST', '/api/programs/generate', {});
   assert.ok(regen.body.program.id > 7);
+});
+
+test('30-minute sessions get superset pairs that reach the workout screen', async () => {
+  const today = await call('GET', '/api/today');
+  if (today.body.inProgressWorkoutId) await call('DELETE', `/api/workouts/${today.body.inProgressWorkoutId}`);
+
+  assert.equal((await call('PUT', '/api/profile', { ...profile, daysPerWeek: 2, sessionMinutes: 30 })).status, 200);
+  const gen = await call('POST', '/api/programs/generate', {});
+  assert.equal(gen.status, 200);
+  const day = gen.body.program.days[0];
+  assert.deepEqual(
+    day.exercises.map((e: any) => e.superset),
+    ['A', 'A', 'B', 'B'],
+  );
+
+  const started = await call('POST', '/api/workouts', { programDayId: day.id });
+  assert.equal(started.status, 200);
+  const workout = (await call('GET', `/api/workouts/${started.body.workout.id}`)).body.workout;
+  assert.deepEqual(
+    workout.exercises.map((e: any) => e.superset),
+    ['A', 'A', 'B', 'B'],
+  );
+  assert.equal((await call('DELETE', `/api/workouts/${workout.id}`)).status, 200);
 });

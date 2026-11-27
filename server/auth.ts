@@ -31,7 +31,7 @@ export async function initAuth() {
   secret = config.auth.sessionSecret || (await ensureSetting('session_secret', crypto.randomBytes(32).toString('hex')));
   if (config.auth.mode === 'oidc') {
     const missing = ['oidcIssuer', 'oidcClientId'].filter((k) => !config.auth[k as 'oidcIssuer' | 'oidcClientId']);
-    if (missing.length) throw new Error(`AUTH_MODE=oidc requires OIDC_ISSUER and OIDC_CLIENT_ID`);
+    if (missing.length) throw new Error(`AUTH_MODE=oidc requires OIDC_ISSUER_URL and OIDC_CLIENT_ID`);
   }
   if (config.auth.mode === 'password' && !config.auth.password) throw new Error('AUTH_MODE=password requires APP_PASSWORD');
 }

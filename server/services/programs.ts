@@ -12,6 +12,8 @@ export interface ProgramDraftExercise {
   restSeconds: number;
   startWeight?: number;
   notes?: string;
+  /** Same label on neighbouring exercises makes a superset; see normalizeSupersets. */
+  superset?: string | null;
 }
 
 export interface ProgramDraft {
@@ -24,6 +26,47 @@ export interface ProgramDraft {
 }
 
 type Row = Record<string, any>;
+
+const MAX_SUPERSET = 3;
+
+/**
+ * Makes superset labels consistent: only runs of neighbouring exercises with the same
+ * label count, a run has 2–3 exercises (longer runs are split, single exercises lose the
+ * label) and runs are relabelled A, B, C in order. Works for AI output and templates alike.
+ */
+export function normalizeSupersets<T extends { superset?: string | null }>(exercises: T[]): (T & { superset: string | null })[] {
+  const runs: T[][] = [];
+  let prev: string | null = null;
+  for (const e of exercises) {
+    const label = e.superset?.trim().toUpperCase() || null;
+    if (label && label === prev) runs[runs.length - 1].push(e);
+    else runs.push([e]);
+    prev = label;
+  }
+
+  const groups: { items: T[]; superset: boolean }[] = [];
+  for (const run of runs) {
+    if (run.length < 2 || !run[0].superset?.trim()) {
+      for (const e of run) groups.push({ items: [e], superset: false });
+      continue;
+    }
+    for (let i = 0; i < run.length; i += 2) {
+      const chunk = run.slice(i, i + 2);
+      // A trailing single exercise joins the previous pair when that stays within the limit.
+      if (chunk.length === 1 && groups.length && groups[groups.length - 1].superset && groups[groups.length - 1].items.length < MAX_SUPERSET) {
+        groups[groups.length - 1].items.push(chunk[0]);
+      } else {
+        groups.push({ items: chunk, superset: chunk.length > 1 });
+      }
+    }
+  }
+
+  let next = 0;
+  return groups.flatMap((g) => {
+    const label = g.superset ? String.fromCharCode(65 + next++) : null;
+    return g.items.map((e) => ({ ...e, superset: label }));
+  });
+}
 
 export function weekFor(completed: number, daysPerWeek: number): number {
   return Math.floor(completed / Math.max(1, daysPerWeek)) + 1;
@@ -127,12 +170,12 @@ export async function saveProgram(draft: ProgramDraft, profile: Profile): Promis
 
     for (const [dayIndex, day] of draft.days.entries()) {
       const d = await one<{ id: number }>('INSERT INTO program_days (program_id, day_index, name, focus) VALUES ($1, $2, $3, $4) RETURNING id', [programId, dayIndex, day.name, day.focus], c);
-      for (const [position, e] of day.exercises.entries()) {
-        const def = getExercise(e.exerciseId);
-        if (!def) continue;
+      const known = normalizeSupersets(day.exercises.filter((e) => getExercise(e.exerciseId)));
+      for (const [position, e] of known.entries()) {
+        const def = getExercise(e.exerciseId)!;
         const pe = await one<{ id: number }>(
-          'INSERT INTO program_exercises (program_day_id, position, exercise_id, sets, rep_min, rep_max, rest_seconds, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
-          [d!.id, position, def.id, e.sets, e.repMin, e.repMax, e.restSeconds, e.notes ?? ''],
+          'INSERT INTO program_exercises (program_day_id, position, exercise_id, sets, rep_min, rep_max, rest_seconds, notes, superset) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+          [d!.id, position, def.id, e.sets, e.repMin, e.repMax, e.restSeconds, e.notes ?? '', e.superset],
           c,
         );
         const t = await initialTarget(def, e, profile, c);
@@ -164,6 +207,7 @@ function mapExercise(r: Row, profile: Profile | null): ProgramExercise {
     restSeconds: r.rest_seconds,
     notes: r.notes ?? '',
     increment: profile ? incrementFor(loadType, profile.increments) : 0,
+    superset: r.superset ?? null,
     target:
       r.t_weight === null || r.t_weight === undefined
         ? null

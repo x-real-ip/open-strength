@@ -10,6 +10,7 @@ import type {
   Workout,
   WorkoutSummary,
 } from '@shared/types.ts';
+import { deletePending, getPending, keyOf, pendingAll, putPending, type PendingSet } from './offlineStore.ts';
 
 export class ApiError extends Error {
   status: number;
@@ -77,45 +78,18 @@ export const api = {
 };
 
 // ---------------------------------------------------------------------------
-// Set sync queue. Logged sets are saved locally first and pushed to the server;
-// failed pushes stay queued and are retried, so a bad gym connection loses nothing.
+// Set sync queue. Logged sets are saved on the device first (IndexedDB, see
+// offlineStore.ts) and pushed to the server; failed pushes stay queued and are retried,
+// so a bad gym connection loses nothing.
 
-export interface PendingSet {
-  workoutId: number;
-  programExerciseId: number;
-  setIndex: number;
-  weight: number;
-  reps: number;
-  rir: number | null;
-  completed: boolean;
-}
-
-const QUEUE_KEY = 'overload.pendingSets';
-const keyOf = (s: PendingSet) => `${s.workoutId}:${s.programExerciseId}:${s.setIndex}`;
-
-function readQueue(): Record<string, PendingSet> {
-  try {
-    return JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '{}');
-  } catch {
-    return {};
-  }
-}
-
-function writeQueue(q: Record<string, PendingSet>) {
-  try {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
-  } catch {
-    /* storage unavailable: the in-flight request is still attempted */
-  }
-  window.dispatchEvent(new CustomEvent('overload:queue', { detail: Object.keys(q).length }));
-}
+export type { PendingSet };
 
 export function pendingCount(): number {
-  return Object.keys(readQueue()).length;
+  return pendingAll().length;
 }
 
 export function pendingFor(workoutId: number): PendingSet[] {
-  return Object.values(readQueue()).filter((s) => s.workoutId === workoutId);
+  return pendingAll().filter((s) => s.workoutId === workoutId);
 }
 
 let flushing: Promise<void> | null = null;
@@ -123,23 +97,17 @@ let flushing: Promise<void> | null = null;
 export function flushQueue(): Promise<void> {
   if (flushing) return flushing;
   flushing = (async () => {
-    const q = readQueue();
-    for (const [key, s] of Object.entries(q)) {
+    for (const s of pendingAll()) {
+      const key = keyOf(s);
       try {
         const { workoutId, ...body } = s;
         await request('PUT', `/api/workouts/${workoutId}/sets`, body);
-        const latest = readQueue();
         // Only remove if it wasn't changed again while we were sending.
-        if (JSON.stringify(latest[key]) === JSON.stringify(s)) {
-          delete latest[key];
-          writeQueue(latest);
-        }
+        if (JSON.stringify(getPending(key)) === JSON.stringify(s)) await deletePending(key);
       } catch (err) {
         if (err instanceof ApiError && err.status >= 400 && err.status < 500 && err.status !== 401) {
           // The server rejected it for good (e.g. workout discarded); drop it.
-          const latest = readQueue();
-          delete latest[key];
-          writeQueue(latest);
+          await deletePending(key);
           continue;
         }
         break; // offline or server error: keep everything, retry later
@@ -151,17 +119,13 @@ export function flushQueue(): Promise<void> {
   return flushing;
 }
 
-export function queueSet(s: PendingSet): Promise<void> {
-  const q = readQueue();
-  q[keyOf(s)] = s;
-  writeQueue(q);
+export async function queueSet(s: PendingSet): Promise<void> {
+  await putPending(s);
   return flushQueue();
 }
 
 export function dropQueuedSet(workoutId: number, programExerciseId: number, setIndex: number) {
-  const q = readQueue();
-  delete q[`${workoutId}:${programExerciseId}:${setIndex}`];
-  writeQueue(q);
+  void deletePending(keyOf({ workoutId, programExerciseId, setIndex }));
 }
 
 window.addEventListener('online', () => void flushQueue());

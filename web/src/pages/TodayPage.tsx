@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.ts';
 import { ErrorState, Loading, toast, useLoad } from '../components/ui.tsx';
-import { kg, relativeDay, repRange } from '../format.ts';
+import { kg, relativeDay, repRange, supersetLabels } from '../format.ts';
 import { deloadPreview } from '../workoutMath.ts';
 
 export default function TodayPage() {
@@ -55,6 +55,7 @@ export default function TodayPage() {
   };
 
   const { program, nextDay } = data;
+  const ssLabels = nextDay ? supersetLabels(nextDay.exercises) : [];
 
   return (
     <main className="page">
@@ -122,12 +123,15 @@ export default function TodayPage() {
               ))}
             </div>
           </header>
-          {nextDay.exercises.map((e) => {
+          {nextDay.exercises.map((e, i) => {
             const target = e.target?.weight ?? 0;
             const shown = data.isDeload ? deloadPreview(e.sets, target, e.increment) : { sets: e.sets, weight: target };
             return (
               <div className="ex-line" key={e.id}>
-                <span className="name">{e.name}</span>
+                <span className="name">
+                  {ssLabels[i] && <span className="ss">{ssLabels[i]}</span>}
+                  {e.name}
+                </span>
                 <span className="weight">
                   {e.loadType === 'bodyweight' ? (
                     <small>BW</small>

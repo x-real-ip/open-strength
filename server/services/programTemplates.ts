@@ -53,8 +53,79 @@ export function scheme(goal: Goal, compound: boolean, level: Profile['level']) {
   }
 }
 
+/** Short sessions use supersets so a full-body day still fits in the time. */
+export function useSupersets(minutes: number): boolean {
+  return minutes <= 45;
+}
+
 export function exercisesPerSession(minutes: number): number {
+  // Supersets fit about two exercises per 15 minutes; straight sets one per 10.
+  if (useSupersets(minutes)) return Math.max(4, Math.min(8, 2 * Math.round(minutes / 15)));
   return Math.max(3, Math.min(8, Math.round(minutes / 10)));
+}
+
+type Region = 'lower' | 'push' | 'pull' | 'core';
+
+const REGION: Record<MovementPattern, Region> = {
+  squat: 'lower',
+  lunge: 'lower',
+  hinge: 'lower',
+  quad_iso: 'lower',
+  hamstring_iso: 'lower',
+  glute_iso: 'lower',
+  calf: 'lower',
+  horizontal_push: 'push',
+  vertical_push: 'push',
+  chest_iso: 'push',
+  shoulder_iso: 'push',
+  triceps: 'push',
+  horizontal_pull: 'pull',
+  vertical_pull: 'pull',
+  rear_delt: 'pull',
+  biceps: 'pull',
+  core: 'core',
+};
+
+/** How well two exercises pair in a superset: opposing muscles let one rest while the other works. */
+function pairScore(a: Region, b: Region): number {
+  if (a === b) return 0;
+  if ((a === 'push' && b === 'pull') || (a === 'pull' && b === 'push')) return 3;
+  if (a === 'core' || b === 'core') return 1;
+  return 2; // lower body with upper body
+}
+
+/**
+ * Orders a session into supersets of two non-competing exercises, keeping the priority
+ * order of the first exercise in each pair. An exercise without a partner stays a straight set.
+ */
+export function pairIntoSupersets<T extends { pattern: MovementPattern }>(items: T[]): { item: T; superset: string | null }[] {
+  const left = [...items];
+  const out: { item: T; superset: string | null }[] = [];
+  let label = 0;
+  while (left.length) {
+    const first = left.shift()!;
+    let best = -1;
+    let bestScore = 0;
+    left.forEach((other, i) => {
+      const score = pairScore(REGION[first.pattern], REGION[other.pattern]);
+      if (score > bestScore) {
+        best = i;
+        bestScore = score;
+      }
+    });
+    if (best === -1) {
+      out.push({ item: first, superset: null });
+      continue;
+    }
+    const tag = String.fromCharCode(65 + label++);
+    out.push({ item: first, superset: tag }, { item: left.splice(best, 1)[0], superset: tag });
+  }
+  return out;
+}
+
+/** Rest after a full superset round (both exercises), in seconds. */
+function supersetRest(goal: Goal): number {
+  return { strength: 150, hypertrophy: 90, fat_loss: 75, conditioning: 60 }[goal];
 }
 
 const GOAL_LABEL: Record<Goal, string> = {
@@ -69,17 +140,30 @@ export function buildTemplateProgram(profile: Profile): ProgramDraft {
   const perSession = exercisesPerSession(profile.sessionMinutes);
   const deload = profile.level === 'beginner' ? null : 6;
 
+  const supersets = useSupersets(profile.sessionMinutes);
+
   const days = split.days.map((t) => {
     const used = new Set<string>();
-    const exercises: ProgramDraftExercise[] = [];
+    const picked: ExerciseDef[] = [];
     for (const pattern of t.patterns) {
-      if (exercises.length >= perSession) break;
+      if (picked.length >= perSession) break;
       const ex: ExerciseDef | undefined = pickForPattern(pattern, profile.equipment, used);
       if (!ex) continue;
       used.add(ex.id);
-      const s = scheme(profile.goal, ex.compound, profile.level);
-      exercises.push({ exerciseId: ex.id, ...s, startWeight: heuristicStartWeight(ex, profile), notes: '' });
+      picked.push(ex);
     }
+    const ordered = supersets ? pairIntoSupersets(picked) : picked.map((item) => ({ item, superset: null }));
+    const exercises: ProgramDraftExercise[] = ordered.map(({ item: ex, superset }) => {
+      const s = scheme(profile.goal, ex.compound, profile.level);
+      return {
+        exerciseId: ex.id,
+        ...s,
+        restSeconds: superset ? supersetRest(profile.goal) : s.restSeconds,
+        startWeight: heuristicStartWeight(ex, profile),
+        notes: '',
+        superset,
+      };
+    });
     return { name: t.name, focus: t.focus, exercises };
   });
 
@@ -91,6 +175,7 @@ export function buildTemplateProgram(profile: Profile): ProgramDraft {
     rationale:
       `${split.label} split for ${profile.daysPerWeek} day${profile.daysPerWeek === 1 ? '' : 's'} a week, about ${perSession} exercises per session. ` +
       'Compound lifts come first while you are fresh; weights progress with double progression.' +
+      (supersets ? ' Exercises are paired into supersets of opposing muscle groups so the session fits in the time: do one set of each, then rest.' : '') +
       (deload ? ' Week 6 is a lighter deload week to recover before the next block.' : ''),
     days,
   };

@@ -3,22 +3,23 @@ import { z } from 'zod';
 import type { AppInfo } from '../../shared/types.ts';
 import { checkPassword, clearFailures, loginAllowed, logout, oidcCallback, oidcLoginRedirect, passwordLogin, recordFailure } from '../auth.ts';
 import { aiConfigured, config } from '../config.ts';
-import { one } from '../db.ts';
+import { databaseReady } from '../db.ts';
 import { EXERCISES } from '../services/exercises.ts';
 import { getProfile, saveProfile } from '../services/profile.ts';
 
 export async function coreRoutes(app: FastifyInstance) {
-  // Liveness: the process is up.
-  app.get('/api/health', async () => ({ ok: true }));
+  // Kubernetes readiness and liveness probe. Outside /api so it never needs auth.
+  // No error details: they could contain connection settings.
+  app.get('/healthz', async (_req, reply) => {
+    if (await databaseReady()) return { status: 'ok', database: 'ok' };
+    return reply.code(503).send({ status: 'error', database: 'error' });
+  });
 
-  // Readiness: the database answers.
+  // Kept for compatibility with 1.1 probes and the compose healthcheck.
+  app.get('/api/health', async () => ({ ok: true }));
   app.get('/api/ready', async (_req, reply) => {
-    try {
-      await one('SELECT 1');
-      return { ok: true };
-    } catch {
-      return reply.code(503).send({ ok: false, error: 'Database unavailable' });
-    }
+    if (await databaseReady()) return { ok: true };
+    return reply.code(503).send({ ok: false, error: 'Database unavailable' });
   });
 
   app.get('/api/info', async (req): Promise<AppInfo> => ({

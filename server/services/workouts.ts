@@ -118,6 +118,7 @@ export async function getWorkout(id: number, profile: Profile | null): Promise<W
       repMax: pe.repMax,
       restSeconds: pe.restSeconds,
       notes: pe.notes,
+      superset: pe.superset,
       targetWeight,
       repTargets,
       decision,

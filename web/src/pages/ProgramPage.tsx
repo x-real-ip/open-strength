@@ -5,7 +5,7 @@ import { api } from '../api.ts';
 import { useInfo } from '../App.tsx';
 import { IconChevron } from '../components/Icons.tsx';
 import { DecisionTag, ErrorState, Loading, Sheet, toast, useLoad } from '../components/ui.tsx';
-import { kg, repRange, rest } from '../format.ts';
+import { kg, repRange, rest, supersetLabels } from '../format.ts';
 import { addStep } from '../workoutMath.ts';
 import { SwapSheet } from './WorkoutPage.tsx';
 
@@ -64,6 +64,7 @@ export default function ProgramPage() {
   }
 
   const day = program.days[Math.min(dayIdx, program.days.length - 1)];
+  const ssLabels = supersetLabels(day.exercises);
 
   return (
     <main className="page">
@@ -98,12 +99,16 @@ export default function ProgramPage() {
       <section>
         {day.focus && <p className="muted small" style={{ margin: '0 0 10px' }}>{day.focus}</p>}
         <div className="list">
-          {day.exercises.map((e) => (
+          {day.exercises.map((e, i) => (
             <button className="list-row" key={e.id} onClick={() => setSelected(e)}>
               <div className="grow">
-                <div className="title">{e.name}</div>
+                <div className="title">
+                  {ssLabels[i] && <span className="ss">{ssLabels[i]}</span>}
+                  {e.name}
+                </div>
                 <div className="sub">
                   {e.sets} × {repRange(e.repMin, e.repMax)}, rest {rest(e.restSeconds)}
+                  {e.superset ? ' after the round' : ''}
                 </div>
               </div>
               <div className="num" style={{ fontSize: 22, fontWeight: 600 }}>

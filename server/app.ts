@@ -12,7 +12,7 @@ import { insightRoutes } from './routes/insights.ts';
 import { programRoutes } from './routes/programs.ts';
 import { workoutRoutes } from './routes/workouts.ts';
 
-export async function buildApp(opts: { logger?: boolean } = {}) {
+export async function buildApp(opts: { logger?: boolean | { level: string } } = {}) {
   const app = Fastify({ logger: opts.logger ?? false, trustProxy: true, bodyLimit: 2 * 1024 * 1024 });
 
   await app.register(cookie);

@@ -1,9 +1,8 @@
-node_modules
-web/node_modules
-web/dist
-server/tests
-k8s
 data
 *.db
 .env
 .git
+node_modules
+server/tests
+web/dist
+web/node_modules
