@@ -1,6 +1,9 @@
 // Shared types between server and web client.
 // Keep this file free of runtime code so both sides can import it as types only.
 
+/** Language of everything the user sees; English by default. */
+export type Language = 'en' | 'nl';
+
 export type Level = 'beginner' | 'intermediate' | 'advanced';
 export type Goal = 'hypertrophy' | 'strength' | 'conditioning' | 'fat_loss';
 
@@ -71,6 +74,7 @@ export interface Profile {
   equipment: Equipment[];
   limitations: string;
   increments: Increments;
+  language: Language;
   updatedAt?: string;
 }
 
@@ -328,6 +332,8 @@ export interface AppInfo {
   user: { username: string; email?: string; name?: string } | null;
   oidcProviderName: string;
   version: string;
+  /** The profile's language (English until a profile says otherwise). */
+  language: Language;
 }
 
 export type AiProviderId = 'anthropic' | 'openai';
@@ -351,7 +357,7 @@ export interface AiSettingsView {
   monthlyBudgetUsd: number | null;
   configured: boolean;
   /** Known Claude models with their list price per million tokens. */
-  models: { id: string; label: string; inputUsd: number; outputUsd: number; note: string }[];
+  models: { id: string; label: string; inputUsd: number; outputUsd: number }[];
 }
 
 export interface AiSettingsUpdate {

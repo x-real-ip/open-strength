@@ -2,39 +2,40 @@
 // so the app always works.
 import type { ExerciseDef, Goal, MovementPattern, Profile } from '../../shared/types.ts';
 import { NO_PREFS, pickForPattern, type Prefs } from './exercises.ts';
+import { encode, loc, type Localized } from '../i18n.ts';
 import type { ProgramDraft, ProgramDraftExercise } from './programs.ts';
 import { heuristicStartWeight } from './weights.ts';
 
-type DayTemplate = { name: string; focus: string; patterns: MovementPattern[] };
+type DayTemplate = { name: Localized; focus: Localized; patterns: MovementPattern[] };
 
 // Patterns are listed in priority order; sessions are trimmed from the end when time is short.
-const FULL_A: DayTemplate = { name: 'Full body A', focus: 'Squat, horizontaal duwen en trekken', patterns: ['squat', 'horizontal_push', 'horizontal_pull', 'hinge', 'shoulder_iso', 'biceps', 'triceps', 'core'] };
-const FULL_B: DayTemplate = { name: 'Full body B', focus: 'Heupscharnier, verticaal duwen en trekken', patterns: ['hinge', 'vertical_push', 'vertical_pull', 'lunge', 'chest_iso', 'rear_delt', 'calf', 'core'] };
-const FULL_C: DayTemplate = { name: 'Full body C', focus: 'Eén been, drukken en roeien', patterns: ['lunge', 'horizontal_push', 'vertical_pull', 'glute_iso', 'shoulder_iso', 'triceps', 'biceps', 'core'] };
-const UPPER_A: DayTemplate = { name: 'Bovenlichaam A', focus: 'Borst, rug, schouders, armen', patterns: ['horizontal_push', 'horizontal_pull', 'vertical_push', 'vertical_pull', 'shoulder_iso', 'triceps', 'biceps'] };
-const LOWER_A: DayTemplate = { name: 'Onderlichaam A', focus: 'Quadriceps, hamstrings, kuiten', patterns: ['squat', 'hinge', 'lunge', 'hamstring_iso', 'calf', 'core'] };
-const UPPER_B: DayTemplate = { name: 'Bovenlichaam B', focus: 'Rug, schouders, borst, armen', patterns: ['vertical_pull', 'vertical_push', 'horizontal_pull', 'horizontal_push', 'rear_delt', 'biceps', 'triceps'] };
-const LOWER_B: DayTemplate = { name: 'Onderlichaam B', focus: 'Heupscharnier, billen, quadriceps', patterns: ['hinge', 'squat', 'glute_iso', 'quad_iso', 'calf', 'core'] };
-const PUSH: DayTemplate = { name: 'Duwen', focus: 'Borst, schouders, triceps', patterns: ['horizontal_push', 'vertical_push', 'chest_iso', 'shoulder_iso', 'triceps', 'core'] };
-const PULL: DayTemplate = { name: 'Trekken', focus: 'Rug, achterkant schouders, biceps', patterns: ['vertical_pull', 'horizontal_pull', 'rear_delt', 'biceps', 'core'] };
-const LEGS: DayTemplate = { name: 'Benen', focus: 'Quadriceps, hamstrings, billen, kuiten', patterns: ['squat', 'hinge', 'lunge', 'quad_iso', 'hamstring_iso', 'calf'] };
+const FULL_A: DayTemplate = { name: loc('Full body A', 'Full body A'), focus: loc('Squat, horizontal push and pull', 'Squat, horizontaal duwen en trekken'), patterns: ['squat', 'horizontal_push', 'horizontal_pull', 'hinge', 'shoulder_iso', 'biceps', 'triceps', 'core'] };
+const FULL_B: DayTemplate = { name: loc('Full body B', 'Full body B'), focus: loc('Hip hinge, vertical push and pull', 'Heupscharnier, verticaal duwen en trekken'), patterns: ['hinge', 'vertical_push', 'vertical_pull', 'lunge', 'chest_iso', 'rear_delt', 'calf', 'core'] };
+const FULL_C: DayTemplate = { name: loc('Full body C', 'Full body C'), focus: loc('Single leg, pressing and rowing', 'Eén been, drukken en roeien'), patterns: ['lunge', 'horizontal_push', 'vertical_pull', 'glute_iso', 'shoulder_iso', 'triceps', 'biceps', 'core'] };
+const UPPER_A: DayTemplate = { name: loc('Upper A', 'Bovenlichaam A'), focus: loc('Chest, back, shoulders, arms', 'Borst, rug, schouders, armen'), patterns: ['horizontal_push', 'horizontal_pull', 'vertical_push', 'vertical_pull', 'shoulder_iso', 'triceps', 'biceps'] };
+const LOWER_A: DayTemplate = { name: loc('Lower A', 'Onderlichaam A'), focus: loc('Quads, hamstrings, calves', 'Quadriceps, hamstrings, kuiten'), patterns: ['squat', 'hinge', 'lunge', 'hamstring_iso', 'calf', 'core'] };
+const UPPER_B: DayTemplate = { name: loc('Upper B', 'Bovenlichaam B'), focus: loc('Back, shoulders, chest, arms', 'Rug, schouders, borst, armen'), patterns: ['vertical_pull', 'vertical_push', 'horizontal_pull', 'horizontal_push', 'rear_delt', 'biceps', 'triceps'] };
+const LOWER_B: DayTemplate = { name: loc('Lower B', 'Onderlichaam B'), focus: loc('Hip hinge, glutes, quads', 'Heupscharnier, billen, quadriceps'), patterns: ['hinge', 'squat', 'glute_iso', 'quad_iso', 'calf', 'core'] };
+const PUSH: DayTemplate = { name: loc('Push', 'Duwen'), focus: loc('Chest, shoulders, triceps', 'Borst, schouders, triceps'), patterns: ['horizontal_push', 'vertical_push', 'chest_iso', 'shoulder_iso', 'triceps', 'core'] };
+const PULL: DayTemplate = { name: loc('Pull', 'Trekken'), focus: loc('Back, rear delts, biceps', 'Rug, achterkant schouders, biceps'), patterns: ['vertical_pull', 'horizontal_pull', 'rear_delt', 'biceps', 'core'] };
+const LEGS: DayTemplate = { name: loc('Legs', 'Benen'), focus: loc('Quads, hamstrings, glutes, calves', 'Quadriceps, hamstrings, billen, kuiten'), patterns: ['squat', 'hinge', 'lunge', 'quad_iso', 'hamstring_iso', 'calf'] };
 
-export function splitFor(days: number): { label: string; days: DayTemplate[] } {
+export function splitFor(days: number): { label: Localized; days: DayTemplate[] } {
   switch (days) {
     case 1:
-      return { label: 'Full body', days: [FULL_A] };
+      return { label: loc('Full body', 'Full body'), days: [FULL_A] };
     case 2:
-      return { label: 'Full body A/B', days: [FULL_A, FULL_B] };
+      return { label: loc('Full body A/B', 'Full body A/B'), days: [FULL_A, FULL_B] };
     case 3:
-      return { label: 'Full body A/B/C', days: [FULL_A, FULL_B, FULL_C] };
+      return { label: loc('Full body A/B/C', 'Full body A/B/C'), days: [FULL_A, FULL_B, FULL_C] };
     case 4:
-      return { label: 'Boven/onder', days: [UPPER_A, LOWER_A, UPPER_B, LOWER_B] };
+      return { label: loc('Upper/lower', 'Boven/onder'), days: [UPPER_A, LOWER_A, UPPER_B, LOWER_B] };
     case 5:
-      return { label: 'Boven/onder + duwen/trekken/benen', days: [UPPER_A, LOWER_A, PUSH, PULL, LEGS] };
+      return { label: loc('Upper/lower + push/pull/legs', 'Boven/onder + duwen/trekken/benen'), days: [UPPER_A, LOWER_A, PUSH, PULL, LEGS] };
     default:
       return {
-        label: 'Duwen/trekken/benen ×2',
-        days: [PUSH, PULL, LEGS, { ...PUSH, name: 'Duwen B' }, { ...PULL, name: 'Trekken B' }, { ...LEGS, name: 'Benen B' }],
+        label: loc('Push/pull/legs ×2', 'Duwen/trekken/benen ×2'),
+        days: [PUSH, PULL, LEGS, { ...PUSH, name: loc('Push B', 'Duwen B') }, { ...PULL, name: loc('Pull B', 'Trekken B') }, { ...LEGS, name: loc('Legs B', 'Benen B') }],
       };
   }
 }
@@ -128,11 +129,9 @@ export function supersetRest(goal: Goal): number {
   return { strength: 150, hypertrophy: 90, fat_loss: 75, conditioning: 60 }[goal];
 }
 
-const GOAL_LABEL: Record<Goal, string> = {
-  hypertrophy: 'spiermassa',
-  strength: 'kracht',
-  conditioning: 'conditie',
-  fat_loss: 'vetverlies',
+const GOAL_LABEL: Record<'en' | 'nl', Record<Goal, string>> = {
+  en: { hypertrophy: 'muscle growth', strength: 'strength', conditioning: 'conditioning', fat_loss: 'fat loss' },
+  nl: { hypertrophy: 'spiermassa', strength: 'kracht', conditioning: 'conditie', fat_loss: 'vetverlies' },
 };
 
 export function buildTemplateProgram(profile: Profile, prefs: Prefs = NO_PREFS): ProgramDraft {
@@ -164,19 +163,28 @@ export function buildTemplateProgram(profile: Profile, prefs: Prefs = NO_PREFS):
         superset,
       };
     });
-    return { name: t.name, focus: t.focus, exercises };
+    // Stored with both languages; the program is shown in the profile's language.
+    return { name: encode(t.name), focus: encode(t.focus), exercises };
   });
 
+  const d = profile.daysPerWeek;
   return {
-    name: `${split.label} voor ${GOAL_LABEL[profile.goal]}`,
+    name: encode(loc(`${split.label.en} for ${GOAL_LABEL.en[profile.goal]}`, `${split.label.nl} voor ${GOAL_LABEL.nl[profile.goal]}`)),
     weeks: 6,
     deloadWeek: deload,
     source: 'template',
-    rationale:
-      `Schema ${split.label} voor ${profile.daysPerWeek} ${profile.daysPerWeek === 1 ? 'dag' : 'dagen'} per week, ongeveer ${perSession} oefeningen per training. ` +
-      'Samengestelde oefeningen komen eerst, als je nog fris bent; de gewichten gaan omhoog met double progression.' +
-      (supersets ? ' Oefeningen zijn gekoppeld tot supersets van tegengestelde spiergroepen, zodat de training in de tijd past: één set van elk, dan rust.' : '') +
-      (deload ? ' Week 6 is een lichtere deloadweek om te herstellen voor het volgende blok.' : ''),
+    rationale: encode(
+      loc(
+        `${split.label.en} split for ${d} ${d === 1 ? 'day' : 'days'} a week, about ${perSession} exercises per session. ` +
+          'Compound lifts come first, while you are fresh; weights go up with double progression.' +
+          (supersets ? ' Exercises are paired into supersets of opposing muscle groups so the session fits the time: one set of each, then rest.' : '') +
+          (deload ? ' Week 6 is a lighter deload week to recover before the next block.' : ''),
+        `Schema ${split.label.nl} voor ${d} ${d === 1 ? 'dag' : 'dagen'} per week, ongeveer ${perSession} oefeningen per training. ` +
+          'Samengestelde oefeningen komen eerst, als je nog fris bent; de gewichten gaan omhoog met double progression.' +
+          (supersets ? ' Oefeningen zijn gekoppeld tot supersets van tegengestelde spiergroepen, zodat de training in de tijd past: één set van elk, dan rust.' : '') +
+          (deload ? ' Week 6 is een lichtere deloadweek om te herstellen voor het volgende blok.' : ''),
+      ),
+    ),
     days,
   };
 }

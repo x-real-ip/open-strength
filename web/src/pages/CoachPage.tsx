@@ -4,13 +4,14 @@ import type { CoachMessage } from '@shared/types.ts';
 import { api } from '../api.ts';
 import { useInfo } from '../App.tsx';
 import { ErrorState, Loading, toast, useLoad } from '../components/ui.tsx';
+import { t } from '../i18n.ts';
 
-const PROMPTS = [
-  'Analyseer mijn voortgang',
-  'Welke oefeningen stagneren en wat moet ik veranderen?',
-  'Train ik genoeg voor mijn doel?',
-  'Leg mijn volgende gewichten uit',
-  'Hoe zit het met mijn herstel en trainingsbelasting?',
+const prompts = () => [
+  t('Analyse my progress', 'Analyseer mijn voortgang'),
+  t('Which exercises are stalling and what should I change?', 'Welke oefeningen stagneren en wat moet ik veranderen?'),
+  t('Am I training enough for my goal?', 'Train ik genoeg voor mijn doel?'),
+  t('Explain my next weights', 'Leg mijn volgende gewichten uit'),
+  t('How are my recovery and training load?', 'Hoe zit het met mijn herstel en trainingsbelasting?'),
 ];
 
 /** Tiny markdown subset: **bold**, headings and bullet markers. */
@@ -45,7 +46,7 @@ export default function CoachPage() {
 
   useEffect(() => {
     if (params.get('ask') === 'stall') {
-      setText('Sommige oefeningen stagneren. Wat moet ik veranderen?');
+      setText(t('Some exercises are stalling. What should I change?', 'Sommige oefeningen stagneren. Wat moet ik veranderen?'));
       setParams({}, { replace: true });
     }
   }, [params, setParams]);
@@ -87,12 +88,12 @@ export default function CoachPage() {
           <button
             className="link-btn small"
             onClick={async () => {
-              if (!confirm('Het gesprek wissen?')) return;
+              if (!confirm(t('Clear the conversation?', 'Het gesprek wissen?'))) return;
               await api.clearCoach();
               setData({ messages: [] });
             }}
           >
-            Wissen
+            {t('Clear', 'Wissen')}
           </button>
         )}
       </div>
@@ -100,11 +101,21 @@ export default function CoachPage() {
       {messages.length === 0 && (
         <div className="panel stack" style={{ marginBottom: 16 }}>
           <p style={{ margin: 0 }}>
-            Vraag naar je voortgang, plateaus, herstel of je programma. De antwoorden zijn gebaseerd op de trainingen die je hebt gelogd.
+            {t(
+              'Ask about your progress, plateaus, recovery or your program. The answers are based on the workouts you have logged.',
+              'Vraag naar je voortgang, plateaus, herstel of je programma. De antwoorden zijn gebaseerd op de trainingen die je hebt gelogd.',
+            )}
           </p>
           <p className="faint small" style={{ margin: 0 }}>
-            De coach legt gewichten uit maar verandert ze nooit; je volgende gewichten komen altijd uit je gelogde sets.
-            {!info.aiConfigured && ' AI staat uit, dus de coach toont alleen feiten uit je trainingen. Zet AI aan via Profiel → AI-instellingen.'}
+            {t(
+              'The coach explains weights but never changes them; your next weights always come from your logged sets.',
+              'De coach legt gewichten uit maar verandert ze nooit; je volgende gewichten komen altijd uit je gelogde sets.',
+            )}
+            {!info.aiConfigured &&
+              t(
+                ' AI is off, so the coach only shows facts from your workouts. Turn on AI in Profile → AI settings.',
+                ' AI staat uit, dus de coach toont alleen feiten uit je trainingen. Zet AI aan via Profiel → AI-instellingen.',
+              )}
           </p>
         </div>
       )}
@@ -116,7 +127,7 @@ export default function CoachPage() {
           </div>
         ))}
         {sending && (
-          <div className="msg assistant" aria-label="De coach typt">
+          <div className="msg assistant" aria-label={t('The coach is typing', 'De coach typt')}>
             <span className="typing">
               <i />
               <i />
@@ -127,9 +138,9 @@ export default function CoachPage() {
         {lastAssistant && !sending && info.aiConfigured && (
           <button
             className="btn block"
-            onClick={() => navigate(`/program?instructions=${encodeURIComponent(`Pas dit advies van de coach toe:\n${lastAssistant.content.slice(0, 1500)}`)}`)}
+            onClick={() => navigate(`/program?instructions=${encodeURIComponent(`${t('Apply this advice from the coach', 'Pas dit advies van de coach toe')}:\n${lastAssistant.content.slice(0, 1500)}`)}`)}
           >
-            Programma aanpassen met dit advies
+            {t('Adjust program with this advice', 'Programma aanpassen met dit advies')}
           </button>
         )}
         <div ref={endRef} />
@@ -138,7 +149,7 @@ export default function CoachPage() {
       <div className="composer">
         <div style={{ maxWidth: 560, margin: '0 auto 8px' }}>
           <div className="prompts">
-            {PROMPTS.map((p) => (
+            {prompts().map((p) => (
               <button key={p} onClick={() => void send(p)} disabled={sending}>
                 {p}
               </button>
@@ -149,7 +160,7 @@ export default function CoachPage() {
           <textarea
             className="textarea"
             rows={1}
-            placeholder="Vraag het je coach"
+            placeholder={t('Ask your coach', 'Vraag het je coach')}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -160,7 +171,7 @@ export default function CoachPage() {
             }}
           />
           <button className="btn primary" disabled={sending || !text.trim()}>
-            Versturen
+            {t('Send', 'Versturen')}
           </button>
         </form>
       </div>

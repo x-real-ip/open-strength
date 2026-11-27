@@ -1,6 +1,7 @@
 // Records every AI call and summarises the spend for the usage page and the monthly budget.
 import type { AiFeature, AiUsageEntry, AiUsageSummary } from '../../shared/types.ts';
 import { all, one, run } from '../db.ts';
+import { loc, type Localized } from '../i18n.ts';
 import { estimateCost, getAiSettings } from './aiSettings.ts';
 
 export interface UsageRecord {
@@ -37,6 +38,11 @@ export async function monthCostUsd(): Promise<number> {
 
 export class BudgetExceeded extends Error {
   status = 429;
+  text: Localized;
+  constructor(text: Localized) {
+    super(text.en);
+    this.text = text;
+  }
 }
 
 /** Throws when this month's estimated spend has reached the budget. */
@@ -46,7 +52,10 @@ export async function checkBudget(): Promise<void> {
   const spent = await monthCostUsd();
   if (spent >= budget) {
     throw new BudgetExceeded(
-      `Het maandbudget voor AI ($${budget.toFixed(2)}) is bereikt. Verhoog het in de AI-instellingen of wacht tot volgende maand.`,
+      loc(
+        `The monthly AI budget ($${budget.toFixed(2)}) has been reached. Raise it in the AI settings or wait until next month.`,
+        `Het maandbudget voor AI ($${budget.toFixed(2)}) is bereikt. Verhoog het in de AI-instellingen of wacht tot volgende maand.`,
+      ),
     );
   }
 }

@@ -1,20 +1,21 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import type { Decision } from '@shared/types.ts';
-import { DECISION_LABEL } from '../format.ts';
+import { decisionLabel } from '../format.ts';
+import { t } from '../i18n.ts';
 import { IconCoach, IconExercises, IconProfile, IconProgram, IconProgress, IconToday } from './Icons.tsx';
 
 export function BottomNav() {
   const items = [
-    { to: '/', label: 'Vandaag', icon: <IconToday /> },
-    { to: '/program', label: 'Programma', icon: <IconProgram /> },
-    { to: '/exercises', label: 'Oefeningen', icon: <IconExercises /> },
-    { to: '/progress', label: 'Voortgang', icon: <IconProgress /> },
-    { to: '/coach', label: 'Coach', icon: <IconCoach /> },
-    { to: '/profile', label: 'Profiel', icon: <IconProfile /> },
+    { to: '/', label: t('Today', 'Vandaag'), icon: <IconToday /> },
+    { to: '/program', label: t('Program', 'Programma'), icon: <IconProgram /> },
+    { to: '/exercises', label: t('Exercises', 'Oefeningen'), icon: <IconExercises /> },
+    { to: '/progress', label: t('Progress', 'Voortgang'), icon: <IconProgress /> },
+    { to: '/coach', label: t('Coach', 'Coach'), icon: <IconCoach /> },
+    { to: '/profile', label: t('Profile', 'Profiel'), icon: <IconProfile /> },
   ];
   return (
-    <nav className="nav" aria-label="Hoofdmenu">
+    <nav className="nav" aria-label={t('Main menu', 'Hoofdmenu')}>
       {items.map((i) => (
         <NavLink key={i.to} to={i.to} end={i.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
           {i.icon}
@@ -26,7 +27,7 @@ export function BottomNav() {
 }
 
 export function DecisionTag({ decision }: { decision: Decision }) {
-  return <span className={`tag ${decision}`}>{DECISION_LABEL[decision]}</span>;
+  return <span className={`tag ${decision}`}>{decisionLabel(decision)}</span>;
 }
 
 export function Sheet({ open, onClose, children, label }: { open: boolean; onClose: () => void; children: ReactNode; label: string }) {
@@ -50,7 +51,7 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
 export function Loading() {
   return (
     <div className="center-screen">
-      <div className="spinner" role="status" aria-label="Laden" />
+      <div className="spinner" role="status" aria-label={t('Loading', 'Laden')} />
     </div>
   );
 }
@@ -62,7 +63,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
         <p className="error">{message}</p>
         {onRetry && (
           <button className="btn" onClick={onRetry}>
-            Opnieuw proberen
+            {t('Try again', 'Opnieuw proberen')}
           </button>
         )}
       </div>

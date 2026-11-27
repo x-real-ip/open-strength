@@ -1,7 +1,8 @@
 import type { Decision, ExerciseDef, Profile, Program, ProgramDay, ProgramExercise, Target } from '../../shared/types.ts';
 import { all, getPool, nowIso, one, run, tx, type Queryable } from '../db.ts';
-import { alternativesFor, getExercise, type Prefs } from './exercises.ts';
-import { clampStartWeight, e1rm, floorToStep, formatKg, incrementFor } from './weights.ts';
+import { encode, formatKg, langOf, pick, loc, type Localized } from '../i18n.ts';
+import { alternativesFor, getExercise, localizeExercise, type Prefs } from './exercises.ts';
+import { clampStartWeight, e1rm, floorToStep, incrementFor } from './weights.ts';
 import { workingWeight } from './progression.ts';
 
 export interface ProgramDraftExercise {
@@ -114,7 +115,10 @@ async function latestTargetFor(exerciseId: string, db: Queryable) {
  * Initial target for an exercise in a new program. Logged history always wins over AI or
  * heuristic estimates, so a new program never resets or inflates your weights.
  */
-export async function initialTarget(ex: ExerciseDef, d: ProgramDraftExercise, profile: Profile, db: Queryable = getPool()): Promise<Omit<Target, 'updatedAt'>> {
+/** A target before it is stored: the reason keeps both languages. */
+export type TargetDraft = Omit<Target, 'updatedAt' | 'reason'> & { reason: Localized };
+
+export async function initialTarget(ex: ExerciseDef, d: ProgramDraftExercise, profile: Profile, db: Queryable = getPool()): Promise<TargetDraft> {
   const step = incrementFor(ex.loadType, profile.increments);
   const fresh = Array.from({ length: d.sets }, () => d.repMin);
 
@@ -123,16 +127,31 @@ export async function initialTarget(ex: ExerciseDef, d: ProgramDraftExercise, pr
     if (last && last.sets.length) {
       const best = Math.max(...last.sets.map((s) => s.reps));
       const target = Math.min(d.repMax, Math.max(d.repMin, best));
-      return { weight: 0, repTargets: Array.from({ length: d.sets }, () => target), decision: 'start', reason: `Op basis van je laatste training (beste set ${best} herhalingen).` };
+      return {
+        weight: 0,
+        repTargets: Array.from({ length: d.sets }, () => target),
+        decision: 'start',
+        reason: loc(`Based on your last session (best set ${best} reps).`, `Op basis van je laatste training (beste set ${best} herhalingen).`),
+      };
     }
-    return { weight: 0, repTargets: fresh, decision: 'start', reason: 'Oefening met lichaamsgewicht: je gaat vooruit door herhalingen toe te voegen.' };
+    return {
+      weight: 0,
+      repTargets: fresh,
+      decision: 'start',
+      reason: loc('Bodyweight exercise: you progress by adding reps.', 'Oefening met lichaamsgewicht: je gaat vooruit door herhalingen toe te voegen.'),
+    };
   }
 
   const prior = await latestTargetFor(ex.id, db);
   if (prior && prior.rep_min === d.repMin && prior.rep_max === d.repMax) {
     const reps = prior.rep_targets;
     const repTargets = Array.from({ length: d.sets }, (_, i) => reps[i] ?? reps[reps.length - 1] ?? d.repMin);
-    return { weight: prior.weight, repTargets, decision: 'start', reason: `Meegenomen uit je vorige programma: ${formatKg(prior.weight)}.` };
+    return {
+      weight: prior.weight,
+      repTargets,
+      decision: 'start',
+      reason: loc(`Carried over from your previous program: ${formatKg(prior.weight, 'en')}.`, `Meegenomen uit je vorige programma: ${formatKg(prior.weight, 'nl')}.`),
+    };
   }
 
   const last = await lastSessionSets(ex.id, undefined, db);
@@ -145,7 +164,10 @@ export async function initialTarget(ex: ExerciseDef, d: ProgramDraftExercise, pr
       weight,
       repTargets: fresh,
       decision: 'start',
-      reason: `Geschat uit je laatste training (${formatKg(used)}, geschatte 1RM ${formatKg(Math.round(best))}) voor de nieuwe range van ${d.repMin}–${d.repMax} herhalingen.`,
+      reason: loc(
+        `Estimated from your last session (${formatKg(used, 'en')}, estimated 1RM ${formatKg(Math.round(best), 'en')}) for the new ${d.repMin}–${d.repMax} rep range.`,
+        `Geschat uit je laatste training (${formatKg(used, 'nl')}, geschatte 1RM ${formatKg(Math.round(best), 'nl')}) voor de nieuwe range van ${d.repMin}–${d.repMax} herhalingen.`,
+      ),
     };
   }
 
@@ -153,7 +175,10 @@ export async function initialTarget(ex: ExerciseDef, d: ProgramDraftExercise, pr
     weight: clampStartWeight(d.startWeight, ex, profile),
     repTargets: fresh,
     decision: 'start',
-    reason: 'Eerste schatting. Kies een gewicht dat je met goede techniek doet en waarbij je nog 2–3 herhalingen over hebt; na je eerste training past de app het aan.',
+    reason: loc(
+      'First estimate. Pick a weight you can move with good technique and 2–3 reps in reserve; the app adjusts it after your first session.',
+      'Eerste schatting. Kies een gewicht dat je met goede techniek doet en waarbij je nog 2–3 herhalingen over hebt; na je eerste training past de app het aan.',
+    ),
   };
 }
 
@@ -181,7 +206,7 @@ export async function saveProgram(draft: ProgramDraft, profile: Profile): Promis
         const t = await initialTarget(def, e, profile, c);
         await run(
           'INSERT INTO exercise_targets (program_exercise_id, weight, rep_targets, decision, reason, source_workout_id, updated_at) VALUES ($1, $2, $3, $4, $5, NULL, $6)',
-          [pe!.id, t.weight, JSON.stringify(t.repTargets), t.decision, t.reason, ts],
+          [pe!.id, t.weight, JSON.stringify(t.repTargets), t.decision, encode(t.reason), ts],
           c,
         );
       }
@@ -191,7 +216,9 @@ export async function saveProgram(draft: ProgramDraft, profile: Profile): Promis
 }
 
 function mapExercise(r: Row, profile: Profile | null): ProgramExercise {
-  const def = getExercise(String(r.exercise_id));
+  const lang = langOf(profile);
+  const known = getExercise(String(r.exercise_id));
+  const def = known && localizeExercise(known, lang);
   const loadType = def?.loadType ?? 'bodyweight';
   return {
     id: r.id,
@@ -211,13 +238,14 @@ function mapExercise(r: Row, profile: Profile | null): ProgramExercise {
     target:
       r.t_weight === null || r.t_weight === undefined
         ? null
-        : { weight: r.t_weight, repTargets: r.t_rep_targets, decision: r.t_decision as Decision, reason: r.t_reason, updatedAt: r.t_updated_at },
+        : { weight: r.t_weight, repTargets: r.t_rep_targets, decision: r.t_decision as Decision, reason: pick(r.t_reason, lang), updatedAt: r.t_updated_at },
   };
 }
 
 export async function loadProgram(id: number, profile: Profile | null): Promise<Program | null> {
   const p = await one('SELECT * FROM programs WHERE id = $1', [id]);
   if (!p) return null;
+  const lang = langOf(profile);
   const days = await all('SELECT * FROM program_days WHERE program_id = $1 ORDER BY day_index', [id]);
   const exercises = await all(
     `SELECT pe.*, t.weight AS t_weight, t.rep_targets AS t_rep_targets, t.decision AS t_decision, t.reason AS t_reason, t.updated_at AS t_updated_at
@@ -235,19 +263,19 @@ export async function loadProgram(id: number, profile: Profile | null): Promise<
   const mappedDays: ProgramDay[] = days.map((d) => ({
     id: d.id,
     dayIndex: d.day_index,
-    name: d.name,
-    focus: d.focus,
+    name: pick(d.name, lang),
+    focus: pick(d.focus, lang),
     exercises: exercises.filter((e) => e.program_day_id === d.id).map((r) => mapExercise(r, profile)),
   }));
   const weeks = p.weeks;
   const currentWeek = weekFor(completed, mappedDays.length);
   return {
     id: p.id,
-    name: p.name,
+    name: pick(p.name, lang),
     weeks,
     deloadWeek: p.deload_week,
     source: p.source,
-    rationale: p.rationale,
+    rationale: pick(p.rationale, lang),
     status: p.status,
     createdAt: p.created_at,
     days: mappedDays,
@@ -274,7 +302,9 @@ export async function exerciseAlternatives(peId: number, profile: Profile, prefs
   if (!pe) return [];
   const inDay = (await all<{ exercise_id: string }>('SELECT exercise_id FROM program_exercises WHERE program_day_id = $1', [pe.program_day_id])).map((r) => r.exercise_id);
   // The sheet shows the best few and searches the rest.
-  return alternativesFor(pe.exercise_id, profile.equipment, inDay, prefs).slice(0, 60);
+  return alternativesFor(pe.exercise_id, profile.equipment, inDay, prefs)
+    .slice(0, 60)
+    .map((e) => localizeExercise(e, langOf(profile)));
 }
 
 /** Swap an exercise in the program; sets/reps stay, the target is re-derived from history. */
@@ -290,7 +320,7 @@ export async function replaceExercise(peId: number, exerciseId: string, profile:
        VALUES ($1, $2, $3, $4, $5, NULL, $6)
        ON CONFLICT (program_exercise_id) DO UPDATE SET weight = excluded.weight, rep_targets = excluded.rep_targets,
          decision = excluded.decision, reason = excluded.reason, source_workout_id = NULL, updated_at = excluded.updated_at`,
-      [peId, t.weight, JSON.stringify(t.repTargets), t.decision, t.reason, nowIso()],
+      [peId, t.weight, JSON.stringify(t.repTargets), t.decision, encode(t.reason), nowIso()],
       c,
     );
   });
@@ -300,7 +330,7 @@ export async function replaceExercise(peId: number, exerciseId: string, profile:
 export async function setTargetWeight(peId: number, weight: number) {
   await run(`UPDATE exercise_targets SET weight = $1, decision = 'hold', reason = $2, updated_at = $3 WHERE program_exercise_id = $4`, [
     weight,
-    `Handmatig ingesteld op ${formatKg(weight)}.`,
+    encode(loc(`Set manually to ${formatKg(weight, 'en')}.`, `Handmatig ingesteld op ${formatKg(weight, 'nl')}.`)),
     nowIso(),
     peId,
   ]);

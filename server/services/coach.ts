@@ -4,7 +4,7 @@ import { all, nowIso, one, run } from '../db.ts';
 import { complete } from './ai.ts';
 import { activeProgramId, loadProgram } from './programs.ts';
 import { detectStalls, getStats, historyDigest } from './stats.ts';
-import { formatKg } from './weights.ts';
+import { AI_LANGUAGE, formatKg, langOf, type Lang } from '../i18n.ts';
 
 export async function listMessages(limit = 100): Promise<CoachMessage[]> {
   const rows = await all('SELECT * FROM coach_messages ORDER BY id DESC LIMIT $1', [limit]);
@@ -21,29 +21,52 @@ export async function clearMessages() {
   await run('DELETE FROM coach_messages');
 }
 
-/** Facts computed from logged data. Used as AI context and as the offline answer. */
+/** Facts computed from logged data, in the profile's language. Used as AI context and as the offline answer. */
 export async function trainingFacts(profile: Profile | null): Promise<string> {
+  const lang: Lang = langOf(profile);
+  const T = (en: string, nl: string) => (lang === 'nl' ? nl : en);
+  const num = (n: number) => (lang === 'nl' ? n.toFixed(1).replace('.', ',') : n.toFixed(1));
   const stats = await getStats(8);
   const pid = await activeProgramId();
   const program = pid ? await loadProgram(pid, profile) : null;
-  const stalls = await detectStalls();
+  const stalls = await detectStalls(langOf(profile));
   const recentWeeks = stats.weekly.slice(-4);
   const avgPerWeek = recentWeeks.reduce((a, w) => a + w.workouts, 0) / recentWeeks.length;
   const lines: string[] = [];
 
-  lines.push(`Afgeronde trainingen: ${stats.totals.workouts}; sets: ${stats.totals.sets}; totaal volume: ${stats.totals.volumeKg} kg.`);
-  lines.push(`Gemiddeld aantal trainingen per week (laatste 4 weken): ${avgPerWeek.toFixed(1).replace('.', ',')}${profile ? ` (gepland: ${profile.daysPerWeek})` : ''}.`);
-  lines.push(`Volume per week (kg), oudste eerst: ${stats.weekly.map((w) => w.volumeKg).join(', ')}.`);
+  lines.push(
+    T(
+      `Completed workouts: ${stats.totals.workouts}; sets: ${stats.totals.sets}; total volume: ${stats.totals.volumeKg} kg.`,
+      `Afgeronde trainingen: ${stats.totals.workouts}; sets: ${stats.totals.sets}; totaal volume: ${stats.totals.volumeKg} kg.`,
+    ),
+  );
+  const planned = profile ? T(` (planned: ${profile.daysPerWeek})`, ` (gepland: ${profile.daysPerWeek})`) : '';
+  lines.push(T(`Average workouts per week (last 4 weeks): ${num(avgPerWeek)}${planned}.`, `Gemiddeld aantal trainingen per week (laatste 4 weken): ${num(avgPerWeek)}${planned}.`));
+  const weekly = stats.weekly.map((w) => w.volumeKg).join(', ');
+  lines.push(T(`Volume per week (kg), oldest first: ${weekly}.`, `Volume per week (kg), oudste eerst: ${weekly}.`));
   if (stats.muscles.length) {
-    lines.push(`Sets per week per spiergroep, laatste 4 weken (4 weken daarvoor): ${stats.muscles.map((m) => `${m.muscle} ${m.setsPerWeekRecent} (${m.setsPerWeekPrevious})`).join(', ')}.`);
+    const muscles = stats.muscles.map((m) => `${m.muscle} ${m.setsPerWeekRecent} (${m.setsPerWeekPrevious})`).join(', ');
+    lines.push(T(`Sets per week per muscle group, last 4 weeks (the 4 weeks before): ${muscles}.`, `Sets per week per spiergroep, laatste 4 weken (4 weken daarvoor): ${muscles}.`));
   }
   if (program) {
-    lines.push(`Actief programma: "${program.name}", week ${program.currentWeek} van ${program.weeks}${program.deloadWeek ? `, deload in week ${program.deloadWeek}` : ''}${program.isComplete ? ' (afgerond)' : ''}.`);
+    const deload = program.deloadWeek ? T(`, deload in week ${program.deloadWeek}`, `, deload in week ${program.deloadWeek}`) : '';
+    const done = program.isComplete ? T(' (completed)', ' (afgerond)') : '';
+    lines.push(
+      T(
+        `Active program: "${program.name}", week ${program.currentWeek} of ${program.weeks}${deload}${done}.`,
+        `Actief programma: "${program.name}", week ${program.currentWeek} van ${program.weeks}${deload}${done}.`,
+      ),
+    );
     for (const d of program.days) {
-      lines.push(`  ${d.name}: ${d.exercises.map((e) => `${e.name} ${e.sets}x${e.repMin}-${e.repMax}${e.target ? ` volgende keer ${e.loadType === 'bodyweight' ? 'lichaamsgewicht' : formatKg(e.target.weight)} (${e.target.decision})` : ''}`).join('; ')}`);
+      const items = d.exercises.map((e) => {
+        const next = e.target ? `${T(' next time', ' volgende keer')} ${e.loadType === 'bodyweight' ? T('bodyweight', 'lichaamsgewicht') : formatKg(e.target.weight, lang)} (${e.target.decision})` : '';
+        return `${e.name} ${e.sets}x${e.repMin}-${e.repMax}${next}`;
+      });
+      lines.push(`  ${d.name}: ${items.join('; ')}`);
     }
   }
-  lines.push(stalls.length ? `Stagnerende oefeningen: ${stalls.map((s) => `${s.name} (geen vooruitgang in ${s.sessions} trainingen)`).join(', ')}.` : 'Geen stagnerende oefeningen.');
+  const stallList = stalls.map((s) => `${s.name} (${T(`no progress in ${s.sessions} sessions`, `geen vooruitgang in ${s.sessions} trainingen`)})`).join(', ');
+  lines.push(stalls.length ? T(`Stalling exercises: ${stallList}.`, `Stagnerende oefeningen: ${stallList}.`) : T('No stalling exercises.', 'Geen stagnerende oefeningen.'));
   return lines.join('\n');
 }
 
@@ -53,10 +76,10 @@ async function systemPrompt(profile: Profile | null): Promise<string> {
 Rules:
 - Base every statement about the user's progress on the data below. If the data is insufficient, say so instead of guessing.
 - You do not set training weights. Next-session weights are calculated by the app's progression engine from logged sets (double progression). Explain those recommendations when asked, but never invent different numbers.
-- If the program should change (exercise swaps, volume, split), say what you would change and why, and tell the user they can tap "Programma aanpassen met dit advies" to have the app rebuild it with that request.
+- If the program should change (exercise swaps, volume, split), say what you would change and why, and tell the user they can tap the button to adjust the program with this advice, so the app rebuilds it with that request.
 - Keep answers concise and structured for a phone screen: short paragraphs or a few bullets.
 - Not a medical professional: for pain or injury, advise seeing a physiotherapist or doctor.
-- Reply in Dutch unless the user's latest message is clearly in another language.
+- Reply in ${AI_LANGUAGE[langOf(profile)]} unless the user's latest message is clearly in another language.
 
 USER PROFILE
 ${profile ? `Age ${profile.age}, ${profile.heightCm} cm, ${profile.weightKg} kg, ${profile.level}, goal: ${profile.goal}, ${profile.daysPerWeek} days/week, ${profile.sessionMinutes} min/session. Limitations: ${profile.limitations || 'none'}.` : 'No profile yet.'}
@@ -69,7 +92,10 @@ ${await historyDigest(5)}`;
 }
 
 async function offlineAnswer(profile: Profile | null): Promise<string> {
-  return `AI staat uit, dus hier zijn de feiten uit je gelogde trainingen:\n\n${await trainingFacts(profile)}\n\nZet AI aan via Profiel → AI-instellingen voor een geschreven analyse en antwoord op je vragen.`;
+  const facts = await trainingFacts(profile);
+  return langOf(profile) === 'nl'
+    ? `AI staat uit, dus hier zijn de feiten uit je gelogde trainingen:\n\n${facts}\n\nZet AI aan via Profiel → AI-instellingen voor een geschreven analyse en antwoord op je vragen.`
+    : `AI is off, so here are the facts from your logged workouts:\n\n${facts}\n\nTurn on AI in Profile → AI settings for a written analysis and answers to your questions.`;
 }
 
 export async function sendMessage(content: string, profile: Profile | null): Promise<CoachMessage[]> {

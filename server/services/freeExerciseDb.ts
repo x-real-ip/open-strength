@@ -80,12 +80,12 @@ const GEAR: Record<string, { equipment: Equipment; loadType: LoadType }> = {
   'body only': { equipment: 'bodyweight', loadType: 'bodyweight' },
 };
 
-/** Equipment outside the profile list: shown as text, never available for programs. */
+/** Equipment outside the profile list: an English label the web app translates; never available for programs. */
 const OTHER_GEAR: Record<string, string> = {
-  'medicine ball': 'Medicijnbal',
-  'exercise ball': 'Fitnessbal',
-  'foam roll': 'Foamroller',
-  other: 'Overig',
+  'medicine ball': 'Medicine ball',
+  'exercise ball': 'Exercise ball',
+  'foam roll': 'Foam roller',
+  other: 'Other',
 };
 
 /** Rough beginner working weight as a fraction of body weight; low on purpose, the engine adjusts. */
@@ -180,7 +180,7 @@ function toLibrary(r: Raw): LibraryExercise | ExerciseDef {
     primary,
     secondary: muscles(r.secondaryMuscles).filter((m) => m !== primary),
     equipment: gear ? equipment : equipment.filter((e) => e !== 'bodyweight'),
-    otherEquipment: gear ? undefined : OTHER_GEAR[r.equipment ?? 'other'] ?? 'Overig',
+    otherEquipment: gear ? undefined : OTHER_GEAR[r.equipment ?? 'other'] ?? 'Other',
     category,
     level: r.level,
     compound: r.mechanic === 'compound',

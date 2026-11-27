@@ -7,6 +7,7 @@ import { IconChevron } from '../components/Icons.tsx';
 import { ProgramExplanationView, ProgramLookahead } from '../components/ProgramLookahead.tsx';
 import { DecisionTag, ErrorState, Loading, Sheet, toast, useLoad } from '../components/ui.tsx';
 import { kg, repRange, rest, supersetLabels } from '../format.ts';
+import { t } from '../i18n.ts';
 import { addStep } from '../workoutMath.ts';
 import { PreferenceButtons } from '../components/PreferenceButtons.tsx';
 import { SwapSheet } from '../components/SwapSheet.tsx';
@@ -37,7 +38,7 @@ export default function ProgramPage() {
       setDayIdx(0);
       setView('schema');
       setInstructions('');
-      toast(res.notice ?? (mode === 'adjust' ? 'Programma aangepast' : 'Nieuw programma staat klaar'));
+      toast(res.notice ?? (mode === 'adjust' ? t('Program adjusted', 'Programma aangepast') : t('Your new program is ready', 'Nieuw programma staat klaar')));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       toast((e as Error).message);
@@ -50,17 +51,17 @@ export default function ProgramPage() {
     return (
       <main className="page">
         <div className="page-head">
-          <h1>Programma</h1>
+          <h1>{t('Program', 'Programma')}</h1>
         </div>
         <div className="panel stack">
           <p className="muted" style={{ margin: 0 }}>
-            Geen actief programma. Vul je profiel in en maak er dan een.
+            {t('No active program. Fill in your profile and then make one.', 'Geen actief programma. Vul je profiel in en maak er dan een.')}
           </p>
           <Link className="btn block" to="/profile">
-            Naar profiel
+            {t('Go to profile', 'Naar profiel')}
           </Link>
           <button className="btn primary block" onClick={() => generate('new')} disabled={Boolean(busy)}>
-            {busy ? 'Bezig…' : 'Maak mijn programma'}
+            {busy ? t('Working…', 'Bezig…') : t('Make my program', 'Maak mijn programma')}
           </button>
         </div>
       </main>
@@ -74,25 +75,25 @@ export default function ProgramPage() {
     <main className="page">
       <div className="page-head" style={{ display: 'block' }}>
         <div className="muted small">
-          Week {program.currentWeek} van {program.weeks}
+          {t(`Week ${program.currentWeek} of ${program.weeks}`, `Week ${program.currentWeek} van ${program.weeks}`)}
           {program.deloadWeek ? `, deload in week ${program.deloadWeek}` : ''}
-          {program.source === 'ai' ? ', ontworpen door AI' : ', regelgebaseerd'}
+          {program.source === 'ai' ? t(', designed by AI', ', ontworpen door AI') : t(', rule-based', ', regelgebaseerd')}
         </div>
         <h1 style={{ marginTop: 4 }}>{program.name}</h1>
         <Link className="link-btn small" to="/exercises" style={{ display: 'inline-block', marginTop: 8 }}>
-          Alle oefeningen bekijken
+          {t('See all exercises', 'Alle oefeningen bekijken')}
         </Link>
       </div>
 
-      <div className="chips" role="tablist" aria-label="Weergave" style={{ marginBottom: 16 }}>
+      <div className="chips" role="tablist" aria-label={t('View', 'Weergave')} style={{ marginBottom: 16 }}>
         <button role="tab" aria-pressed={view === 'schema'} onClick={() => setView('schema')}>
-          Schema
+          {t('Schedule', 'Schema')}
         </button>
         <button role="tab" aria-pressed={view === 'ahead'} onClick={() => setView('ahead')}>
-          Vooruitkijken
+          {t('Look ahead', 'Vooruitkijken')}
         </button>
         <button role="tab" aria-pressed={view === 'how'} onClick={() => setView('how')}>
-          Hoe het is opgebouwd
+          {t('How it was built', 'Hoe het is opgebouwd')}
         </button>
       </div>
 
@@ -122,12 +123,12 @@ export default function ProgramPage() {
                     {e.name}
                   </div>
                   <div className="sub">
-                    {e.sets} × {repRange(e.repMin, e.repMax)}, rust {rest(e.restSeconds)}
-                    {e.superset ? ' na de ronde' : ''}
+                    {e.sets} × {repRange(e.repMin, e.repMax)}, {t('rest', 'rust')} {rest(e.restSeconds)}
+                    {e.superset ? t(' after the round', ' na de ronde') : ''}
                   </div>
                 </div>
                 <div className="num" style={{ fontSize: 22, fontWeight: 600 }}>
-                  {e.loadType === 'bodyweight' ? <span className="small muted">LG</span> : `${kg(e.target?.weight ?? 0)} kg`}
+                  {e.loadType === 'bodyweight' ? <span className="small muted">{t('BW', 'LG')}</span> : `${kg(e.target?.weight ?? 0)} kg`}
                 </div>
                 <IconChevron />
               </button>
@@ -136,37 +137,40 @@ export default function ProgramPage() {
         </section>
 
         <section className="section stack" id="change">
-          <h2>Programma aanpassen</h2>
+          <h2>{t('Adjust program', 'Programma aanpassen')}</h2>
           {info.aiConfigured ? (
             <>
               <label className="field">
-                <span>Wat moet er anders? (optioneel)</span>
+                <span>{t('What should change? (optional)', 'Wat moet er anders? (optioneel)')}</span>
                 <textarea
                   className="textarea"
-                  placeholder="Bijvoorbeeld: meer rugwerk, geen barbell squats, kortere trainingen"
+                  placeholder={t('For example: more back work, no barbell squats, shorter sessions', 'Bijvoorbeeld: meer rugwerk, geen barbell squats, kortere trainingen')}
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
                 />
               </label>
               <button className="btn primary block" disabled={Boolean(busy)} onClick={() => generate('adjust')}>
-                {busy === 'adjust' ? 'Bezig met aanpassen… (tot een minuut)' : 'Huidig programma aanpassen'}
+                {busy === 'adjust' ? t('Adjusting… (up to a minute)', 'Bezig met aanpassen… (tot een minuut)') : t('Adjust current program', 'Huidig programma aanpassen')}
               </button>
-              <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm('Dit programma vervangen door een compleet nieuw programma?') && generate('new')}>
-                {busy === 'new' ? 'Bezig…' : 'Nieuw programma maken'}
+              <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm(t('Replace this program with a completely new one?', 'Dit programma vervangen door een compleet nieuw programma?')) && generate('new')}>
+                {busy === 'new' ? t('Working…', 'Bezig…') : t('Make a new program', 'Nieuw programma maken')}
               </button>
             </>
           ) : (
             <>
-              <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm('Het programma opnieuw opbouwen vanuit je profiel?') && generate('new')}>
-                {busy ? 'Bezig…' : 'Opnieuw opbouwen vanuit profiel'}
+              <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm(t('Rebuild the program from your profile?', 'Het programma opnieuw opbouwen vanuit je profiel?')) && generate('new')}>
+                {busy ? t('Working…', 'Bezig…') : t('Rebuild from profile', 'Opnieuw opbouwen vanuit profiel')}
               </button>
               <p className="faint small" style={{ margin: 0 }}>
-                Geschreven wensen hebben AI nodig; zet die aan via Profiel → AI-instellingen. Zonder AI kun je nog steeds oefeningen wisselen en opnieuw opbouwen vanuit je profiel.
+                {t(
+                  'Written requests need AI; turn it on in Profile → AI settings. Without AI you can still swap exercises and rebuild from your profile.',
+                  'Geschreven wensen hebben AI nodig; zet die aan via Profiel → AI-instellingen. Zonder AI kun je nog steeds oefeningen wisselen en opnieuw opbouwen vanuit je profiel.',
+                )}
               </p>
             </>
           )}
           <p className="faint small" style={{ margin: 0 }}>
-            Gewichten die je hebt opgebouwd gaan mee naar het nieuwe programma.
+            {t('Weights you have built up carry over to the new program.', 'Gewichten die je hebt opgebouwd gaan mee naar het nieuwe programma.')}
           </p>
         </section>
         </>
@@ -205,21 +209,24 @@ function ExerciseSheet({ exercise, onClose, onChanged }: { exercise: ProgramExer
             {exercise.target && <DecisionTag decision={exercise.target.decision} />}
           </div>
           <div className="muted small">
-            {exercise.sets} sets van {repRange(exercise.repMin, exercise.repMax)} herhalingen, rust {rest(exercise.restSeconds)}
-            {exercise.weightNote ? `, gewicht ${exercise.weightNote}` : ''}
+            {t(
+              `${exercise.sets} sets of ${repRange(exercise.repMin, exercise.repMax)} reps, rest ${rest(exercise.restSeconds)}`,
+              `${exercise.sets} sets van ${repRange(exercise.repMin, exercise.repMax)} herhalingen, rust ${rest(exercise.restSeconds)}`,
+            )}
+            {exercise.weightNote ? `, ${t('weight', 'gewicht')} ${exercise.weightNote}` : ''}
           </div>
           {exercise.target && <p className="small" style={{ margin: 0 }}>{exercise.target.reason}</p>}
-          {exercise.notes && <p className="small muted" style={{ margin: 0 }}>Tip: {exercise.notes}</p>}
+          {exercise.notes && <p className="small muted" style={{ margin: 0 }}>{t('Tip', 'Tip')}: {exercise.notes}</p>}
 
           {!bw && (
             <div className="stepper">
-              <div className="cap">Volgend gewicht (kg)</div>
+              <div className="cap">{t('Next weight (kg)', 'Volgend gewicht (kg)')}</div>
               <div className="ctrl">
-                <button type="button" aria-label="Minder gewicht" onClick={() => setWeight((w) => addStep(w, exercise.increment, -1))}>
+                <button type="button" aria-label={t('Less weight', 'Minder gewicht')} onClick={() => setWeight((w) => addStep(w, exercise.increment, -1))}>
                   −
                 </button>
-                <input type="number" inputMode="decimal" step="any" aria-label="Gewicht in kg" value={weight} onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} />
-                <button type="button" aria-label="Meer gewicht" onClick={() => setWeight((w) => addStep(w, exercise.increment, 1))}>
+                <input type="number" inputMode="decimal" step="any" aria-label={t('Weight in kg', 'Gewicht in kg')} value={weight} onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} />
+                <button type="button" aria-label={t('More weight', 'Meer gewicht')} onClick={() => setWeight((w) => addStep(w, exercise.increment, 1))}>
                   +
                 </button>
               </div>
@@ -230,22 +237,22 @@ function ExerciseSheet({ exercise, onClose, onChanged }: { exercise: ProgramExer
               className="btn primary block"
               onClick={async () => {
                 await api.setWeight(exercise.id, weight);
-                toast('Gewicht aangepast');
+                toast(t('Weight changed', 'Gewicht aangepast'));
                 onChanged();
               }}
             >
-              Volgende keer {kg(weight)} kg
+              {t(`Next time ${kg(weight)} kg`, `Volgende keer ${kg(weight)} kg`)}
             </button>
           )}
           <Link className="btn block" to={`/exercises/${encodeURIComponent(exercise.exerciseId)}`}>
-            Hoe doe je dit?
+            {t('How do you do this?', 'Hoe doe je dit?')}
           </Link>
           <button className="btn block" onClick={() => setSwap(true)}>
-            Wisselen voor een andere oefening
+            {t('Swap for another exercise', 'Wisselen voor een andere oefening')}
           </button>
           <PreferenceButtons exerciseId={exercise.exerciseId} onChanged={(mark) => mark === 'excluded' && onChanged()} />
           <Link className="btn ghost block" to={`/progress/${encodeURIComponent(exercise.exerciseId)}`}>
-            Historie bekijken
+            {t('See history', 'Historie bekijken')}
           </Link>
         </div>
       </Sheet>

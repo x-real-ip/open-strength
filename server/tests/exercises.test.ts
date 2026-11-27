@@ -5,6 +5,7 @@ import path from 'node:path';
 import { alternativesFor, CURATED, EXERCISES, LIBRARY, pickForPattern, type Prefs } from '../services/exercises.ts';
 import { classifyPattern, PHOTO_BASE } from '../services/freeExerciseDb.ts';
 import { GUIDES } from '../services/exerciseGuide.ts';
+import { GUIDES_EN } from '../services/exerciseGuideEn.ts';
 
 const publicDir = path.resolve(import.meta.dirname, '../../web/public');
 
@@ -87,4 +88,12 @@ test('favourites win a pattern, excluded exercises are never picked or offered',
   const alts = alternativesFor('back_squat', [...gym], [], prefs);
   assert.equal(alts[0].id, 'Box_Squat');
   assert.ok(!alternativesFor('dumbbell_bench_press', [...gym], [], prefs).some((e) => e.id === 'barbell_bench_press'));
+});
+
+test('every curated exercise has English steps too, with a photo note wherever the Dutch guide has one', () => {
+  assert.deepEqual(Object.keys(GUIDES_EN).sort(), Object.keys(GUIDES).sort());
+  for (const [id, g] of Object.entries(GUIDES)) {
+    assert.ok(GUIDES_EN[id].steps.length >= 2, `${id} has English steps`);
+    assert.equal(Boolean(GUIDES_EN[id].similar), Boolean(g.similar), `${id} photo note in both languages`);
+  }
 });

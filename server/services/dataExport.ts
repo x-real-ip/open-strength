@@ -1,6 +1,7 @@
 // JSON/CSV export and JSON import. Database-level backups (pg_dump, storage
 // snapshots) are handled outside the app.
 import { all, IDENTITY_TABLES, one, run, TABLES, tx } from '../db.ts';
+import { pick, UserError } from '../i18n.ts';
 import { getExercise } from './exercises.ts';
 
 export async function exportJson() {
@@ -21,7 +22,7 @@ function coerce(value: unknown, type: string): unknown {
 }
 
 export async function importJson(data: any) {
-  if (!data || data.app !== 'overload' || typeof data.tables !== 'object') throw Object.assign(new Error('Dit is geen exportbestand van Overload'), { status: 400 });
+  if (!data || data.app !== 'overload' || typeof data.tables !== 'object') throw new UserError(400, 'This is not an Overload export file', 'Dit is geen exportbestand van Overload');
   await tx(async (c) => {
     await run(`TRUNCATE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`, [], c);
     for (const t of TABLES) {
@@ -59,7 +60,8 @@ export async function exportSetsCsv(): Promise<string> {
   };
   const header = 'date,workout,deload,exercise_id,exercise,set,weight_kg,reps,rir';
   const lines = rows.map((r) =>
-    [r.finished_at, r.day_name, r.is_deload, r.exercise_id, getExercise(r.exercise_id)?.name ?? r.exercise_id, r.set_index + 1, r.weight, r.reps, r.rir].map(esc).join(','),
+    // The CSV is a data file: English names, whatever the app language.
+    [r.finished_at, pick(r.day_name, 'en'), r.is_deload, r.exercise_id, getExercise(r.exercise_id)?.name ?? r.exercise_id, r.set_index + 1, r.weight, r.reps, r.rir].map(esc).join(','),
   );
   return [header, ...lines].join('\n') + '\n';
 }

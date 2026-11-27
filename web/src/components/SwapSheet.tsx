@@ -3,6 +3,7 @@ import type { Equipment, LibraryExercise } from '@shared/types.ts';
 import { api } from '../api.ts';
 import { loadExercises } from '../exercises.ts';
 import { equipmentText, hasEquipment } from '../format.ts';
+import { t } from '../i18n.ts';
 import { preferenceMessage, setPreference, usePreferences } from '../preferences.ts';
 import { IconStar } from './Icons.tsx';
 import { Sheet, toast } from './ui.tsx';
@@ -77,7 +78,7 @@ export function SwapSheet({
     try {
       await api.replaceExercise(programExerciseId, to.id);
       if (neverAgain) toast(preferenceMessage('excluded', await setPreference(current.exerciseId, 'excluded')));
-      else toast('Oefening gewisseld');
+      else toast(t('Exercise swapped', 'Oefening gewisseld'));
       onSwapped();
     } catch (e) {
       toast((e as Error).message);
@@ -87,10 +88,13 @@ export function SwapSheet({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} label="Oefening wisselen">
-      <h2>Oefening wisselen</h2>
+    <Sheet open={open} onClose={onClose} label={t('Swap exercise', 'Oefening wisselen')}>
+      <h2>{t('Swap exercise', 'Oefening wisselen')}</h2>
       <p className="muted small">
-        {current.name} wisselen. Sets en herhalingen blijven gelijk. Het startgewicht komt uit je historie met de nieuwe oefening, als die er is.
+        {t(
+          `Swap ${current.name}. Sets and reps stay the same. The starting weight comes from your history with the new exercise, if there is any.`,
+          `${current.name} wisselen. Sets en herhalingen blijven gelijk. Het startgewicht komt uit je historie met de nieuwe oefening, als die er is.`,
+        )}
       </p>
       {!alts ? (
         <div className="spinner" style={{ margin: '20px auto' }} />
@@ -99,19 +103,21 @@ export function SwapSheet({
           <input
             className="input"
             type="search"
-            placeholder="Zoeken in alle oefeningen"
+            placeholder={t('Search all exercises', 'Zoeken in alle oefeningen')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Oefening zoeken om mee te wisselen"
+            aria-label={t('Search an exercise to swap to', 'Oefening zoeken om mee te wisselen')}
           />
           <label className="row small" style={{ gap: 8 }}>
             <input type="checkbox" checked={neverAgain} onChange={(e) => setNeverAgain(e.target.checked)} />
-            {current.name} nooit meer gebruiken
+            {t(`Never use ${current.name} again`, `${current.name} nooit meer gebruiken`)}
           </label>
           <div className="list">
             {shown.length === 0 && (
               <p className="muted small" style={{ padding: '14px 16px', margin: 0 }}>
-                {q ? 'Niets gevonden.' : 'Geen vergelijkbare oefeningen met jouw apparatuur. Zoek in alle oefeningen.'}
+                {q
+                  ? t('Nothing found.', 'Niets gevonden.')
+                  : t('No similar exercises with your equipment. Search all exercises.', 'Geen vergelijkbare oefeningen met jouw apparatuur. Zoek in alle oefeningen.')}
               </p>
             )}
             {shown.map((o) => (
@@ -119,9 +125,9 @@ export function SwapSheet({
                 <div className="grow">
                   <div className="title">
                     {favorites.has(o.id) && (
-                      <span className="pref-mark favorite" title="Favoriet">
+                      <span className="pref-mark favorite" title={t('Favourite', 'Favoriet')}>
                         <IconStar size={15} filled />
-                        <span className="sr-only">Favoriet:</span>
+                        <span className="sr-only">{t('Favourite:', 'Favoriet:')}</span>
                       </span>
                     )}
                     {o.name}
@@ -131,7 +137,11 @@ export function SwapSheet({
               </button>
             ))}
           </div>
-          {!q && <p className="faint small" style={{ margin: 0 }}>Hier staan de beste 8. Zoek om een andere oefening te kiezen.</p>}
+          {!q && (
+            <p className="faint small" style={{ margin: 0 }}>
+              {t('These are the best 8. Search to pick another exercise.', 'Hier staan de beste 8. Zoek om een andere oefening te kiezen.')}
+            </p>
+          )}
         </div>
       )}
     </Sheet>

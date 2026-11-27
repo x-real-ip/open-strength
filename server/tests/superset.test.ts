@@ -17,6 +17,7 @@ const profile: Profile = {
   sessionMinutes: 30,
   equipment: ['barbell', 'dumbbell', 'bench', 'cable', 'machine', 'pullup_bar'],
   limitations: '',
+  language: 'en',
   increments: { barbell: 2.5, dumbbell: 2, machine: 5, cable: 2.5, kettlebell: 4 },
 };
 

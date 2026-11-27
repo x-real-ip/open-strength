@@ -9,6 +9,7 @@ import { useExercises } from '../exercises.ts';
 import { loadRest, primeAudio, RestTimer, saveRest, type RestState } from '../components/RestTimer.tsx';
 import { DecisionTag, ErrorState, Loading, Sheet, toast } from '../components/ui.tsx';
 import { clock, kg, relativeDay, repRange, rest as restLabel, supersetLabels } from '../format.ts';
+import { t } from '../i18n.ts';
 import { addStep } from '../workoutMath.ts';
 
 type SetsByExercise = Record<number, LoggedSet[]>;
@@ -188,12 +189,13 @@ export default function WorkoutPage() {
       const inGroup = group.find(open);
       const target = inGroup ?? workout.exercises.findIndex((_, i) => !group.includes(i) && open(i));
       if (target === -1) {
-        toast('Alle oefeningen gedaan. Rond af als je klaar bent.');
+        toast(t('All exercises done. Finish when you are ready.', 'Alle oefeningen gedaan. Rond af als je klaar bent.'));
         return;
       }
       startRest();
       if (target !== current) setCurrent(target);
-      toast(inGroup !== undefined ? `Ronde klaar. Nu: ${workout.exercises[target].name}` : `Nu: ${workout.exercises[target].name}`);
+      const name = workout.exercises[target].name;
+      toast(inGroup !== undefined ? t(`Round done. Now: ${name}`, `Ronde klaar. Nu: ${name}`) : t(`Now: ${name}`, `Nu: ${name}`));
       return;
     }
 
@@ -202,9 +204,9 @@ export default function WorkoutPage() {
     if (!(exerciseDone && nextOpen === -1)) startRest();
     if (exerciseDone && nextOpen !== -1) {
       setCurrent(nextOpen);
-      toast(`Nu: ${workout.exercises[nextOpen].name}`);
+      toast(t(`Now: ${workout.exercises[nextOpen].name}`, `Nu: ${workout.exercises[nextOpen].name}`));
     } else if (exerciseDone) {
-      toast('Alle oefeningen gedaan. Rond af als je klaar bent.');
+      toast(t('All exercises done. Finish when you are ready.', 'Alle oefeningen gedaan. Rond af als je klaar bent.'));
     }
   };
 
@@ -217,18 +219,22 @@ export default function WorkoutPage() {
     try {
       await api.deleteSet(workoutId, ex.programExerciseId, last.setIndex);
     } catch {
-      toast('De set kon niet van de server verwijderd worden');
+      toast(t('The set could not be removed from the server', 'De set kon niet van de server verwijderd worden'));
     }
   };
 
   const finish = async () => {
     const missing = workout.exercises.reduce((a, e) => a + Math.max(0, e.sets - (logged[e.programExerciseId]?.length ?? 0)), 0);
-    if (missing > 0 && !confirm(`${missing} geplande set${missing === 1 ? ' is' : 's zijn'} niet gelogd. Toch afronden?`)) return;
+    const unlogged = t(
+      `${missing} planned set${missing === 1 ? ' is' : 's are'} not logged. Finish anyway?`,
+      `${missing} geplande set${missing === 1 ? ' is' : 's zijn'} niet gelogd. Toch afronden?`,
+    );
+    if (missing > 0 && !confirm(unlogged)) return;
     setFinishing(true);
     await flushQueue();
     if (pendingFor(workoutId).length > 0) {
       setFinishing(false);
-      toast('Nog niet alle sets zijn opgeslagen. Controleer je verbinding en probeer het opnieuw.');
+      toast(t('Not all sets are saved yet. Check your connection and try again.', 'Nog niet alle sets zijn opgeslagen. Controleer je verbinding en probeer het opnieuw.'));
       return;
     }
     try {
@@ -243,7 +249,7 @@ export default function WorkoutPage() {
   };
 
   const discard = async () => {
-    if (!confirm('Deze training en alle gelogde sets weggooien?')) return;
+    if (!confirm(t('Discard this workout and all logged sets?', 'Deze training en alle gelogde sets weggooien?'))) return;
     for (const p of pendingFor(workoutId)) dropQueuedSet(workoutId, p.programExerciseId, p.setIndex);
     await api.discardWorkout(workoutId);
     updateRest(null);
@@ -262,21 +268,21 @@ export default function WorkoutPage() {
     <main className="page no-nav">
       <div className="wk-top">
         <div className="bar">
-          <button className="icon-btn" onClick={() => navigate('/')} aria-label="Training verlaten (voortgang blijft bewaard)">
+          <button className="icon-btn" onClick={() => navigate('/')} aria-label={t('Leave workout (progress is kept)', 'Training verlaten (voortgang blijft bewaard)')}>
             <IconClose />
           </button>
           <div className="title">
             <strong>{workout.dayName}</strong>
             <span className="small muted">
-              {clock(elapsed)}, {doneCount} van {workout.exercises.length} klaar
-              {unsynced > 0 && <span className="sync-badge">, {unsynced} not synced</span>}
+              {clock(elapsed)}, {t(`${doneCount} of ${workout.exercises.length} done`, `${doneCount} van ${workout.exercises.length} klaar`)}
+              {unsynced > 0 && <span className="sync-badge">, {t(`${unsynced} not synced`, `${unsynced} niet gesynchroniseerd`)}</span>}
             </span>
           </div>
           <button className="btn primary" onClick={finish} disabled={finishing} style={{ minHeight: 44 }}>
-            {finishing ? 'Opslaan…' : 'Afronden'}
+            {finishing ? t('Saving…', 'Opslaan…') : t('Finish', 'Afronden')}
           </button>
         </div>
-        <div className="strip" ref={stripRef} role="tablist" aria-label="Oefeningen">
+        <div className="strip" ref={stripRef} role="tablist" aria-label={t('Exercises', 'Oefeningen')}>
           {workout.exercises.map((e, i) => {
             const n = logged[e.programExerciseId]?.length ?? 0;
             const done = n >= e.sets;
@@ -310,18 +316,18 @@ export default function WorkoutPage() {
             {ex.name}
           </h2>
           {sets.length === 0 && (
-            <button className="icon-btn" onClick={() => setSwapOpen(true)} aria-label="Oefening wisselen">
+            <button className="icon-btn" onClick={() => setSwapOpen(true)} aria-label={t('Swap exercise', 'Oefening wisselen')}>
               <IconSwap />
             </button>
           )}
         </div>
         <div className="presc">
           <span>
-            <b>{ex.sets}</b> sets van <b>{repRange(ex.repMin, ex.repMax)}</b> herhalingen
+            <b>{ex.sets}</b> {t('sets of', 'sets van')} <b>{repRange(ex.repMin, ex.repMax)}</b> {t('reps', 'herhalingen')}
           </span>
           <span>
             {bodyweight ? (
-              <b>Lichaamsgewicht</b>
+              <b>{t('Bodyweight', 'Lichaamsgewicht')}</b>
             ) : (
               <>
                 <b>{kg(ex.targetWeight)} kg</b>
@@ -330,36 +336,36 @@ export default function WorkoutPage() {
             )}
           </span>
           <span>
-            Rust {restLabel(ex.restSeconds)}
-            {ex.superset ? ' na de ronde' : ''}
+            {t('Rest', 'Rust')} {restLabel(ex.restSeconds)}
+            {ex.superset ? t(' after the round', ' na de ronde') : ''}
           </span>
         </div>
         {library?.get(ex.exerciseId)?.steps.length ? (
           <button className="link-btn small" style={{ marginTop: 6 }} onClick={() => setGuideOpen(true)}>
-            Hoe doe je dit?
+            {t('How do you do this?', 'Hoe doe je dit?')}
           </button>
         ) : null}
         {ex.superset && (
           <p className="ss-note">
-            Superset met{' '}
+            {t('Superset with', 'Superset met')}{' '}
             {groupOf(current)
               .filter((i) => i !== current)
               .map((i) => workout.exercises[i].name)
-              .join(' en ')}
-            : één set van elk, dan rust.
+              .join(t(' and ', ' en '))}
+            {t(': one set of each, then rest.', ': één set van elk, dan rust.')}
           </p>
         )}
         <details className="advice">
           <summary className="spread" style={{ listStyle: 'none', cursor: 'pointer' }}>
             <DecisionTag decision={ex.decision} />
-            <span className="faint small">Waarom dit doel?</span>
+            <span className="faint small">{t('Why this target?', 'Waarom dit doel?')}</span>
           </summary>
           <p>{ex.reason}</p>
-          {ex.notes && <p>Tip: {ex.notes}</p>}
+          {ex.notes && <p>{t('Tip', 'Tip')}: {ex.notes}</p>}
         </details>
         {ex.previous && (
           <div className="prev">
-            Vorige keer ({relativeDay(ex.previous.date).toLowerCase()}):{' '}
+            {t('Last time', 'Vorige keer')} ({relativeDay(ex.previous.date).toLowerCase()}):{' '}
             <b>{ex.previous.sets.map((s) => (bodyweight ? `${s.reps}` : `${kg(s.weight)}×${s.reps}`)).join(', ')}</b>
           </div>
         )}
@@ -376,7 +382,7 @@ export default function WorkoutPage() {
                     Set {i + 1}
                   </span>
                   <span className="small muted">
-                    Target {bodyweight ? '' : `${kg(ex.targetWeight)} kg × `}
+                    {t('Target', 'Doel')} {bodyweight ? '' : `${kg(ex.targetWeight)} kg × `}
                     {ex.repTargets[i] ?? ex.repMin}
                   </span>
                 </div>
@@ -385,46 +391,46 @@ export default function WorkoutPage() {
                     <div className="stepper">
                       <div className="cap">kg{ex.weightNote ? `, ${ex.weightNote}` : ''}</div>
                       <div className="ctrl">
-                        <button type="button" aria-label="Minder gewicht" onClick={() => setDraft((d) => ({ ...d, weight: addStep(d.weight, step, -1) }))}>
+                        <button type="button" aria-label={t('Less weight', 'Minder gewicht')} onClick={() => setDraft((d) => ({ ...d, weight: addStep(d.weight, step, -1) }))}>
                           −
                         </button>
                         <input
                           type="number"
                           inputMode="decimal"
                           step="any"
-                          aria-label="Gewicht in kg"
+                          aria-label={t('Weight in kg', 'Gewicht in kg')}
                           value={Number.isFinite(draft.weight) ? draft.weight : ''}
                           onChange={(e) => setDraft((d) => ({ ...d, weight: parseFloat(e.target.value) }))}
                           onFocus={(e) => e.target.select()}
                         />
-                        <button type="button" aria-label="Meer gewicht" onClick={() => setDraft((d) => ({ ...d, weight: addStep(d.weight, step, 1) }))}>
+                        <button type="button" aria-label={t('More weight', 'Meer gewicht')} onClick={() => setDraft((d) => ({ ...d, weight: addStep(d.weight, step, 1) }))}>
                           +
                         </button>
                       </div>
                     </div>
                   )}
                   <div className="stepper">
-                    <div className="cap">herhalingen</div>
+                    <div className="cap">{t('reps', 'herhalingen')}</div>
                     <div className="ctrl">
-                      <button type="button" aria-label="Minder herhalingen" onClick={() => setDraft((d) => ({ ...d, reps: Math.max(0, d.reps - 1) }))}>
+                      <button type="button" aria-label={t('Fewer reps', 'Minder herhalingen')} onClick={() => setDraft((d) => ({ ...d, reps: Math.max(0, d.reps - 1) }))}>
                         −
                       </button>
                       <input
                         type="number"
                         inputMode="numeric"
-                        aria-label="Herhalingen"
+                        aria-label={t('Reps', 'Herhalingen')}
                         value={Number.isFinite(draft.reps) ? draft.reps : ''}
                         onChange={(e) => setDraft((d) => ({ ...d, reps: parseInt(e.target.value, 10) }))}
                         onFocus={(e) => e.target.select()}
                       />
-                      <button type="button" aria-label="Meer herhalingen" onClick={() => setDraft((d) => ({ ...d, reps: d.reps + 1 }))}>
+                      <button type="button" aria-label={t('More reps', 'Meer herhalingen')} onClick={() => setDraft((d) => ({ ...d, reps: d.reps + 1 }))}>
                         +
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="rir" role="group" aria-label="Herhalingen over (optioneel)">
-                  <span>Nog over</span>
+                <div className="rir" role="group" aria-label={t('Reps in reserve (optional)', 'Herhalingen over (optioneel)')}>
+                  <span>{t('In reserve', 'Nog over')}</span>
                   {[0, 1, 2, 3, 4].map((r) => (
                     <button key={r} type="button" aria-pressed={draft.rir === r} onClick={() => setDraft((d) => ({ ...d, rir: d.rir === r ? null : r }))}>
                       {r === 4 ? '4+' : r}
@@ -437,12 +443,12 @@ export default function WorkoutPage() {
                   onClick={() => commitSet(i, { ...draft, weight: bodyweight ? 0 : draft.weight }, i >= ex.sets)}
                 >
                   <IconCheck size={26} />
-                  {s ? 'Set bijwerken' : `Log ${bodyweight ? '' : `${kg(draft.weight)} kg × `}${draft.reps}`}
+                  {s ? t('Update set', 'Set bijwerken') : `${t('Log', 'Log')} ${bodyweight ? '' : `${kg(draft.weight)} kg × `}${draft.reps}`}
                 </button>
                 {editing !== null && (
                   <div className="set-tools">
                     <button className="link-btn small" onClick={() => setEditing(null)}>
-                      Annuleren
+                      {t('Cancel', 'Annuleren')}
                     </button>
                   </div>
                 )}
@@ -451,12 +457,12 @@ export default function WorkoutPage() {
           }
           if (s) {
             return (
-              <button className="set-done" key={i} onClick={() => setEditing(i)} aria-label={`Set ${i + 1}, tik om te wijzigen`}>
+              <button className="set-done" key={i} onClick={() => setEditing(i)} aria-label={t(`Set ${i + 1}, tap to change`, `Set ${i + 1}, tik om te wijzigen`)}>
                 <span className="set-no">{i + 1}</span>
                 <span className="result">
                   {bodyweight ? (
                     <>
-                      {s.reps} <small>herh.</small>
+                      {s.reps} <small>{t('reps', 'herh.')}</small>
                     </>
                   ) : (
                     <>
@@ -464,7 +470,7 @@ export default function WorkoutPage() {
                     </>
                   )}
                 </span>
-                <span className="small muted">{s.rir !== null ? `${s.rir === 4 ? '4+' : s.rir} left` : ''}</span>
+                <span className="small muted">{s.rir !== null ? `${s.rir === 4 ? '4+' : s.rir} ${t('left', 'over')}` : ''}</span>
               </button>
             );
           }
@@ -475,7 +481,7 @@ export default function WorkoutPage() {
                 {bodyweight ? '' : `${kg(sets.length ? sets[sets.length - 1].weight : ex.targetWeight)} `}
                 <small>{bodyweight ? '' : 'kg × '}</small>
                 {ex.repTargets[i] ?? ex.repMin}
-                {bodyweight && <small> herh.</small>}
+                {bodyweight && <small> {t('reps', 'herh.')}</small>}
               </span>
               <span />
             </div>
@@ -484,14 +490,14 @@ export default function WorkoutPage() {
         <div className="set-tools">
           {sets.length >= ex.sets && editing === null ? (
             <button className="link-btn small" onClick={() => setEditing(sets.length)}>
-              Extra set toevoegen
+              {t('Add an extra set', 'Extra set toevoegen')}
             </button>
           ) : (
             <span />
           )}
           {sets.length > 0 && (
             <button className="link-btn small" onClick={removeLastSet}>
-              Laatste set verwijderen
+              {t('Remove last set', 'Laatste set verwijderen')}
             </button>
           )}
         </div>
@@ -499,7 +505,7 @@ export default function WorkoutPage() {
 
       <section className="section">
         <button className="btn danger block" onClick={discard}>
-          Training weggooien
+          {t('Discard workout', 'Training weggooien')}
         </button>
       </section>
 
@@ -509,7 +515,7 @@ export default function WorkoutPage() {
             {rest && <RestTimer rest={rest} onChange={updateRest} />}
             {!rest && showNext && (
               <button className="btn primary big block" onClick={() => setCurrent(nextTarget)}>
-                Volgende: {workout.exercises[nextTarget].name}
+                {t('Next', 'Volgende')}: {workout.exercises[nextTarget].name}
               </button>
             )}
           </div>

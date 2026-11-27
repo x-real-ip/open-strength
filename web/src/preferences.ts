@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { ExercisePreference, ExercisePreferences, PreferenceUpdate } from '@shared/types.ts';
 import { api } from './api.ts';
+import { t } from './i18n.ts';
 
 let current: ExercisePreferences | null = null;
 let loading: Promise<ExercisePreferences> | null = null;
@@ -53,9 +54,14 @@ export function usePreferences(): ExercisePreferences | null {
 
 /** Toast text after marking, including what was swapped out of the program. */
 export function preferenceMessage(preference: ExercisePreference | null, res: PreferenceUpdate): string {
-  if (preference === 'favorite') return 'Favoriet: komt in je volgende schema waar hij past';
-  if (preference === null) return 'Markering weggehaald';
+  if (preference === 'favorite') return t('Favourite: goes into your next schedule where it fits', 'Favoriet: komt in je volgende schema waar hij past');
+  if (preference === null) return t('Mark removed', 'Markering weggehaald');
   const swaps = res.replaced.map((r) => `${r.day}: ${r.to}`).join(', ');
-  const kept = res.kept.length ? ` Geen alternatief op ${res.kept.join(', ')}; daar staat hij nog.` : '';
-  return `Wordt niet meer gebruikt.${swaps ? ` Vervangen in je programma (${swaps}).` : ''}${kept}`;
+  const kept = res.kept.length
+    ? t(` No alternative on ${res.kept.join(', ')}; it is still there.`, ` Geen alternatief op ${res.kept.join(', ')}; daar staat hij nog.`)
+    : '';
+  return t(
+    `Won't be used any more.${swaps ? ` Replaced in your program (${swaps}).` : ''}${kept}`,
+    `Wordt niet meer gebruikt.${swaps ? ` Vervangen in je programma (${swaps}).` : ''}${kept}`,
+  );
 }

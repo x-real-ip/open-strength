@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { UserError } from '../i18n.ts';
 import { getExercise } from '../services/exercises.ts';
 import { getPreferences, loadPrefs, setPreference } from '../services/exercisePrefs.ts';
 import { getProfile } from '../services/profile.ts';
@@ -10,7 +11,7 @@ import { all } from '../db.ts';
 
 async function requireProfile() {
   const profile = await getProfile();
-  if (!profile) throw Object.assign(new Error('Maak eerst je profiel aan'), { status: 409 });
+  if (!profile) throw new UserError(409, 'Create your profile first', 'Maak eerst je profiel aan');
   return profile;
 }
 
@@ -29,7 +30,7 @@ export async function programRoutes(app: FastifyInstance) {
   app.get('/api/programs/:id', async (req) => {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params);
     const program = await loadProgram(id, await getProfile());
-    if (!program) throw Object.assign(new Error('Programma niet gevonden'), { status: 404 });
+    if (!program) throw new UserError(404, 'Program not found', 'Programma niet gevonden');
     return { program };
   });
 
@@ -65,8 +66,8 @@ export async function programRoutes(app: FastifyInstance) {
   app.post('/api/program-exercises/:id/replace', async (req) => {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params);
     const { exerciseId } = z.object({ exerciseId: z.string() }).parse(req.body);
-    if (!getExercise(exerciseId)) throw Object.assign(new Error('Onbekende oefening'), { status: 400 });
-    if ((await loadPrefs()).excluded.has(exerciseId)) throw Object.assign(new Error('Deze oefening staat op "niet gebruiken"'), { status: 400 });
+    if (!getExercise(exerciseId)) throw new UserError(400, 'Unknown exercise', 'Onbekende oefening');
+    if ((await loadPrefs()).excluded.has(exerciseId)) throw new UserError(400, 'This exercise is set to "never use"', 'Deze oefening staat op "niet gebruiken"');
     const profile = await requireProfile();
     await replaceExercise(id, exerciseId, profile);
     const pe = (await getProgramExercise(id))!;
@@ -77,7 +78,7 @@ export async function programRoutes(app: FastifyInstance) {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params);
     const { weight } = z.object({ weight: z.number().min(0).max(1000) }).parse(req.body);
     const pe = await getProgramExercise(id);
-    if (!pe) throw Object.assign(new Error('Oefening niet gevonden'), { status: 404 });
+    if (!pe) throw new UserError(404, 'Exercise not found', 'Oefening niet gevonden');
     await setTargetWeight(id, weight);
     return { program: await loadProgram(pe.program_id, await getProfile()) };
   });

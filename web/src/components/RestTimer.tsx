@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { clock } from '../format.ts';
+import { t } from '../i18n.ts';
 
 export interface RestState {
   endsAt: number;
@@ -84,17 +85,17 @@ export function RestTimer({ rest, onChange }: { rest: RestState; onChange: (r: R
   const adjust = (delta: number) => onChange({ endsAt: Math.max(Date.now(), rest.endsAt + delta * 1000), duration: Math.max(1, rest.duration + delta) });
 
   return (
-    <div className={`rest ${over ? 'over' : ''}`} role="timer" aria-label="Rusttimer">
+    <div className={`rest ${over ? 'over' : ''}`} role="timer" aria-label={t('Rest timer', 'Rusttimer')}>
       <div className="fill" style={{ width: `${pct}%` }} />
       <span className="time">{over ? `+${clock(-remaining)}` : clock(remaining)}</span>
-      <span className="small muted">{over ? 'Rust voorbij' : 'Rust'}</span>
+      <span className="small muted">{over ? t('Rest over', 'Rust voorbij') : t('Rest', 'Rust')}</span>
       {!over && (
-        <button type="button" onClick={() => adjust(15)} aria-label="15 seconden erbij">
+        <button type="button" onClick={() => adjust(15)} aria-label={t('15 seconds more', '15 seconden erbij')}>
           +15s
         </button>
       )}
       <button type="button" onClick={() => onChange(null)}>
-        {over ? 'Verbergen' : 'Overslaan'}
+        {over ? t('Hide', 'Verbergen') : t('Skip', 'Overslaan')}
       </button>
     </div>
   );
