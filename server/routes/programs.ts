@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getExercise } from '../services/exercises.ts';
 import { getProfile } from '../services/profile.ts';
 import { generateProgram } from '../services/programGenerator.ts';
+import { explainProgram } from '../services/programExplain.ts';
 import { activeProgramId, exerciseAlternatives, getProgramExercise, loadProgram, replaceExercise, saveProgram, setTargetWeight } from '../services/programs.ts';
 import { all } from '../db.ts';
 
@@ -15,7 +16,9 @@ async function requireProfile() {
 export async function programRoutes(app: FastifyInstance) {
   app.get('/api/programs/active', async () => {
     const id = await activeProgramId();
-    return { program: id ? await loadProgram(id, await getProfile()) : null };
+    const profile = await getProfile();
+    const program = id ? await loadProgram(id, profile) : null;
+    return { program, explanation: program ? explainProgram(program, profile) : [] };
   });
 
   app.get('/api/programs', async () => ({

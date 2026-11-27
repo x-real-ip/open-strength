@@ -1478,3 +1478,23 @@ details.why summary::-webkit-details-marker {
 .list-row.unavailable .title {
   color: var(--chalk-3);
 }
+
+/* ---------- Look-ahead: a session's exercises, expanded under its row ---------- */
+
+.preview {
+  display: grid;
+  gap: 10px;
+  padding: 4px 16px 14px;
+  background: var(--deck-2);
+}
+
+.preview-line {
+  display: grid;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+
+.preview-line:first-child {
+  border-top: 0;
+}

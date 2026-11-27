@@ -19,7 +19,7 @@ const PUSH: DayTemplate = { name: 'Duwen', focus: 'Borst, schouders, triceps', p
 const PULL: DayTemplate = { name: 'Trekken', focus: 'Rug, achterkant schouders, biceps', patterns: ['vertical_pull', 'horizontal_pull', 'rear_delt', 'biceps', 'core'] };
 const LEGS: DayTemplate = { name: 'Benen', focus: 'Quadriceps, hamstrings, billen, kuiten', patterns: ['squat', 'hinge', 'lunge', 'quad_iso', 'hamstring_iso', 'calf'] };
 
-function splitFor(days: number): { label: string; days: DayTemplate[] } {
+export function splitFor(days: number): { label: string; days: DayTemplate[] } {
   switch (days) {
     case 1:
       return { label: 'Full body', days: [FULL_A] };
@@ -124,7 +124,7 @@ export function pairIntoSupersets<T extends { pattern: MovementPattern }>(items:
 }
 
 /** Rest after a full superset round (both exercises), in seconds. */
-function supersetRest(goal: Goal): number {
+export function supersetRest(goal: Goal): number {
   return { strength: 150, hypertrophy: 90, fat_loss: 75, conditioning: 60 }[goal];
 }
 

@@ -139,6 +139,15 @@ export interface Program {
   completedWorkouts: number;
   currentWeek: number;
   isComplete: boolean;
+  /** Index in `days` of the next workout (days rotate: after the last day comes the first). */
+  nextDayIndex: number;
+}
+
+/** How a program was put together, in plain Dutch, for the program screen. */
+export interface ProgramExplanation {
+  title: string;
+  text: string[];
+  bullets?: string[];
 }
 
 export interface LoggedSet {

@@ -228,6 +228,10 @@ export async function loadProgram(id: number, profile: Profile | null): Promise<
     [id],
   );
   const completed = (await one<{ n: number }>("SELECT count(*)::int AS n FROM workouts WHERE program_id = $1 AND status = 'completed'", [id]))!.n;
+  const lastDay = await one<{ day_index: number }>(
+    "SELECT pd.day_index FROM workouts w JOIN program_days pd ON pd.id = w.program_day_id WHERE w.program_id = $1 AND w.status = 'completed' ORDER BY w.finished_at DESC LIMIT 1",
+    [id],
+  );
   const mappedDays: ProgramDay[] = days.map((d) => ({
     id: d.id,
     dayIndex: d.day_index,
@@ -250,6 +254,7 @@ export async function loadProgram(id: number, profile: Profile | null): Promise<
     completedWorkouts: completed,
     currentWeek: Math.min(currentWeek, weeks),
     isComplete: currentWeek > weeks,
+    nextDayIndex: lastDay && mappedDays.length ? (lastDay.day_index + 1) % mappedDays.length : 0,
   };
 }
 

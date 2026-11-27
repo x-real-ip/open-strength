@@ -5,6 +5,7 @@ import type {
   ExerciseHistory,
   Profile,
   Program,
+  ProgramExplanation,
   StatsResponse,
   TodayResponse,
   Workout,
@@ -48,7 +49,7 @@ export const api = {
   saveProfile: (p: Profile) => request<{ profile: Profile }>('PUT', '/api/profile', p),
 
   today: () => request<TodayResponse>('GET', '/api/today'),
-  activeProgram: () => request<{ program: Program | null }>('GET', '/api/programs/active'),
+  activeProgram: () => request<{ program: Program | null; explanation: ProgramExplanation[] }>('GET', '/api/programs/active'),
   generateProgram: (opts: { instructions?: string; useAi?: boolean; basedOnCurrent?: boolean }) =>
     request<{ program: Program; notice: string | null }>('POST', '/api/programs/generate', opts),
   alternatives: (peId: number) => request<{ alternatives: ExerciseDef[] }>('GET', `/api/program-exercises/${peId}/alternatives`),

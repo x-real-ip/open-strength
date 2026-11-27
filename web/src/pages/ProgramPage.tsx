@@ -4,6 +4,7 @@ import type { ProgramExercise } from '@shared/types.ts';
 import { api } from '../api.ts';
 import { useInfo } from '../App.tsx';
 import { IconChevron } from '../components/Icons.tsx';
+import { ProgramExplanationView, ProgramLookahead } from '../components/ProgramLookahead.tsx';
 import { DecisionTag, ErrorState, Loading, Sheet, toast, useLoad } from '../components/ui.tsx';
 import { kg, repRange, rest, supersetLabels } from '../format.ts';
 import { addStep } from '../workoutMath.ts';
@@ -12,7 +13,8 @@ import { SwapSheet } from './WorkoutPage.tsx';
 export default function ProgramPage() {
   const info = useInfo();
   const [params] = useSearchParams();
-  const { data, error, loading, reload, setData } = useLoad(() => api.activeProgram());
+  const { data, error, loading, reload } = useLoad(() => api.activeProgram());
+  const [view, setView] = useState<'schema' | 'ahead' | 'how'>('schema');
   const [dayIdx, setDayIdx] = useState(0);
   const [selected, setSelected] = useState<ProgramExercise | null>(null);
   const [instructions, setInstructions] = useState(params.get('instructions') ?? '');
@@ -30,8 +32,9 @@ export default function ProgramPage() {
     setBusy(mode);
     try {
       const res = await api.generateProgram(mode === 'adjust' ? { basedOnCurrent: true, instructions: instructions.trim() || undefined } : { instructions: instructions.trim() || undefined });
-      setData({ program: res.program });
+      await reload();
       setDayIdx(0);
+      setView('schema');
       setInstructions('');
       toast(res.notice ?? (mode === 'adjust' ? 'Programma aangepast' : 'Nieuw programma staat klaar'));
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -80,16 +83,22 @@ export default function ProgramPage() {
         </Link>
       </div>
 
-      {program.rationale && (
-        <details className="why panel tight" style={{ marginBottom: 16 }}>
-          <summary>Waarom dit programma</summary>
-          <p className="muted small" style={{ marginBottom: 0 }}>
-            {program.rationale}
-          </p>
-        </details>
-      )}
+      <div className="chips" role="tablist" aria-label="Weergave" style={{ marginBottom: 16 }}>
+        <button role="tab" aria-pressed={view === 'schema'} onClick={() => setView('schema')}>
+          Schema
+        </button>
+        <button role="tab" aria-pressed={view === 'ahead'} onClick={() => setView('ahead')}>
+          Vooruitkijken
+        </button>
+        <button role="tab" aria-pressed={view === 'how'} onClick={() => setView('how')}>
+          Hoe het is opgebouwd
+        </button>
+      </div>
 
-      {program.days.length > 1 && (
+      {view === 'ahead' && <ProgramLookahead program={program} />}
+      {view === 'how' && <ProgramExplanationView sections={data?.explanation ?? []} />}
+
+      {view === 'schema' && program.days.length > 1 && (
         <div className="seg" role="tablist" style={{ marginBottom: 12, overflowX: 'auto' }}>
           {program.days.map((d, i) => (
             <button key={d.id} role="tab" aria-pressed={i === dayIdx} onClick={() => setDayIdx(i)} style={{ whiteSpace: 'nowrap' }}>
@@ -99,64 +108,68 @@ export default function ProgramPage() {
         </div>
       )}
 
-      <section>
-        {day.focus && <p className="muted small" style={{ margin: '0 0 10px' }}>{day.focus}</p>}
-        <div className="list">
-          {day.exercises.map((e, i) => (
-            <button className="list-row" key={e.id} onClick={() => setSelected(e)}>
-              <div className="grow">
-                <div className="title">
-                  {ssLabels[i] && <span className="ss">{ssLabels[i]}</span>}
-                  {e.name}
+      {view === 'schema' && (
+        <>
+        <section>
+          {day.focus && <p className="muted small" style={{ margin: '0 0 10px' }}>{day.focus}</p>}
+          <div className="list">
+            {day.exercises.map((e, i) => (
+              <button className="list-row" key={e.id} onClick={() => setSelected(e)}>
+                <div className="grow">
+                  <div className="title">
+                    {ssLabels[i] && <span className="ss">{ssLabels[i]}</span>}
+                    {e.name}
+                  </div>
+                  <div className="sub">
+                    {e.sets} × {repRange(e.repMin, e.repMax)}, rust {rest(e.restSeconds)}
+                    {e.superset ? ' na de ronde' : ''}
+                  </div>
                 </div>
-                <div className="sub">
-                  {e.sets} × {repRange(e.repMin, e.repMax)}, rust {rest(e.restSeconds)}
-                  {e.superset ? ' na de ronde' : ''}
+                <div className="num" style={{ fontSize: 22, fontWeight: 600 }}>
+                  {e.loadType === 'bodyweight' ? <span className="small muted">LG</span> : `${kg(e.target?.weight ?? 0)} kg`}
                 </div>
-              </div>
-              <div className="num" style={{ fontSize: 22, fontWeight: 600 }}>
-                {e.loadType === 'bodyweight' ? <span className="small muted">LG</span> : `${kg(e.target?.weight ?? 0)} kg`}
-              </div>
-              <IconChevron />
-            </button>
-          ))}
-        </div>
-      </section>
+                <IconChevron />
+              </button>
+            ))}
+          </div>
+        </section>
 
-      <section className="section stack" id="change">
-        <h2>Programma aanpassen</h2>
-        {info.aiConfigured ? (
-          <>
-            <label className="field">
-              <span>Wat moet er anders? (optioneel)</span>
-              <textarea
-                className="textarea"
-                placeholder="Bijvoorbeeld: meer rugwerk, geen barbell squats, kortere trainingen"
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-              />
-            </label>
-            <button className="btn primary block" disabled={Boolean(busy)} onClick={() => generate('adjust')}>
-              {busy === 'adjust' ? 'Bezig met aanpassen… (tot een minuut)' : 'Huidig programma aanpassen'}
-            </button>
-            <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm('Dit programma vervangen door een compleet nieuw programma?') && generate('new')}>
-              {busy === 'new' ? 'Bezig…' : 'Nieuw programma maken'}
-            </button>
-          </>
-        ) : (
-          <>
-            <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm('Het programma opnieuw opbouwen vanuit je profiel?') && generate('new')}>
-              {busy ? 'Bezig…' : 'Opnieuw opbouwen vanuit profiel'}
-            </button>
-            <p className="faint small" style={{ margin: 0 }}>
-              Geschreven wensen hebben AI nodig. Zet daarvoor een API-sleutel op de server. Zonder AI kun je nog steeds oefeningen wisselen en opnieuw opbouwen vanuit je profiel.
-            </p>
-          </>
-        )}
-        <p className="faint small" style={{ margin: 0 }}>
-          Gewichten die je hebt opgebouwd gaan mee naar het nieuwe programma.
-        </p>
-      </section>
+        <section className="section stack" id="change">
+          <h2>Programma aanpassen</h2>
+          {info.aiConfigured ? (
+            <>
+              <label className="field">
+                <span>Wat moet er anders? (optioneel)</span>
+                <textarea
+                  className="textarea"
+                  placeholder="Bijvoorbeeld: meer rugwerk, geen barbell squats, kortere trainingen"
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                />
+              </label>
+              <button className="btn primary block" disabled={Boolean(busy)} onClick={() => generate('adjust')}>
+                {busy === 'adjust' ? 'Bezig met aanpassen… (tot een minuut)' : 'Huidig programma aanpassen'}
+              </button>
+              <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm('Dit programma vervangen door een compleet nieuw programma?') && generate('new')}>
+                {busy === 'new' ? 'Bezig…' : 'Nieuw programma maken'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm('Het programma opnieuw opbouwen vanuit je profiel?') && generate('new')}>
+                {busy ? 'Bezig…' : 'Opnieuw opbouwen vanuit profiel'}
+              </button>
+              <p className="faint small" style={{ margin: 0 }}>
+                Geschreven wensen hebben AI nodig. Zet daarvoor een API-sleutel op de server. Zonder AI kun je nog steeds oefeningen wisselen en opnieuw opbouwen vanuit je profiel.
+              </p>
+            </>
+          )}
+          <p className="faint small" style={{ margin: 0 }}>
+            Gewichten die je hebt opgebouwd gaan mee naar het nieuwe programma.
+          </p>
+        </section>
+        </>
+      )}
 
       <ExerciseSheet
         exercise={selected}

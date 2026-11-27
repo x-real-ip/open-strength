@@ -25,15 +25,7 @@ export async function getToday(profile: Profile | null): Promise<TodayResponse> 
   const inProgress = await one<{ id: number }>("SELECT id FROM workouts WHERE status = 'in_progress' ORDER BY id DESC LIMIT 1");
   const last = await one("SELECT id, day_name, finished_at FROM workouts WHERE status = 'completed' ORDER BY finished_at DESC LIMIT 1");
 
-  let nextDay = null;
-  if (program && program.days.length) {
-    const lastInProgram = await one<{ day_index: number }>(
-      "SELECT pd.day_index FROM workouts w JOIN program_days pd ON pd.id = w.program_day_id WHERE w.program_id = $1 AND w.status = 'completed' ORDER BY w.finished_at DESC LIMIT 1",
-      [program.id],
-    );
-    const idx = lastInProgram ? (lastInProgram.day_index + 1) % program.days.length : 0;
-    nextDay = program.days[idx];
-  }
+  const nextDay = program?.days[program.nextDayIndex] ?? null;
 
   const now = new Date();
   const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((now.getUTCDay() + 6) % 7)));
