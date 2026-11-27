@@ -1,0 +1,28 @@
+---
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: "**/*.md"
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: "web/**"
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "server/**"
+          - "shared/**"
+
+infrastructure:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "deploy/**"
+          - ".github/**"
+          - "Dockerfile"
+          - "docker-compose.yml"
+
+bug:
+  - head-branch: ["^fix", "fix"]
+
+feature:
+  - head-branch: ["^feature", "^feat"]

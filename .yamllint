@@ -1,0 +1,22 @@
+---
+extends: default
+
+ignore: |
+  node_modules/
+  web/node_modules/
+  web/dist/
+  data/
+
+rules:
+  # Lines may be as long as stays readable; otherwise long values get split
+  # for no reason.
+  line-length:
+    max: 120
+    allow-non-breakable-words: true
+  # "on:" in a workflow is not a boolean.
+  truthy:
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+  # Some files start with "---" (kustomize style), others don't. Both are fine.
+  document-start: disable
