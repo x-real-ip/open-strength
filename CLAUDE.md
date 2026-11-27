@@ -62,6 +62,12 @@ Working agreements for this repository.
   purpose; photos load from the fork at the same commit. Pattern, load type and start factor are derived by
   `classifyPattern` and friends; add a case to the classification test when changing them.
 
+## Push notifications
+
+- Rest notifications use Web Push (`services/push.ts`, `web-push`). VAPID keys are generated once and kept in the
+  settings table. The pending rest push is an in-memory timer: fine for one replica; a restart only drops a pending
+  rest notification. The page schedules it only while hidden (`web/src/notifications.ts`), so it never doubles the beep.
+
 ## Progression engine
 
 - Training weights come from `server/services/progression.ts` only: deterministic, based

@@ -1,7 +1,7 @@
 // Service worker: caches the app shell so the app opens without a connection,
 // and keeps the last response of read-only API calls as an offline fallback.
 // Writes (logged sets) are queued by the app itself and retried when back online.
-const VERSION = 'overload-v4';
+const VERSION = 'overload-v5';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {
@@ -90,4 +90,35 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
+});
+
+// Rest notifications pushed by the server (see web/src/notifications.ts).
+self.addEventListener('push', (event) => {
+  let data = { title: 'Overload', body: '', tag: 'overload' };
+  try {
+    data = { ...data, ...event.data.json() };
+  } catch {
+    // A push without JSON still shows the default notification.
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      tag: data.tag,
+      renotify: true,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      vibrate: [200, 100, 200],
+    }),
+  );
+});
+
+// Tapping the notification brings the app (and the running workout) back.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((w) => 'focus' in w);
+      return open ? open.focus() : self.clients.openWindow('/');
+    }),
+  );
 });

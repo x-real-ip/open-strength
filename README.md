@@ -27,6 +27,8 @@ A personal, self-hosted strength training app: AI-designed training programs, lo
 - **Offline first**: sets are stored on the phone first (IndexedDB) and synced as soon as there is a connection.
 - **Afterwards**: a summary with the advice for the next session per exercise, explained in plain language.
 - **AI coach**: a chat that gets your real training data. The coach may explain weights but never sets them. One button turns the coach's advice into an adjusted program.
+- **Body weight**: log your weight under Progress and follow it in a chart. The latest entry is your profile weight, so new starting weights use your current weight; editing the weight in the profile also logs it.
+- **Rest notifications**: turn them on under Profile → Notifications (per device). When you switch away from the app during a rest, the server sends a push notification when the rest is over; coming back cancels it and the app beeps as before. On iPhone and iPad this needs the app on the home screen.
 - **Statistics**: estimated 1RM per exercise, volume per week, sets per muscle group per week (recent versus the period before), personal records and stall detection.
 - **Data**: export as JSON (everything) and CSV (sets), import of a JSON export.
 

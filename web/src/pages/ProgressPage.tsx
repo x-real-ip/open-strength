@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { api } from '../api.ts';
+import { BodyWeightSection } from '../components/BodyWeight.tsx';
 import { BarChart } from '../components/Charts.tsx';
 import { IconChevron } from '../components/Icons.tsx';
 import { ErrorState, Loading, useLoad } from '../components/ui.tsx';
@@ -27,6 +28,7 @@ export default function ProgressPage() {
             )}
           </p>
         </div>
+        <BodyWeightSection />
       </main>
     );
   }
@@ -59,6 +61,8 @@ export default function ProgressPage() {
           <div className="label">{t('kg lifted', 'kg getild')}</div>
         </div>
       </div>
+
+      <BodyWeightSection />
 
       <section className="section stack">
         <BarChart

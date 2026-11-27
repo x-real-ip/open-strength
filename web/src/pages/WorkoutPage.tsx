@@ -10,6 +10,7 @@ import { loadRest, primeAudio, RestTimer, saveRest, type RestState } from '../co
 import { DecisionTag, ErrorState, Loading, Sheet, toast } from '../components/ui.tsx';
 import { clock, kg, relativeDay, repRange, rest as restLabel, supersetLabels } from '../format.ts';
 import { t } from '../i18n.ts';
+import { useRestNotification } from '../notifications.ts';
 import { addStep } from '../workoutMath.ts';
 
 type SetsByExercise = Record<number, LoggedSet[]>;
@@ -141,6 +142,9 @@ export default function WorkoutPage() {
     () => workout?.exercises.filter((e) => (logged[e.programExerciseId]?.length ?? 0) >= e.sets).length ?? 0,
     [workout, logged],
   );
+
+  // In the background during a rest: the server pushes a notification when the rest is over.
+  useRestNotification(rest?.endsAt ?? null, workout?.exercises[current]?.name);
 
   if (error) return <ErrorState message={error} onRetry={load} />;
   if (!workout || !ex) return <Loading />;

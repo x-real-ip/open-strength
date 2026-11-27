@@ -4,6 +4,8 @@ New entries go under *Unreleased*; the version is chosen when the release is pub
 
 ## Unreleased
 
+- **Body weight**: log it under Progress, with a chart and the latest entries. The latest weight is the profile weight, so new starting weights follow your current weight; changing the weight in the profile logs it too. The coach sees the trend. Part of the export.
+- **Rest notifications**: Web Push when a rest is over while the app is in the background or the screen is off. Turn on per device under Profile → Notifications, with a test button. The app schedules the push when it goes to the background during a rest and cancels it when you come back. Migration 6: `body_weights` and `push_subscriptions`.
 - **Desktop browsers**: from 900 px wide the bottom menu becomes a sidebar with the logo and version, the content column is wider (760 px), and sheets such as *Swap exercise* open as centred dialogs. Example photos are capped at 360 px high.
 - **Rows of chips** (filters in the library, coach suggestions, the exercise strip in a workout) wrap onto more lines when you use a mouse or trackpad, instead of being cut off; a mouse cannot swipe a hidden scrollbar. On phones they still scroll sideways, now with a faded edge that shows there is more.
 

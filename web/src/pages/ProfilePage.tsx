@@ -6,6 +6,7 @@ import { useInfo, useRefreshInfo, useSetLanguage } from '../App.tsx';
 import { ErrorState, Loading, toast, useLoad } from '../components/ui.tsx';
 import { versionLabel } from '../format.ts';
 import { getLang, t } from '../i18n.ts';
+import { disableNotifications, enableNotifications, notificationsOn, pushSupport } from '../notifications.ts';
 
 const equipmentOptions = (): { id: Equipment; label: string }[] => [
   { id: 'barbell', label: t('Barbell and rack', 'Barbell en rek') },
@@ -290,9 +291,76 @@ export default function ProfilePage() {
         )}
       </section>
 
+      {!isNew && <NotificationsSection />}
       {!isNew && <DataSection />}
       <AboutSection />
     </main>
+  );
+}
+
+/** Rest notifications through Web Push, per device. */
+function NotificationsSection() {
+  const support = pushSupport();
+  const [on, setOn] = useState(notificationsOn());
+  const [busy, setBusy] = useState(false);
+
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      if (on) {
+        await disableNotifications();
+        setOn(false);
+      } else if (await enableNotifications()) {
+        setOn(true);
+        toast(t('Notifications are on', 'Meldingen staan aan'));
+      } else {
+        toast(t('Notifications are blocked. Allow them in the browser settings.', 'Meldingen zijn geblokkeerd. Sta ze toe in de instellingen van je browser.'));
+      }
+    } catch (e) {
+      // Private windows and some browsers have no push service at all.
+      toast(`${t('Notifications could not be turned on', 'Meldingen konden niet aan')}: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="section stack">
+      <h2>{t('Notifications', 'Meldingen')}</h2>
+      <p className="faint small" style={{ margin: 0 }}>
+        {t(
+          'A notification when your rest is over, also when the app is in the background or the screen is off. Per device.',
+          'Een melding als je rust voorbij is, ook als de app op de achtergrond staat of je scherm uit is. Per apparaat.',
+        )}
+      </p>
+      {support === 'supported' ? (
+        <>
+          <button className="btn block" disabled={busy} onClick={() => void toggle()}>
+            {on ? t('Turn off rest notifications', 'Rustmeldingen uitzetten') : t('Turn on rest notifications', 'Rustmeldingen aanzetten')}
+          </button>
+          {on && (
+            <button
+              className="link-btn small"
+              onClick={async () => {
+                const { sent } = await api.pushTest();
+                toast(sent ? t('Test notification sent', 'Testmelding verstuurd') : t('No device to send to', 'Geen apparaat om naar te sturen'));
+              }}
+            >
+              {t('Send a test notification', 'Stuur een testmelding')}
+            </button>
+          )}
+        </>
+      ) : (
+        <p className="small muted" style={{ margin: 0 }}>
+          {support === 'install-first'
+            ? t(
+                'On iPhone and iPad, add the app to your home screen first (Share → Add to Home Screen), then open it from there and turn notifications on.',
+                'Op iPhone en iPad zet je de app eerst op je beginscherm (Deel → Zet op beginscherm). Open hem daarvandaan en zet de meldingen aan.',
+              )
+            : t('This browser does not support notifications.', 'Deze browser ondersteunt geen meldingen.')}
+        </p>
+      )}
+    </section>
   );
 }
 
