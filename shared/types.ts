@@ -123,6 +123,14 @@ export interface ExerciseUsage {
   topReps: number;
 }
 
+/** One body weight per day. */
+export interface BodyWeightEntry {
+  id: number;
+  /** YYYY-MM-DD */
+  date: string;
+  weightKg: number;
+}
+
 export type ExercisePreference = 'favorite' | 'excluded';
 
 /** Exercises the user marked: favourites go into programs where they fit, excluded ones never. */

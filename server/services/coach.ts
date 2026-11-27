@@ -2,6 +2,7 @@ import type { CoachMessage, Profile } from '../../shared/types.ts';
 import { aiConfigured } from './aiSettings.ts';
 import { all, nowIso, one, run } from '../db.ts';
 import { complete } from './ai.ts';
+import { listBodyWeights } from './bodyWeight.ts';
 import { activeProgramId, loadProgram } from './programs.ts';
 import { detectStalls, getStats, historyDigest } from './stats.ts';
 import { AI_LANGUAGE, formatKg, langOf, type Lang } from '../i18n.ts';
@@ -42,6 +43,16 @@ export async function trainingFacts(profile: Profile | null): Promise<string> {
   );
   // Frequency varies on purpose; it is a fact to report, not a target to meet.
   lines.push(T(`Average workouts per week (last 4 weeks): ${num(avgPerWeek)}.`, `Gemiddeld aantal trainingen per week (laatste 4 weken): ${num(avgPerWeek)}.`));
+  // Body weight trend: latest weigh-in and the change over roughly the last month.
+  const weights = await listBodyWeights();
+  if (weights.length) {
+    const latest = weights[weights.length - 1];
+    const monthAgo = new Date(Date.parse(latest.date) - 30 * 86_400_000).toISOString().slice(0, 10);
+    const base = weights.find((w) => w.date >= monthAgo) ?? latest;
+    const diff = Math.round((latest.weightKg - base.weightKg) * 10) / 10;
+    const change = base === latest ? '' : T(` (${diff >= 0 ? '+' : ''}${formatKg(diff, lang)} since ${base.date})`, ` (${diff >= 0 ? '+' : ''}${formatKg(diff, lang)} sinds ${base.date})`);
+    lines.push(T(`Body weight: ${formatKg(latest.weightKg, lang)} on ${latest.date}${change}.`, `Lichaamsgewicht: ${formatKg(latest.weightKg, lang)} op ${latest.date}${change}.`));
+  }
   const weekly = stats.weekly.map((w) => w.volumeKg).join(', ');
   lines.push(T(`Volume per week (kg), oldest first: ${weekly}.`, `Volume per week (kg), oudste eerst: ${weekly}.`));
   if (stats.muscles.length) {
