@@ -73,6 +73,7 @@ export default function App() {
           setLangState(l);
         }}
       >
+      <div className={fullScreen ? 'shell' : 'shell with-nav'}>
       <Routes key={lang}>
         <Route path="/" element={<TodayPage />} />
         <Route path="/program" element={<ProgramPage />} />
@@ -87,7 +88,8 @@ export default function App() {
         <Route path="/workout/:id/summary" element={<SummaryPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      {!fullScreen && <BottomNav />}
+      </div>
+      {!fullScreen && <BottomNav version={info.version} />}
       <ToastHost />
       </SetLanguageContext.Provider>
       </RefreshInfoContext.Provider>

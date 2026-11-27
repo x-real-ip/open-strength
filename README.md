@@ -1,6 +1,6 @@
 # Overload
 
-A personal, self-hosted strength training app: AI-designed training programs, logging with one tap per set, and automatic progressive overload based on what you actually trained. Mobile-first, dark theme, installable as a PWA. Runs in the homelab cluster with PostgreSQL (CloudNativePG) and is deployed through [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops).
+A personal, self-hosted strength training app: AI-designed training programs, logging with one tap per set, and automatic progressive overload based on what you actually trained. Mobile-first and fine in a desktop browser (sidebar from 900 px), dark theme, installable as a PWA. Runs in the homelab cluster with PostgreSQL (CloudNativePG) and is deployed through [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops).
 
 ## Contents
 

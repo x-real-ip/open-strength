@@ -147,7 +147,7 @@ export default function CoachPage() {
       </div>
 
       <div className="composer">
-        <div style={{ maxWidth: 560, margin: '0 auto 8px' }}>
+        <div className="composer-prompts">
           <div className="prompts">
             {prompts().map((p) => (
               <button key={p} onClick={() => void send(p)} disabled={sending}>
