@@ -11,10 +11,17 @@ import { detectStalls, historyDigest } from './stats.ts';
 
 const num = (min: number, max: number) => z.coerce.number().transform((v) => Math.min(max, Math.max(min, Math.round(v))));
 
-const aiProgramSchema = z.object({
+// Older prompts asked for "weeks"/"deloadWeek"; accept those names too.
+const legacyBlockKeys = (input: unknown) => {
+  if (!input || typeof input !== 'object') return input;
+  const o = input as Record<string, unknown>;
+  return { ...o, rounds: o.rounds ?? o.weeks, deloadRound: o.deloadRound ?? o.deloadWeek };
+};
+
+const aiProgramFields = z.object({
   name: z.string().min(1).max(120),
-  weeks: num(3, 12),
-  deloadWeek: z.union([z.coerce.number(), z.null()]).optional(),
+  rounds: num(3, 12),
+  deloadRound: z.union([z.coerce.number(), z.null()]).optional(),
   rationale: z.string().default(''),
   days: z
     .array(
@@ -39,6 +46,8 @@ const aiProgramSchema = z.object({
     )
     .min(1),
 });
+
+const aiProgramSchema = z.preprocess(legacyBlockKeys, aiProgramFields);
 
 const GOAL_TEXT: Record<Profile['goal'], string> = {
   hypertrophy: 'muscle growth (hypertrophy)',
@@ -77,12 +86,12 @@ PROFILE
 - Age: ${profile.age}, height: ${profile.heightCm} cm, body weight: ${profile.weightKg} kg
 - Training level: ${profile.level}
 - Goal: ${GOAL_TEXT[profile.goal]}
-- Training days per week: ${profile.daysPerWeek}
+- Different training days in the rotation: ${profile.trainingDays}. The person trains as often as their week allows (it varies, typically 1–4 times a week); the next workout is always the next day in the rotation, so nothing may depend on weekdays or a fixed weekly frequency.
 - Time per session: ${profile.sessionMinutes} minutes (roughly ${exercisesPerSession(profile.sessionMinutes)} exercises)
 - Limitations / points of attention: ${profile.limitations || 'none'}
 
 ALLOWED EXERCISES (use only these ids; equipment is already filtered to what is available).
-Ids marked * are the app's core exercises with a Dutch how-to guide: build the program mainly from those and use the others for variety or when they suit the person better.
+Ids marked * are the app's core exercises with a how-to guide in the app: build the program mainly from those and use the others for variety or when they suit the person better.
 ${
     prefs.favorites.size
       ? "Ids marked ♥ are the person's favourites: use each favourite where it fits the split and the session length, in preference to other exercises for the same movement pattern.\n"
@@ -100,10 +109,10 @@ ${stalls.length ? `STALLING EXERCISES (no progress over 3+ sessions): ${stalls.m
     current ? `CURRENT PROGRAM\n${current}\n` : ''
   }${opts.instructions ? `REQUESTED CHANGES FROM THE USER\n${opts.instructions}\n` : ''}
 RULES
-- Exactly ${profile.daysPerWeek} day(s) in "days", in the order they should be trained.
-- Spread muscle groups sensibly across the week and allow recovery between sessions that train the same muscles.
+- Exactly ${profile.trainingDays} day(s) in "days", in the order they rotate.
+- Because frequency varies, one round through all days must cover every major muscle group, and neighbouring days in the rotation should not hammer the same muscles.
 - Put compound lifts first, isolation work later.
-- Weekly volume: roughly 10–20 hard sets per major muscle group for hypertrophy, fewer and heavier for strength; beginners start at the low end.
+- Volume per round (one pass through all days): roughly 6–12 hard sets per major muscle group for hypertrophy, fewer and heavier for strength; beginners start at the low end.
 - Fit each session in the available time (count about 2–3 minutes per set including rest; about 1.5 minutes per set inside a superset).
 ${
   useSupersets(profile.sessionMinutes)
@@ -114,14 +123,14 @@ ${
 - restSeconds: 120–240 for heavy compounds, 60–120 for accessories.
 - startWeight in kg: a conservative weight for the first session with 2–3 reps in reserve (per hand for dumbbells, 0 for bodyweight). These are only a first estimate; the app adjusts weights from logged results and overrides your estimate when history exists.
 - Respect the limitations: avoid exercises that are likely to aggravate them and mention adaptations in notes.
-- weeks between 4 and 8. For intermediate and advanced lifters set deloadWeek to the last week; otherwise null.
+- rounds between 4 and 8: the block ends after rounds × days workouts. For intermediate and advanced lifters set deloadRound to the last round; otherwise null.
 - notes: at most one short technique cue per exercise, or an empty string.
 
 OUTPUT FORMAT (JSON only)
 {
   "name": "short program name",
-  "weeks": 6,
-  "deloadWeek": 6,
+  "rounds": 6,
+  "deloadRound": 6,
   "rationale": "2–4 sentences explaining the split, volume and how it fits the goal and limitations",
   "days": [
     { "name": "Upper A", "focus": "chest, back, shoulders",
@@ -133,9 +142,9 @@ OUTPUT FORMAT (JSON only)
 /** Validate and repair an AI program so it only contains usable, available exercises. */
 export function sanitizeAiProgram(raw: unknown, profile: Profile, prefs: Prefs = NO_PREFS): ProgramDraft {
   const parsed = aiProgramSchema.parse(raw);
-  if (parsed.days.length < profile.daysPerWeek) throw new AiError(`Expected ${profile.daysPerWeek} days, got ${parsed.days.length}`);
+  if (parsed.days.length < profile.trainingDays) throw new AiError(`Expected ${profile.trainingDays} days, got ${parsed.days.length}`);
 
-  const days = parsed.days.slice(0, profile.daysPerWeek).map((d) => {
+  const days = parsed.days.slice(0, profile.trainingDays).map((d) => {
     const used = new Set<string>();
     const exercises = d.exercises.flatMap((e) => {
       let def = getExercise(e.exerciseId);
@@ -155,8 +164,8 @@ export function sanitizeAiProgram(raw: unknown, profile: Profile, prefs: Prefs =
     return { name: d.name, focus: d.focus.slice(0, 120), exercises: normalizeSupersets(exercises) };
   });
 
-  const deload = parsed.deloadWeek && parsed.deloadWeek >= 1 && parsed.deloadWeek <= parsed.weeks ? Math.round(parsed.deloadWeek) : null;
-  return { name: parsed.name.slice(0, 80), weeks: parsed.weeks, deloadWeek: deload, source: 'ai', rationale: parsed.rationale.slice(0, 1500), days };
+  const deload = parsed.deloadRound && parsed.deloadRound >= 1 && parsed.deloadRound <= parsed.rounds ? Math.round(parsed.deloadRound) : null;
+  return { name: parsed.name.slice(0, 80), rounds: parsed.rounds, deloadRound: deload, source: 'ai', rationale: parsed.rationale.slice(0, 1500), days };
 }
 
 export interface GenerateResult {

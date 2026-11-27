@@ -74,7 +74,7 @@ test('AI program is validated, repaired and weights are clamped', async () => {
   await app.inject({
     method: 'PUT',
     url: '/api/profile',
-    payload: { age: 30, heightCm: 180, weightKg: 80, level: 'intermediate', goal: 'hypertrophy', daysPerWeek: 4, sessionMinutes: 60, equipment: ['barbell', 'dumbbell', 'bench'], limitations: '' },
+    payload: { age: 30, heightCm: 180, weightKg: 80, level: 'intermediate', goal: 'hypertrophy', trainingDays: 4, sessionMinutes: 60, equipment: ['barbell', 'dumbbell', 'bench'], limitations: '' },
   });
   const res = await app.inject({ method: 'POST', url: '/api/programs/generate', payload: {} });
   assert.equal(res.statusCode, 200);

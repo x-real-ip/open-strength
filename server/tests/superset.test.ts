@@ -13,7 +13,7 @@ const profile: Profile = {
   weightKg: 80,
   level: 'intermediate',
   goal: 'hypertrophy',
-  daysPerWeek: 2,
+  trainingDays: 2,
   sessionMinutes: 30,
   equipment: ['barbell', 'dumbbell', 'bench', 'cable', 'machine', 'pullup_bar'],
   limitations: '',
@@ -98,8 +98,8 @@ test('AI supersets are validated: broken pairs lose their label', () => {
   const draft = sanitizeAiProgram(
     {
       name: 'Full body A/B',
-      weeks: 6,
-      deloadWeek: 6,
+      rounds: 6,
+      deloadRound: 6,
       days: [
         {
           name: 'Full body A',

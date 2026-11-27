@@ -69,7 +69,8 @@ export interface Profile {
   weightKg: number;
   level: Level;
   goal: Goal;
-  daysPerWeek: number;
+  /** Different training days (A, B, C, …) the program rotates through; not tied to the calendar. */
+  trainingDays: number;
   sessionMinutes: number;
   equipment: Equipment[];
   limitations: string;
@@ -187,15 +188,25 @@ export interface ProgramDay {
 export interface Program {
   id: number;
   name: string;
-  weeks: number;
-  deloadWeek: number | null;
+  /**
+   * A block is a number of rounds through all training days. Rounds are not weeks: you train as
+   * often as you like and the next workout is always the next day in the rotation.
+   */
+  rounds: number;
+  /** The round that is a deload (the last one), or null. */
+  deloadRound: number | null;
   source: 'ai' | 'template';
   rationale: string;
   status: 'active' | 'archived';
   createdAt: string;
   days: ProgramDay[];
   completedWorkouts: number;
-  currentWeek: number;
+  /** rounds × training days. */
+  totalWorkouts: number;
+  /** Number of the next workout in the block (1-based; equals totalWorkouts once the block is done). */
+  workoutNumber: number;
+  /** Number of the first deload workout, or null without a deload. */
+  deloadFrom: number | null;
   isComplete: boolean;
   /** Index in `days` of the next workout (days rotate: after the last day comes the first). */
   nextDayIndex: number;
@@ -251,7 +262,8 @@ export interface Workout {
   status: 'in_progress' | 'completed';
   startedAt: string;
   finishedAt: string | null;
-  week: number;
+  /** Round of the block this workout belongs to. */
+  round: number;
   isDeload: boolean;
   exercises: WorkoutExercise[];
 }
@@ -281,7 +293,7 @@ export interface WorkoutSummary {
 
 export interface TodayResponse {
   hasProfile: boolean;
-  program: Pick<Program, 'id' | 'name' | 'weeks' | 'deloadWeek' | 'currentWeek' | 'isComplete' | 'completedWorkouts'> | null;
+  program: Pick<Program, 'id' | 'name' | 'rounds' | 'deloadRound' | 'totalWorkouts' | 'workoutNumber' | 'deloadFrom' | 'isComplete' | 'completedWorkouts'> | null;
   nextDay: ProgramDay | null;
   isDeload: boolean;
   inProgressWorkoutId: number | null;

@@ -102,12 +102,12 @@ export function explainProgram(program: Program, profile: Profile | null): Progr
     title: T('Schedule', 'Schema'),
     text: [
       T(
-        `${n} training day${n === 1 ? '' : 's'}: ${names}. They alternate; after ${last} you start again at ${first}.`,
-        `${n} trainingsdag${n === 1 ? '' : 'en'}: ${names}. Ze wisselen elkaar af; na ${last} begin je weer bij ${first}.`,
+        `${n} training day${n === 1 ? '' : 's'}: ${names}. They rotate; after ${last} you start again at ${first}.`,
+        `${n} trainingsdag${n === 1 ? '' : 'en'}: ${names}. Ze rouleren; na ${last} begin je weer bij ${first}.`,
       ),
       T(
-        `A week has ${n} workout${n === 1 ? '' : 's'} and a block lasts ${program.weeks} weeks. The week only moves on when you have actually done the workouts, so a missed day shifts the schedule instead of being skipped.`,
-        `Een week telt ${n} training${n === 1 ? '' : 'en'}, een blok duurt ${program.weeks} weken. De week gaat pas verder als je de trainingen echt gedaan hebt, dus een gemiste dag schuift het schema op in plaats van over te slaan.`,
+        `The block is ${program.totalWorkouts} workouts: ${program.rounds} rounds through the days. It is not tied to the calendar: train once a week or four times, the next workout is always the next day in the rotation and nothing is skipped when you train less.`,
+        `Het blok is ${program.totalWorkouts} trainingen: ${program.rounds} rondes door de dagen. Het hangt niet aan de kalender: train één keer per week of vier keer, de volgende training is altijd de volgende dag in de rotatie en er wordt niets overgeslagen als je minder traint.`,
       ),
     ],
   });
@@ -221,23 +221,25 @@ export function explainProgram(program: Program, profile: Profile | null): Progr
     ],
   });
 
+  const deloadTo = program.deloadFrom !== null ? Math.min(program.deloadFrom + n - 1, program.totalWorkouts) : null;
+  const deloadRange = program.deloadFrom === deloadTo ? `${program.deloadFrom}` : `${program.deloadFrom}–${deloadTo}`;
   out.push(
-    program.deloadWeek
+    program.deloadFrom !== null
       ? {
-          title: T('Deload week', 'Deloadweek'),
+          title: T('Deload', 'Deload'),
           text: [
             T(
-              `Week ${program.deloadWeek} is a deload week: about 60% of the sets at 90% of your working weight, to recover. Those workouts do not change your targets; the week after, you continue where you were.`,
-              `Week ${program.deloadWeek} is een deloadweek: ongeveer 60% van de sets op 90% van je werkgewicht, om te herstellen. Die trainingen veranderen je doelen niet; de week erna ga je verder waar je was.`,
+              `Workout${n === 1 ? '' : 's'} ${deloadRange} (one round through the days) ${n === 1 ? 'is a' : 'are'} deload: about 60% of the sets at 90% of your working weight, to recover. Those workouts do not change your targets; in the next block you continue where you were.`,
+              `Training ${deloadRange} (één ronde door de dagen) ${n === 1 ? 'is een' : 'zijn'} deload: ongeveer 60% van de sets op 90% van je werkgewicht, om te herstellen. Die trainingen veranderen je doelen niet; in het volgende blok ga je verder waar je was.`,
             ),
           ],
         }
       : {
-          title: T('Deload week', 'Deloadweek'),
+          title: T('Deload', 'Deload'),
           text: [
             T(
-              'This block has no deload week. Beginners usually do not need one: the weights are still light enough to recover fully between sessions.',
-              'Dit blok heeft geen deloadweek. Voor beginners is dat meestal niet nodig: de gewichten zijn nog licht genoeg om tussen trainingen volledig te herstellen.',
+              'This block has no deload. Beginners usually do not need one: the weights are still light enough to recover fully between sessions.',
+              'Dit blok heeft geen deload. Voor beginners is dat meestal niet nodig: de gewichten zijn nog licht genoeg om tussen trainingen volledig te herstellen.',
             ),
           ],
         },
@@ -247,8 +249,8 @@ export function explainProgram(program: Program, profile: Profile | null): Progr
     title: T('After the block', 'Na het blok'),
     text: [
       T(
-        `After ${program.weeks} weeks the block is done and you make the next one. The weights you built up carry over. Stalling exercises are flagged, and with AI the next block gets variations for them.`,
-        `Na ${program.weeks} weken is het blok klaar en maak je het volgende. Je opgebouwde gewichten gaan mee. Stagnerende oefeningen worden gemeld, en met AI krijgt het volgende blok daar varianten voor.`,
+        `After ${program.totalWorkouts} workouts the block is done and you make the next one. The weights you built up carry over. Stalling exercises are flagged, and with AI the next block gets variations for them.`,
+        `Na ${program.totalWorkouts} trainingen is het blok klaar en maak je het volgende. Je opgebouwde gewichten gaan mee. Stagnerende oefeningen worden gemeld, en met AI krijgt het volgende blok daar varianten voor.`,
       ),
     ],
   });

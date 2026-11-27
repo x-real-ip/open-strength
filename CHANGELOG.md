@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.0 — 2026-11-27
+
+- **A block instead of weeks**: a program is now a number of rounds through its training days, counted in workouts. How often you train no longer matters: once a week or four times, the next workout is always the next day in the rotation. The Today screen shows "Workout 7 of 18" with a bar of the whole block (deload workouts tinted), and "in this block" and "to go". Look ahead lists the coming workouts, with the deload ones marked; workouts already done are summarised in one line.
+- The deload is the last round of the block (for intermediate and advanced lifters), shown as workout numbers ("deload from workout 16").
+- The profile asks for the number of **training days in the rotation** instead of training days per week. The AI is told that frequency varies, so each round through the days must cover every major muscle group, with volume guidance per round instead of per week.
+- **Version visible**: the app version is shown next to the logo on the Today screen (and still under Profile).
+- Migration 5 renames `programs.weeks` → `rounds`, `programs.deload_week` → `deload_round` and `workouts.week` → `round`. The values keep their meaning, so a running program continues where it was. Exports from older versions still import, and profiles saved with `daysPerWeek` are read as `trainingDays`.
+
 ## 1.7.0 — 2026-11-27
 
 - **English by default, Dutch optional**: choose the language under Profile → Language; it applies right away. Everything the user sees follows it:
