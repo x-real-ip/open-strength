@@ -94,6 +94,8 @@ npm run import:exercises     # re-import free-exercise-db from the fork (optiona
 
 `npm test` needs no running database. To use an existing test database, set `TEST_DATABASE_URL`. Note: its `public` schema is wiped.
 
+Dependabot opens weekly PRs for npm packages (server and web) and GitHub Actions; minor and patch updates are grouped. The node base image is watched by the *Check releases* workflow.
+
 Agreements for whoever (or whatever) works on the code are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Configuration
