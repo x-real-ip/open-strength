@@ -1,7 +1,7 @@
 // Rule-based program builder. Used when no AI is configured or the AI response is unusable,
 // so the app always works.
 import type { ExerciseDef, Goal, MovementPattern, Profile } from '../../shared/types.ts';
-import { pickForPattern } from './exercises.ts';
+import { NO_PREFS, pickForPattern, type Prefs } from './exercises.ts';
 import type { ProgramDraft, ProgramDraftExercise } from './programs.ts';
 import { heuristicStartWeight } from './weights.ts';
 
@@ -135,7 +135,7 @@ const GOAL_LABEL: Record<Goal, string> = {
   fat_loss: 'vetverlies',
 };
 
-export function buildTemplateProgram(profile: Profile): ProgramDraft {
+export function buildTemplateProgram(profile: Profile, prefs: Prefs = NO_PREFS): ProgramDraft {
   const split = splitFor(profile.daysPerWeek);
   const perSession = exercisesPerSession(profile.sessionMinutes);
   const deload = profile.level === 'beginner' ? null : 6;
@@ -147,7 +147,7 @@ export function buildTemplateProgram(profile: Profile): ProgramDraft {
     const picked: ExerciseDef[] = [];
     for (const pattern of t.patterns) {
       if (picked.length >= perSession) break;
-      const ex: ExerciseDef | undefined = pickForPattern(pattern, profile.equipment, used);
+      const ex: ExerciseDef | undefined = pickForPattern(pattern, profile.equipment, used, prefs);
       if (!ex) continue;
       used.add(ex.id);
       picked.push(ex);

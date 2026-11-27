@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 — 2026-11-27
+
+- **Favorieten en "niet gebruiken"**: markeer oefeningen als favoriet (de ster in de bibliotheek) of zet ze op *Niet gebruiken* (in de uitleg van een oefening of vanuit je programma). De AI krijgt je favorieten gemarkeerd en zet ze in het schema waar ze passen. Uitgesloten oefeningen staan niet meer in de lijst voor de AI en worden vervangen als de AI ze toch kiest. Het regelgebaseerde programma kiest per bewegingspatroon eerst een favoriet, ook uit de import, en slaat uitgesloten oefeningen over.
+- Een oefening die je uitsluit, verdwijnt meteen uit je huidige programma: de app wisselt hem voor het beste alternatief en houdt sets en herhalingen gelijk.
+- **Oefeningenoverzicht**: filters *Favorieten* en *Niet gebruiken* met aantallen. Favorieten hebben een gele ster en staan bovenaan hun spiergroep. Uitgesloten oefeningen staan onderaan, doorgestreept en met een rood teken.
+- **Wisselen**: zoeken in alle oefeningen die bij je apparatuur passen, niet alleen in vergelijkbare. Favorieten staan bovenaan, uitgesloten oefeningen worden niet aangeboden. Met het vinkje "nooit meer gebruiken" sluit je de oude oefening meteen uit.
+- Migratie 4: tabel `exercise_preferences`. Je markeringen gaan mee in de export.
+
 ## 1.4.0 — 2026-11-27
 
 - **Alle oefeningen uit free-exercise-db**: de bibliotheek heeft nu 886 oefeningen. Dat zijn de 67 vaste oefeningen plus de volledige lijst uit de fork [x-real-ip/free-exercise-db](https://github.com/x-real-ip/free-exercise-db), inclusief rekken, cardio, plyometrie, olympisch gewichtheffen en strongman. Namen en uitleg van de geïmporteerde oefeningen zijn Engels. Hun foto's komen uit de fork en worden na de eerste keer bewaard voor offline gebruik.

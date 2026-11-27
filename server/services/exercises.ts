@@ -130,6 +130,19 @@ export const LIBRARY: LibraryExercise[] = [...CURATED, ...imported];
 export const EXERCISES: ExerciseDef[] = LIBRARY.filter((e): e is ExerciseDef => e.programmable);
 
 const byId = new Map(EXERCISES.map((e) => [e.id, e]));
+const libraryById = new Map(LIBRARY.map((e) => [e.id, e]));
+
+export function getLibraryExercise(id: string): LibraryExercise | undefined {
+  return libraryById.get(id);
+}
+
+/** The user's marks: favourites first where they fit, excluded ones never. */
+export interface Prefs {
+  favorites: Set<string>;
+  excluded: Set<string>;
+}
+
+export const NO_PREFS: Prefs = { favorites: new Set(), excluded: new Set() };
 
 export function getExercise(id: string): ExerciseDef | undefined {
   return byId.get(id);
@@ -147,23 +160,34 @@ export function availableExercises(equipment: Equipment[]): ExerciseDef[] {
 
 /**
  * Alternatives for an exercise: same movement pattern first, then same primary muscle.
- * Curated exercises rank above imported ones, loaded variants above bodyweight variants.
+ * Favourites rank first, then curated exercises above imported ones, loaded variants above
+ * bodyweight variants. Excluded exercises are never offered.
  */
-export function alternativesFor(id: string, equipment: Equipment[], exclude: string[] = []): ExerciseDef[] {
+export function alternativesFor(id: string, equipment: Equipment[], exclude: string[] = [], prefs: Prefs = NO_PREFS): ExerciseDef[] {
   const ex = byId.get(id);
   if (!ex) return [];
   const skip = new Set([id, ...exclude]);
-  const pool = availableExercises(equipment).filter((e) => !skip.has(e.id));
+  const pool = availableExercises(equipment).filter((e) => !skip.has(e.id) && !prefs.excluded.has(e.id));
   const score = (e: ExerciseDef) =>
-    (e.pattern === ex.pattern ? 0 : 10) + (e.primary === ex.primary ? 0 : 5) + (e.source === 'overload' ? 0 : 2) + (e.loadType === 'bodyweight' ? 1 : 0);
+    (e.pattern === ex.pattern ? 0 : 10) +
+    (e.primary === ex.primary ? 0 : 5) +
+    (prefs.favorites.has(e.id) ? -3 : 0) +
+    (e.source === 'overload' ? 0 : 2) +
+    (e.loadType === 'bodyweight' ? 1 : 0);
   return pool
     .filter((e) => e.pattern === ex.pattern || e.primary === ex.primary)
     .sort((a, b) => score(a) - score(b));
 }
 
-/** Pick the best available curated exercise for a movement pattern, honouring a preference order. */
-export function pickForPattern(pattern: MovementPattern, equipment: Equipment[], used: Set<string>): ExerciseDef | undefined {
-  const candidates = CURATED.filter((e) => isAvailable(e, equipment) && e.pattern === pattern && !used.has(e.id));
+/**
+ * Pick the best available exercise for a movement pattern: a favourite (curated or imported) if
+ * there is one, otherwise a curated exercise in preference order. Excluded exercises never.
+ */
+export function pickForPattern(pattern: MovementPattern, equipment: Equipment[], used: Set<string>, prefs: Prefs = NO_PREFS): ExerciseDef | undefined {
+  const fits = (e: ExerciseDef) => e.pattern === pattern && !used.has(e.id) && !prefs.excluded.has(e.id) && isAvailable(e, equipment);
+  const favorites = EXERCISES.filter((e) => prefs.favorites.has(e.id) && fits(e));
+  if (favorites.length) return favorites.find((e) => e.loadType !== 'bodyweight') ?? favorites[0];
+  const candidates = CURATED.filter(fits);
   // Library order within a pattern is the preference order (free weights first, bodyweight last),
   // but prefer anything loadable over bodyweight.
   return candidates.find((e) => e.loadType !== 'bodyweight') ?? candidates[0];

@@ -1522,3 +1522,99 @@ details.why summary::-webkit-details-marker {
 .meter span.full {
   background: var(--plate-red);
 }
+
+/* ---------- Exercise preferences: favourite / never use ---------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pref-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pref-buttons button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border-radius: var(--r-control);
+  border: 1.5px solid var(--deck-3);
+  background: transparent;
+  color: var(--chalk-2);
+  font: inherit;
+  font-weight: 600;
+}
+
+.pref-buttons .favorite[aria-pressed='true'] {
+  border-color: var(--plate-yellow);
+  color: var(--plate-yellow);
+}
+
+.pref-buttons .excluded[aria-pressed='true'] {
+  border-color: var(--plate-red);
+  color: var(--plate-red);
+}
+
+.pref-mark {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+
+.pref-mark.favorite {
+  color: var(--plate-yellow);
+}
+
+.pref-mark.excluded {
+  color: var(--plate-red);
+}
+
+/* A library row: the link to the guide plus a star toggle beside it. */
+.list-row.pref-row {
+  padding: 0;
+  gap: 0;
+}
+
+.pref-row > a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 14px 4px 14px 16px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pref-row .star {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  align-self: stretch;
+  background: none;
+  border: 0;
+  color: var(--chalk-3);
+}
+
+.pref-row .star[aria-pressed='true'] {
+  color: var(--plate-yellow);
+}
+
+.list-row.excluded-row .title {
+  color: var(--chalk-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--plate-red);
+}

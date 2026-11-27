@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { CURATED, EXERCISES, LIBRARY, pickForPattern } from '../services/exercises.ts';
+import { alternativesFor, CURATED, EXERCISES, LIBRARY, pickForPattern, type Prefs } from '../services/exercises.ts';
 import { classifyPattern, PHOTO_BASE } from '../services/freeExerciseDb.ts';
 import { GUIDES } from '../services/exerciseGuide.ts';
 
@@ -72,4 +72,19 @@ test('rule-based templates only pick curated exercises', () => {
     const pick = pickForPattern(pattern, [...all], new Set());
     if (pick) assert.equal(pick.source, 'overload', `${pattern} picks ${pick.id}`);
   }
+});
+
+test('favourites win a pattern, excluded exercises are never picked or offered', () => {
+  const gym = ['barbell', 'dumbbell', 'machine', 'cable', 'bench', 'pullup_bar'] as const;
+  const prefs: Prefs = { favorites: new Set(['Box_Squat']), excluded: new Set(['barbell_bench_press']) };
+  // A favourite from the import beats the curated preference order.
+  assert.equal(pickForPattern('squat', [...gym], new Set())?.id, 'back_squat');
+  assert.equal(pickForPattern('squat', [...gym], new Set(), prefs)?.id, 'Box_Squat');
+  // An excluded curated exercise is skipped.
+  assert.equal(pickForPattern('horizontal_push', [...gym], new Set())?.id, 'barbell_bench_press');
+  assert.notEqual(pickForPattern('horizontal_push', [...gym], new Set(), prefs)?.id, 'barbell_bench_press');
+  // Alternatives: favourites first, excluded never.
+  const alts = alternativesFor('back_squat', [...gym], [], prefs);
+  assert.equal(alts[0].id, 'Box_Squat');
+  assert.ok(!alternativesFor('dumbbell_bench_press', [...gym], [], prefs).some((e) => e.id === 'barbell_bench_press'));
 });

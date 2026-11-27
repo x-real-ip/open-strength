@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { ExerciseDef, LoggedSet, Workout, WorkoutExercise } from '@shared/types.ts';
+import type { LoggedSet, Workout, WorkoutExercise } from '@shared/types.ts';
 import { api, dropQueuedSet, flushQueue, pendingCount, pendingFor, queueSet } from '../api.ts';
 import { ExerciseGuide } from '../components/ExerciseGuide.tsx';
+import { SwapSheet } from '../components/SwapSheet.tsx';
 import { IconCheck, IconClose, IconSwap } from '../components/Icons.tsx';
 import { useExercises } from '../exercises.ts';
 import { loadRest, primeAudio, RestTimer, saveRest, type RestState } from '../components/RestTimer.tsx';
 import { DecisionTag, ErrorState, Loading, Sheet, toast } from '../components/ui.tsx';
-import { clock, equipmentText, kg, relativeDay, repRange, rest as restLabel, supersetLabels } from '../format.ts';
+import { clock, kg, relativeDay, repRange, rest as restLabel, supersetLabels } from '../format.ts';
 import { addStep } from '../workoutMath.ts';
 
 type SetsByExercise = Record<number, LoggedSet[]>;
@@ -526,76 +527,12 @@ export default function WorkoutPage() {
         open={swapOpen}
         onClose={() => setSwapOpen(false)}
         programExerciseId={ex.programExerciseId}
+        current={{ exerciseId: ex.exerciseId, name: ex.name }}
         onSwapped={async () => {
           setSwapOpen(false);
           await load();
-          toast('Oefening gewisseld in je programma');
         }}
       />
     </main>
-  );
-}
-
-export function SwapSheet({ open, onClose, programExerciseId, onSwapped }: { open: boolean; onClose: () => void; programExerciseId: number; onSwapped: () => void }) {
-  const [alts, setAlts] = useState<ExerciseDef[] | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    if (!open) return;
-    setAlts(null);
-    setQuery('');
-    api
-      .alternatives(programExerciseId)
-      .then((r) => setAlts(r.alternatives))
-      .catch(() => setAlts([]));
-  }, [open, programExerciseId]);
-
-  const q = query.trim().toLowerCase();
-  const shownAlts = !alts ? [] : q ? alts.filter((a) => a.name.toLowerCase().includes(q)) : alts.slice(0, 8);
-
-  return (
-    <Sheet open={open} onClose={onClose} label="Oefening wisselen">
-      <h2>Oefening wisselen</h2>
-      <p className="muted small">Zelfde sets en herhalingen. Het startgewicht komt uit je historie met de nieuwe oefening, als die er is.</p>
-      {!alts ? (
-        <div className="spinner" style={{ margin: '20px auto' }} />
-      ) : alts.length === 0 ? (
-        <p className="muted">Geen alternatieven met jouw apparatuur.</p>
-      ) : (
-        <div className="stack">
-          {alts.length > 8 && (
-            <input className="input" type="search" placeholder={`Zoeken in ${alts.length} alternatieven`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Alternatief zoeken" />
-          )}
-          <div className="list">
-            {shownAlts.length === 0 && <p className="muted small">Niets gevonden.</p>}
-            {shownAlts.map((a) => (
-              <button
-                key={a.id}
-                className="list-row"
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  try {
-                    await api.replaceExercise(programExerciseId, a.id);
-                    onSwapped();
-                  } catch (e) {
-                    toast((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                <div className="grow">
-                  <div className="title">{a.name}</div>
-                  <div className="sub">{equipmentText(a.equipment)}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-          {!query.trim() && alts.length > 8 && <p className="faint small" style={{ margin: 0 }}>De beste 8 staan bovenaan; zoek om de andere te zien.</p>}
-        </div>
-      )}
-    </Sheet>
   );
 }

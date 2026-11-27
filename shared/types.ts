@@ -107,6 +107,22 @@ export interface LibraryExercise {
   weightNote?: string;
 }
 
+export type ExercisePreference = 'favorite' | 'excluded';
+
+/** Exercises the user marked: favourites go into programs where they fit, excluded ones never. */
+export interface ExercisePreferences {
+  favorites: string[];
+  excluded: string[];
+}
+
+/** Result of marking an exercise; excluding one swaps it out of the active program. */
+export interface PreferenceUpdate {
+  preferences: ExercisePreferences;
+  replaced: { day: string; from: string; to: string }[];
+  /** Days where no alternative was available, so the excluded exercise is still in the program. */
+  kept: string[];
+}
+
 /** An exercise programs may use: it has a movement pattern, a load type and a start weight. */
 export interface ExerciseDef extends LibraryExercise {
   programmable: true;

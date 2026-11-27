@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ExerciseGuide } from '../components/ExerciseGuide.tsx';
+import { PreferenceButtons } from '../components/PreferenceButtons.tsx';
 import { IconBack } from '../components/Icons.tsx';
 import { ErrorState, Loading } from '../components/ui.tsx';
 import { CATEGORY_LABEL, equipmentText, LEVEL_LABEL, MUSCLE_LABEL, PATTERN_LABEL } from '../format.ts';
@@ -38,6 +39,16 @@ export default function ExerciseGuidePage() {
             ? 'Deze oefening kan niet in een programma: de app kan er geen bewegingspatroon of gewichtsstap aan koppelen.'
             : 'Deze oefening kan niet in een programma: de app plant alleen krachtoefeningen met sets, herhalingen en gewicht.'}
         </p>
+      )}
+
+      {ex.programmable && (
+        <section className="stack" style={{ marginBottom: 20 }}>
+          <PreferenceButtons exerciseId={ex.id} />
+          <p className="faint small" style={{ margin: 0 }}>
+            Een favoriet zet de AI in je schema waar hij past. Een oefening op "niet gebruiken" komt nooit meer in je schema en wordt meteen vervangen
+            als hij er nu in staat.
+          </p>
+        </section>
       )}
 
       <ExerciseGuide exercise={ex} />

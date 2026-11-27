@@ -3,7 +3,8 @@ import type { Profile, Program } from '../../shared/types.ts';
 import { config } from '../config.ts';
 import { aiConfigured } from './aiSettings.ts';
 import { AiError, complete, extractJson, type ChatMessage } from './ai.ts';
-import { alternativesFor, availableExercises, getExercise, isAvailable } from './exercises.ts';
+import { alternativesFor, availableExercises, getExercise, isAvailable, NO_PREFS, type Prefs } from './exercises.ts';
+import { loadPrefs } from './exercisePrefs.ts';
 import { normalizeSupersets, type ProgramDraft } from './programs.ts';
 import { buildTemplateProgram, exercisesPerSession, useSupersets } from './programTemplates.ts';
 import { detectStalls, historyDigest } from './stats.ts';
@@ -54,11 +55,12 @@ function systemPrompt(): string {
   ].join(' ');
 }
 
-async function buildPrompt(profile: Profile, opts: { current?: Program | null; instructions?: string }): Promise<string> {
+async function buildPrompt(profile: Profile, opts: { current?: Program | null; instructions?: string }, prefs: Prefs): Promise<string> {
   const catalogue = availableExercises(profile.equipment)
+    .filter((e) => !prefs.excluded.has(e.id))
     .map(
       (e) =>
-        `${e.source === 'overload' ? '* ' : ''}${e.id} | ${e.name} | primary: ${e.primary} | pattern: ${e.pattern} | load: ${e.loadType}${e.weightNote ? ` (${e.weightNote})` : ''}`,
+        `${prefs.favorites.has(e.id) ? '♥ ' : ''}${e.source === 'overload' ? '* ' : ''}${e.id} | ${e.name} | primary: ${e.primary} | pattern: ${e.pattern} | load: ${e.loadType}${e.weightNote ? ` (${e.weightNote})` : ''}`,
     )
     .join('\n');
   const stalls = await detectStalls();
@@ -81,7 +83,15 @@ PROFILE
 
 ALLOWED EXERCISES (use only these ids; equipment is already filtered to what is available).
 Ids marked * are the app's core exercises with a Dutch how-to guide: build the program mainly from those and use the others for variety or when they suit the person better.
-${catalogue}
+${
+    prefs.favorites.size
+      ? "Ids marked ♥ are the person's favourites: use each favourite where it fits the split and the session length, in preference to other exercises for the same movement pattern.\n"
+      : ''
+  }${
+    prefs.excluded.size
+      ? `The person never wants these exercises; they are left out of the list and must not be used: ${[...prefs.excluded].map((id) => getExercise(id)?.name ?? id).join(', ')}.\n`
+      : ''
+  }${catalogue}
 
 TRAINING HISTORY (most recent sessions per exercise, weight x reps)
 ${history}
@@ -121,7 +131,7 @@ OUTPUT FORMAT (JSON only)
 }
 
 /** Validate and repair an AI program so it only contains usable, available exercises. */
-export function sanitizeAiProgram(raw: unknown, profile: Profile): ProgramDraft {
+export function sanitizeAiProgram(raw: unknown, profile: Profile, prefs: Prefs = NO_PREFS): ProgramDraft {
   const parsed = aiProgramSchema.parse(raw);
   if (parsed.days.length < profile.daysPerWeek) throw new AiError(`Expected ${profile.daysPerWeek} days, got ${parsed.days.length}`);
 
@@ -129,7 +139,8 @@ export function sanitizeAiProgram(raw: unknown, profile: Profile): ProgramDraft 
     const used = new Set<string>();
     const exercises = d.exercises.flatMap((e) => {
       let def = getExercise(e.exerciseId);
-      if (def && !isAvailable(def, profile.equipment)) def = alternativesFor(def.id, profile.equipment, [...used])[0];
+      // Unavailable or excluded exercises are swapped for the best allowed alternative.
+      if (def && (!isAvailable(def, profile.equipment) || prefs.excluded.has(def.id))) def = alternativesFor(def.id, profile.equipment, [...used], prefs)[0];
       if (!def || used.has(def.id)) return [];
       used.add(def.id);
       const repMin = Math.min(e.repMin, e.repMax);
@@ -154,14 +165,15 @@ export interface GenerateResult {
 }
 
 export async function generateProgram(profile: Profile, opts: { current?: Program | null; instructions?: string; useAi?: boolean } = {}): Promise<GenerateResult> {
+  const prefs = await loadPrefs();
   if (opts.useAi === false || !aiConfigured()) {
     return {
-      draft: buildTemplateProgram(profile),
+      draft: buildTemplateProgram(profile, prefs),
       notice: aiConfigured() ? null : 'AI staat uit, dus er is een regelgebaseerd programma gemaakt. Zet AI aan via Profiel → AI-instellingen om programma’s door de AI te laten ontwerpen.',
     };
   }
 
-  const prompt = await buildPrompt(profile, opts);
+  const prompt = await buildPrompt(profile, opts, prefs);
   let lastError = '';
   let lastText = '';
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -174,14 +186,14 @@ export async function generateProgram(profile: Profile, opts: { current?: Progra
       lastText = '';
       const text = await complete({ feature: 'program', system: systemPrompt(), messages, maxTokens: 16000, json: true });
       lastText = text;
-      return { draft: sanitizeAiProgram(extractJson(text), profile), notice: null };
+      return { draft: sanitizeAiProgram(extractJson(text), profile, prefs), notice: null };
     } catch (err) {
       lastError = err instanceof z.ZodError ? err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') : (err as Error).message;
       if (err instanceof AiError && err.status >= 503) break; // not configured or timed out: don't retry
     }
   }
   return {
-    draft: buildTemplateProgram(profile),
+    draft: buildTemplateProgram(profile, prefs),
     notice: `Het AI-programma was niet bruikbaar (${lastError.slice(0, 160)}). Er is een regelgebaseerd programma gemaakt.`,
   };
 }

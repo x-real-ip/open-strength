@@ -140,6 +140,14 @@ const migrations: string[] = [
   );
   CREATE INDEX idx_ai_usage_created ON ai_usage(created_at);
   `,
+  // 4: exercises the user marked as favourite or never wants in a program.
+  `
+  CREATE TABLE exercise_preferences (
+    exercise_id text PRIMARY KEY,
+    preference text NOT NULL CHECK (preference IN ('favorite', 'excluded')),
+    updated_at timestamptz NOT NULL
+  );
+  `,
 ];
 
 let pool: pg.Pool | null = null;
@@ -261,6 +269,7 @@ export const TABLES = [
   'workout_sets',
   'workout_outcomes',
   'coach_messages',
+  'exercise_preferences',
 ] as const;
 
 /** Tables with identity columns whose sequence must follow imported ids. */

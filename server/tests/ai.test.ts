@@ -101,6 +101,39 @@ test('AI program is validated, repaired and weights are clamped', async () => {
   assert.doesNotMatch(sent.body.messages[0].content, /kettlebell_row \|/);
 });
 
+test('favourites are marked in the prompt; excluded exercises are left out and swapped', async () => {
+  const mark = (exerciseId: string, preference: string | null) =>
+    app.inject({ method: 'PUT', url: '/api/exercise-preferences', payload: { exerciseId, preference } });
+  // Excluding an exercise of the active program swaps it out right away.
+  const excluded = await mark('barbell_bench_press', 'excluded');
+  assert.equal(excluded.statusCode, 200);
+  assert.deepEqual(excluded.json().preferences.excluded, ['barbell_bench_press']);
+  assert.ok(excluded.json().replaced.length > 0, 'replaced in the active program');
+  const active = (await app.inject({ method: 'GET', url: '/api/programs/active' })).json().program;
+  assert.ok(!active.days.some((d: any) => d.exercises.some((e: any) => e.exerciseId === 'barbell_bench_press')));
+  assert.equal((await mark('Box_Squat', 'favorite')).statusCode, 200);
+
+  const before = requests.length;
+  const res = await app.inject({ method: 'POST', url: '/api/programs/generate', payload: {} });
+  assert.equal(res.statusCode, 200);
+  const prompt = requests[before].body.messages[0].content as string;
+  assert.match(prompt, /^♥ Box_Squat \|/m);
+  assert.doesNotMatch(prompt, /^(\* )?barbell_bench_press \|/m);
+  assert.match(prompt, /never wants these exercises.*Bankdrukken \(barbell\)/);
+  // The fake model still answers with barbell_bench_press: the app swaps it for an allowed press.
+  const first = res.json().program.days[0].exercises[0];
+  assert.notEqual(first.exerciseId, 'barbell_bench_press');
+
+  // Swapping to an excluded exercise is refused; library-only exercises can't be marked.
+  const pe = res.json().program.days[0].exercises[0];
+  assert.equal((await app.inject({ method: 'POST', url: `/api/program-exercises/${pe.id}/replace`, payload: { exerciseId: 'barbell_bench_press' } })).statusCode, 400);
+  assert.equal((await mark('90_90_Hamstring', 'favorite')).statusCode, 400);
+
+  await mark('barbell_bench_press', null);
+  await mark('Box_Squat', null);
+  assert.deepEqual((await app.inject({ method: 'GET', url: '/api/exercise-preferences' })).json(), { favorites: [], excluded: [] });
+});
+
 test('unusable AI output falls back to the template program after one retry', async () => {
   mode = 'bad';
   const before = requests.length;
