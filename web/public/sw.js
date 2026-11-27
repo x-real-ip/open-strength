@@ -1,7 +1,7 @@
 // Service worker: caches the app shell so the app opens without a connection,
 // and keeps the last response of read-only API calls as an offline fallback.
 // Writes (logged sets) are queued by the app itself and retried when back online.
-const VERSION = 'overload-v1';
+const VERSION = 'overload-v2';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {

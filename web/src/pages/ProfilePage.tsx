@@ -51,7 +51,7 @@ const EMPTY: Profile = {
   level: 'beginner',
   goal: 'hypertrophy',
   daysPerWeek: 3,
-  sessionMinutes: 60,
+  sessionMinutes: 30,
   equipment: ['barbell', 'dumbbell', 'bench', 'machine', 'cable', 'pullup_bar'],
   limitations: '',
   increments: { barbell: 2.5, dumbbell: 2, machine: 5, cable: 2.5, kettlebell: 4 },
