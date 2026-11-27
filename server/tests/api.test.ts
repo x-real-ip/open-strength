@@ -169,3 +169,26 @@ test('imports an export from the SQLite-based version 1.0', async () => {
   const regen = await call('POST', '/api/programs/generate', {});
   assert.ok(regen.body.program.id > 7);
 });
+
+test('30-minute sessions get superset pairs that reach the workout screen', async () => {
+  const today = await call('GET', '/api/today');
+  if (today.body.inProgressWorkoutId) await call('DELETE', `/api/workouts/${today.body.inProgressWorkoutId}`);
+
+  assert.equal((await call('PUT', '/api/profile', { ...profile, daysPerWeek: 2, sessionMinutes: 30 })).status, 200);
+  const gen = await call('POST', '/api/programs/generate', {});
+  assert.equal(gen.status, 200);
+  const day = gen.body.program.days[0];
+  assert.deepEqual(
+    day.exercises.map((e: any) => e.superset),
+    ['A', 'A', 'B', 'B'],
+  );
+
+  const started = await call('POST', '/api/workouts', { programDayId: day.id });
+  assert.equal(started.status, 200);
+  const workout = (await call('GET', `/api/workouts/${started.body.workout.id}`)).body.workout;
+  assert.deepEqual(
+    workout.exercises.map((e: any) => e.superset),
+    ['A', 'A', 'B', 'B'],
+  );
+  assert.equal((await call('DELETE', `/api/workouts/${workout.id}`)).status, 200);
+});

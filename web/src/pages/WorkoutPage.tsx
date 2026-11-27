@@ -5,7 +5,7 @@ import { api, dropQueuedSet, flushQueue, pendingCount, pendingFor, queueSet } fr
 import { IconCheck, IconClose, IconSwap } from '../components/Icons.tsx';
 import { loadRest, primeAudio, RestTimer, saveRest, type RestState } from '../components/RestTimer.tsx';
 import { DecisionTag, ErrorState, Loading, Sheet, toast } from '../components/ui.tsx';
-import { clock, kg, relativeDay, repRange, rest as restLabel } from '../format.ts';
+import { clock, kg, relativeDay, repRange, rest as restLabel, supersetLabels } from '../format.ts';
 import { addStep } from '../workoutMath.ts';
 
 type SetsByExercise = Record<number, LoggedSet[]>;
@@ -129,6 +129,8 @@ export default function WorkoutPage() {
     el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   }, [current, posKey]);
 
+  const ssLabels = useMemo(() => (workout ? supersetLabels(workout.exercises) : []), [workout]);
+
   const doneCount = useMemo(
     () => workout?.exercises.filter((e) => (logged[e.programExerciseId]?.length ?? 0) >= e.sets).length ?? 0,
     [workout, logged],
@@ -142,6 +144,13 @@ export default function WorkoutPage() {
     saveRest(r);
   };
 
+  /** Indices of the exercises in the same superset as `i`; just [i] for straight sets. */
+  const groupOf = (i: number): number[] => {
+    const label = workout.exercises[i].superset;
+    if (!label) return [i];
+    return workout.exercises.flatMap((e, j) => (e.superset === label ? [j] : []));
+  };
+
   const commitSet = (index: number, values: Draft, extra = false) => {
     primeAudio();
     const s: LoggedSet = { setIndex: index, weight: values.weight, reps: values.reps, rir: values.rir, completed: true };
@@ -153,9 +162,39 @@ export default function WorkoutPage() {
     void queueSet({ workoutId, programExerciseId: ex.programExerciseId, ...s });
 
     if (isCorrection) return; // corrections don't restart the timer
+    const count = (i: number) => next[workout.exercises[i].programExerciseId]?.length ?? 0;
+    const open = (i: number) => count(i) < workout.exercises[i].sets;
+    const startRest = () => updateRest({ endsAt: Date.now() + ex.restSeconds * 1000, duration: ex.restSeconds });
+
+    const group = groupOf(current);
+    if (group.length > 1 && !extra) {
+      // Superset: go straight to a partner that hasn't done this round yet, without rest.
+      const round = list.length;
+      const behind = group.filter((i) => i !== current && count(i) < round && open(i));
+      const partner = behind.find((i) => i > current) ?? behind[0];
+      if (partner !== undefined) {
+        updateRest(null);
+        setCurrent(partner);
+        toast(`Superset: ${workout.exercises[partner].name}`);
+        return;
+      }
+      // End of the round: rest, then the first exercise of the superset with sets left,
+      // or the next open exercise once the superset is done.
+      const inGroup = group.find(open);
+      const target = inGroup ?? workout.exercises.findIndex((_, i) => !group.includes(i) && open(i));
+      if (target === -1) {
+        toast('All exercises done. Finish when ready.');
+        return;
+      }
+      startRest();
+      if (target !== current) setCurrent(target);
+      toast(inGroup !== undefined ? `Round done. Next: ${workout.exercises[target].name}` : `Next: ${workout.exercises[target].name}`);
+      return;
+    }
+
     const exerciseDone = list.length >= ex.sets && !extra;
     const nextOpen = workout.exercises.findIndex((e, i) => i !== current && (next[e.programExerciseId]?.length ?? 0) < e.sets);
-    if (!(exerciseDone && nextOpen === -1)) updateRest({ endsAt: Date.now() + ex.restSeconds * 1000, duration: ex.restSeconds });
+    if (!(exerciseDone && nextOpen === -1)) startRest();
     if (exerciseDone && nextOpen !== -1) {
       setCurrent(nextOpen);
       toast(`Next: ${workout.exercises[nextOpen].name}`);
@@ -210,7 +249,9 @@ export default function WorkoutPage() {
   const elapsed = (now - new Date(workout.startedAt).getTime()) / 1000;
   const step = ex.increment;
   const bodyweight = ex.loadType === 'bodyweight';
-  const showNext = sets.length >= ex.sets && editing === null && current < workout.exercises.length - 1;
+  // The next exercise that still has sets to do (skips superset partners that are already done).
+  const nextTarget = workout.exercises.findIndex((e, i) => i > current && (logged[e.programExerciseId]?.length ?? 0) < e.sets);
+  const showNext = sets.length >= ex.sets && editing === null && nextTarget !== -1;
 
   return (
     <main className="page no-nav">
@@ -247,7 +288,10 @@ export default function WorkoutPage() {
                 }}
               >
                 <span className="pip">{done ? '✓' : `${n}/${e.sets}`}</span>
-                <span className="lbl">{e.name}</span>
+                <span className="lbl">
+                  {ssLabels[i] ? `${ssLabels[i]} ` : ''}
+                  {e.name}
+                </span>
               </button>
             );
           })}
@@ -256,7 +300,10 @@ export default function WorkoutPage() {
 
       <section className="ex-head" style={{ marginTop: 8 }}>
         <div className="spread" style={{ alignItems: 'flex-start' }}>
-          <h2>{ex.name}</h2>
+          <h2>
+            {ssLabels[current] && <span className="ss">{ssLabels[current]}</span>}
+            {ex.name}
+          </h2>
           {sets.length === 0 && (
             <button className="icon-btn" onClick={() => setSwapOpen(true)} aria-label="Swap exercise">
               <IconSwap />
@@ -277,8 +324,21 @@ export default function WorkoutPage() {
               </>
             )}
           </span>
-          <span>Rest {restLabel(ex.restSeconds)}</span>
+          <span>
+            Rest {restLabel(ex.restSeconds)}
+            {ex.superset ? ' after the round' : ''}
+          </span>
         </div>
+        {ex.superset && (
+          <p className="ss-note">
+            Superset with{' '}
+            {groupOf(current)
+              .filter((i) => i !== current)
+              .map((i) => workout.exercises[i].name)
+              .join(' and ')}
+            : one set of each, then rest.
+          </p>
+        )}
         <details className="advice">
           <summary className="spread" style={{ listStyle: 'none', cursor: 'pointer' }}>
             <DecisionTag decision={ex.decision} />
@@ -438,8 +498,8 @@ export default function WorkoutPage() {
           <div className="dock-inner">
             {rest && <RestTimer rest={rest} onChange={updateRest} />}
             {!rest && showNext && (
-              <button className="btn primary big block" onClick={() => setCurrent(current + 1)}>
-                Next: {workout.exercises[current + 1].name}
+              <button className="btn primary big block" onClick={() => setCurrent(nextTarget)}>
+                Next: {workout.exercises[nextTarget].name}
               </button>
             )}
           </div>

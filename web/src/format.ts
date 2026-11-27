@@ -69,3 +69,14 @@ export const MUSCLE_LABEL: Record<MuscleGroup, string> = {
   calves: 'Calves',
   core: 'Core',
 };
+
+/** Display labels such as "A1" and "A2" for superset members; null for straight sets. */
+export function supersetLabels(exercises: { superset: string | null }[]): (string | null)[] {
+  const seen = new Map<string, number>();
+  return exercises.map((e) => {
+    if (!e.superset) return null;
+    const n = (seen.get(e.superset) ?? 0) + 1;
+    seen.set(e.superset, n);
+    return `${e.superset}${n}`;
+  });
+}

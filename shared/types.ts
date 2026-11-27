@@ -107,6 +107,8 @@ export interface ProgramExercise {
   restSeconds: number;
   notes: string;
   increment: number;
+  /** Superset label (A, B, …); neighbours with the same label are done back to back. */
+  superset: string | null;
   target: Target | null;
 }
 
@@ -159,6 +161,7 @@ export interface WorkoutExercise {
   repMax: number;
   restSeconds: number;
   notes: string;
+  superset: string | null;
   targetWeight: number;
   repTargets: number[];
   decision: Decision;

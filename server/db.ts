@@ -117,6 +117,11 @@ const migrations: string[] = [
     value text NOT NULL
   );
   `,
+  // 2: supersets. Exercises next to each other in a day with the same label are done
+  // back to back, with the rest after the round.
+  `
+  ALTER TABLE program_exercises ADD COLUMN superset text;
+  `,
 ];
 
 let pool: pg.Pool | null = null;

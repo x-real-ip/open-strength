@@ -1342,3 +1342,28 @@ details.why summary {
 details.why summary::-webkit-details-marker {
   display: none;
 }
+
+/* ---------- Superset label (A1, A2): neutral, it groups rather than judges ---------- */
+
+.ss {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  margin-right: 8px;
+  border-radius: 6px;
+  background: var(--deck-3);
+  color: var(--chalk);
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: 2px;
+}
+
+.ss-note {
+  margin: 4px 0 0;
+  color: var(--chalk-2);
+  font-size: 14px;
+}
