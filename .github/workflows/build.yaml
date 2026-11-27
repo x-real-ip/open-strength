@@ -107,11 +107,72 @@ jobs:
           cat /tmp/healthz.json
           grep -q '"database":"ok"' /tmp/healthz.json
 
+  # The main flow in a real browser: profile, program, workout and summary, in English and
+  # Dutch, on a phone and a desktop viewport (e2e/). The app runs from source against Postgres.
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: overload
+          POSTGRES_PASSWORD: overload
+          POSTGRES_DB: overload
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U overload"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      E2E_DATABASE_URL: postgres://overload:overload@localhost:5432/overload
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+
+      - name: Install
+        run: |
+          npm ci
+          npm --prefix web ci
+
+      - name: Build the PWA
+        run: npm run build
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: npm run test:e2e
+
+      - name: Upload the report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   build:
     runs-on: ubuntu-latest
     needs:
       - check
       - migrations
+      - e2e
 
     permissions:
       contents: read

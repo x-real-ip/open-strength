@@ -76,6 +76,9 @@ Working agreements for this repository.
 ```bash
 npm run typecheck && npm test && npm run build
 yamllint .
+E2E_DATABASE_URL=postgres://… npm run test:e2e   # browser tests; also run in CI
 ```
+
+Change UI text or flows? Update `e2e/flow.spec.ts` too: it clicks through the app by visible text, in both languages.
 
 CI builds the image from the `Dockerfile`; there is no Docker setup for local use.
