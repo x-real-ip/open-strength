@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
 const env = process.env;
@@ -47,13 +46,12 @@ function logLevel(): LogLevel {
   return (LOG_LEVELS as readonly string[]).includes(v ?? '') ? (v as LogLevel) : 'info';
 }
 
-/** Single source of truth for the version: package.json, which sits next to server/ in the image. */
-function packageVersion(): string {
-  try {
-    return JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version ?? '0.0.0';
-  } catch {
-    return '0.0.0';
-  }
+/**
+ * The release tag decides the version: CI passes it into the image as APP_VERSION (tag v1.2.3 → 1.2.3).
+ * Builds without a tag carry dev-<commit>; running from source shows "dev".
+ */
+function appVersion(): string {
+  return str('APP_VERSION') ?? 'dev';
 }
 
 export const config = {
@@ -105,6 +103,6 @@ export const config = {
     // Thinking models can take a while to design a program.
     timeoutMs: num('AI_TIMEOUT_MS', 180_000),
   },
-  version: packageVersion(),
+  version: appVersion(),
 };
 

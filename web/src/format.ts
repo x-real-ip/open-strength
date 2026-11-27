@@ -1,6 +1,11 @@
 import type { Decision, Equipment, ExerciseCategory, ExerciseLevel, LibraryExercise, MovementPattern, MuscleGroup } from '@shared/types.ts';
 import { decimal, locale, t } from './i18n.ts';
 
+/** "v1.2.3" for a release, "dev-abc1234" as it is for other builds. */
+export function versionLabel(version: string): string {
+  return /^\d/.test(version) ? `v${version}` : version;
+}
+
 export function kg(weight: number): string {
   // 42.5 in English, 42,5 in Dutch.
   return decimal(Number.isInteger(weight) ? String(weight) : weight.toFixed(2).replace(/0$/, ''));

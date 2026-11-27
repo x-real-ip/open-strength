@@ -11,9 +11,12 @@ RUN npm --prefix web run build
 
 # --- Runtime ---
 FROM docker.io/library/node:22-alpine
+# Set by CI from the release tag (v1.2.3 → 1.2.3); shown in the app.
+ARG APP_VERSION=dev
 ENV NODE_ENV=production \
     PORT=8080 \
-    WEB_DIR=/app/web/dist
+    WEB_DIR=/app/web/dist \
+    APP_VERSION=$APP_VERSION
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force

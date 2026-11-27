@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.ts';
 import { useInfo } from '../App.tsx';
 import { ErrorState, Loading, toast, useLoad } from '../components/ui.tsx';
-import { kg, relativeDay, repRange, supersetLabels } from '../format.ts';
+import { kg, relativeDay, repRange, supersetLabels, versionLabel } from '../format.ts';
 import { t } from '../i18n.ts';
 import { deloadPreview } from '../workoutMath.ts';
 
@@ -69,7 +69,7 @@ export default function TodayPage() {
     <main className="page">
       <div className="page-head">
         <div className="brand">
-          OVERLOAD <span className="version">v{info.version}</span>
+          OVERLOAD <span className="version">{versionLabel(info.version)}</span>
         </div>
         {data.lastWorkout && (
           <Link to={`/workout/${data.lastWorkout.id}/summary`} className="faint small">

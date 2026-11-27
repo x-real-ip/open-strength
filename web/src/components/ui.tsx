@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import type { Decision } from '@shared/types.ts';
-import { decisionLabel } from '../format.ts';
+import { decisionLabel, versionLabel } from '../format.ts';
 import { t } from '../i18n.ts';
 import { IconCoach, IconExercises, IconProfile, IconProgram, IconProgress, IconToday } from './Icons.tsx';
 
-export function BottomNav() {
+/** Bottom tab bar on phones; a sidebar with the logo and version on wide screens (see styles.css). */
+export function BottomNav({ version }: { version: string }) {
   const items = [
     { to: '/', label: t('Today', 'Vandaag'), icon: <IconToday /> },
     { to: '/program', label: t('Program', 'Programma'), icon: <IconProgram /> },
@@ -16,6 +17,9 @@ export function BottomNav() {
   ];
   return (
     <nav className="nav" aria-label={t('Main menu', 'Hoofdmenu')}>
+      <div className="nav-brand" aria-hidden="true">
+        OVERLOAD <span className="version">{versionLabel(version)}</span>
+      </div>
       {items.map((i) => (
         <NavLink key={i.to} to={i.to} end={i.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
           {i.icon}

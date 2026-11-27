@@ -1136,6 +1136,11 @@ button.list-row:active {
   border-top: 1px solid var(--rule);
 }
 
+.composer-prompts {
+  max-width: 560px;
+  margin: 0 auto 8px;
+}
+
 .composer form {
   max-width: 560px;
   margin: 0 auto;
@@ -1674,4 +1679,145 @@ details.why summary::-webkit-details-marker {
 .pills.stacked .pill {
   line-height: 1.35;
   padding: 4px 10px;
+}
+
+/* ---------- Phones: chip rows scroll sideways; the faded edge shows there is more ---------- */
+
+.nav-brand {
+  display: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .chips,
+  .prompts {
+    padding-right: 24px;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  }
+}
+
+/* ---------- Mouse and trackpad: chips wrap, a mouse cannot swipe a hidden scrollbar ---------- */
+
+@media (hover: hover) and (pointer: fine) {
+  .chips,
+  .prompts,
+  .wk-top .strip {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+
+/* ---------- Wide screens: sidebar instead of the bottom bar, a wider column, dialogs ---------- */
+
+@media (min-width: 900px) {
+  :root {
+    --rail-w: 220px;
+  }
+
+  .nav {
+    top: 0;
+    right: auto;
+    width: var(--rail-w);
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 24px 12px;
+    border-top: 0;
+    border-right: 1px solid var(--rule);
+  }
+
+  .nav-brand {
+    display: block;
+    padding: 0 12px 20px;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.06em;
+    color: var(--chalk-2);
+  }
+
+  .nav a {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--r-control);
+    font-size: 15px;
+    letter-spacing: 0;
+  }
+
+  .nav a:hover {
+    background: var(--deck);
+    color: var(--chalk-2);
+  }
+
+  .nav a.active {
+    background: var(--deck);
+  }
+
+  .with-nav {
+    padding-left: var(--rail-w);
+  }
+
+  .page {
+    max-width: 760px;
+    padding: 32px 32px 48px;
+  }
+
+  .page.no-nav {
+    padding-bottom: 140px;
+  }
+
+  /* The logo and version live in the sidebar. */
+  .with-nav .brand {
+    display: none;
+  }
+
+  /* Bars fixed to the bottom sit next to the sidebar, not under it. */
+  .with-nav .composer {
+    left: var(--rail-w);
+    bottom: 0;
+  }
+
+  .with-nav .composer form,
+  .with-nav .composer-prompts {
+    max-width: 696px;
+  }
+
+  .with-nav ~ .toast {
+    left: calc(50% + var(--rail-w) / 2);
+    bottom: 28px;
+  }
+
+  .toast {
+    bottom: 28px;
+  }
+
+  /* Sheets become centred dialogs. */
+  .scrim {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .sheet {
+    max-width: 520px;
+    max-height: min(80vh, 760px);
+    border-radius: 20px;
+    padding: 20px 24px 24px;
+  }
+
+  .sheet .grip {
+    display: none;
+  }
+
+  /* Example photos: big enough to read, not a whole screen. */
+  .demo {
+    max-width: 540px;
+  }
+
+  .demo img {
+    max-height: 360px;
+  }
 }
