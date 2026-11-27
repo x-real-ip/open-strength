@@ -71,7 +71,7 @@ test('rule-based templates only pick curated exercises', () => {
   const all = ['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'pullup_bar', 'bench', 'bands'] as const;
   for (const pattern of new Set(EXERCISES.map((e) => e.pattern))) {
     const pick = pickForPattern(pattern, [...all], new Set());
-    if (pick) assert.equal(pick.source, 'overload', `${pattern} picks ${pick.id}`);
+    if (pick) assert.equal(pick.source, 'curated', `${pattern} picks ${pick.id}`);
   }
 });
 

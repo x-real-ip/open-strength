@@ -18,7 +18,7 @@ export function BottomNav({ version }: { version: string }) {
   return (
     <nav className="nav" aria-label={t('Main menu', 'Hoofdmenu')}>
       <div className="nav-brand" aria-hidden="true">
-        OVERLOAD <span className="version">{versionLabel(version)}</span>
+        OPEN STRENGTH <span className="version">{versionLabel(version)}</span>
       </div>
       {items.map((i) => (
         <NavLink key={i.to} to={i.to} end={i.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>

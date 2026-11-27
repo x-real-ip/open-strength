@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Working agreements for this repository.
+Working agreements for this repository (Open Strength; called Overload until the rename).
 
 ## Language
 
@@ -15,12 +15,18 @@ Working agreements for this repository.
     Imported free-exercise-db exercises keep their English text in both languages.
   - The AI writes in the profile's language (`AI_LANGUAGE` in `server/i18n.ts`).
 
+## Name
+
+- The app is **Open Strength**; ids, images and resources use `open-strength` (Postgres: `open_strength`).
+- Browser storage keys (`overload.*`, `overload-*`, IndexedDB `overload`) and cookie names (`overload_*`) keep the
+  old name on purpose: renaming them would drop unsent sets and sessions on devices. Imports accept `app: 'overload'`.
+
 ## Stack
 
 - Node 22 + TypeScript. The server runs `.ts` directly (type stripping), so there is no
   server build step; `npm run build` builds the PWA in `web/`.
 - Fastify serves both the API and the built PWA from one image
-  (`ghcr.io/x-real-ip/overload`). Don't split it into separate web/api images.
+  (`ghcr.io/x-real-ip/open-strength`). Don't split it into separate web/api images.
 - PostgreSQL only, via `pg`. Schema changes are new entries appended to `migrations` in
   `server/db.ts`; never edit a migration that has shipped. Migrations must stay
   idempotent (`npm run migrate` runs as an init container on every rollout).
@@ -36,7 +42,7 @@ Working agreements for this repository.
 
 ## Deployment
 
-- Deploy only via `x-real-ip/gitops` (`manifests/overload/`). No Kubernetes manifests in
+- Deploy only via `x-real-ip/gitops` (`manifests/open-strength/`). No Kubernetes manifests in
   this repo.
 - A release tag `v*` deploys: CI dispatches to gitops, which pins the image tag. Never
   push to `main` of gitops directly; Argo CD applies it immediately. Use a PR.

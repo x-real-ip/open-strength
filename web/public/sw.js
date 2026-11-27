@@ -1,7 +1,7 @@
 // Service worker: caches the app shell so the app opens without a connection,
 // and keeps the last response of read-only API calls as an offline fallback.
 // Writes (logged sets) are queued by the app itself and retried when back online.
-const VERSION = 'overload-v5';
+const VERSION = 'open-strength-v6';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {
@@ -94,7 +94,7 @@ self.addEventListener('fetch', (event) => {
 
 // Rest notifications pushed by the server (see web/src/notifications.ts).
 self.addEventListener('push', (event) => {
-  let data = { title: 'Overload', body: '', tag: 'overload' };
+  let data = { title: 'Open Strength', body: '', tag: 'open-strength' };
   try {
     data = { ...data, ...event.data.json() };
   } catch {

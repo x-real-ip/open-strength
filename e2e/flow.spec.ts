@@ -11,7 +11,7 @@ function collectErrors(page: Page): string[] {
 
 test.beforeEach(async ({ request }) => {
   // Importing an empty export wipes all data, so every test starts without a profile.
-  const res = await request.post('/api/import/json', { data: { app: 'overload', tables: {} } });
+  const res = await request.post('/api/import/json', { data: { app: 'open-strength', tables: {} } });
   expect(res.ok()).toBeTruthy();
 });
 

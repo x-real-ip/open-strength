@@ -9,6 +9,7 @@ import * as oidc from 'openid-client';
 import { config } from './config.ts';
 import { ensureSetting } from './db.ts';
 
+// Cookie names keep the name from before the rename to Open Strength, so sessions stay valid.
 export const SESSION_COOKIE = 'overload_session';
 const OIDC_COOKIE = 'overload_oidc';
 

@@ -11,7 +11,7 @@ const ref = process.argv[2] ?? 'main';
 const out = path.resolve(import.meta.dirname, '../data/free-exercise-db.json');
 
 async function get(url: string): Promise<any> {
-  const res = await fetch(url, { headers: { 'user-agent': 'overload-import' } });
+  const res = await fetch(url, { headers: { 'user-agent': 'open-strength-import' } });
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
   return res.json();
 }

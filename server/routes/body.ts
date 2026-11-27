@@ -55,7 +55,7 @@ export async function bodyRoutes(app: FastifyInstance) {
   app.post('/api/push/test', async () => {
     const lang = langOf(await getProfile());
     const sent = await pushAll({
-      title: 'Overload',
+      title: 'Open Strength',
       body: lang === 'nl' ? 'Meldingen werken. Je krijgt er een als de rust voorbij is.' : 'Notifications work. You get one when a rest is over.',
       tag: 'test',
     });

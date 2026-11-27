@@ -13,7 +13,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE: ghcr.io/x-real-ip/overload
+  IMAGE: ghcr.io/x-real-ip/open-strength
 
 jobs:
   # Typecheck, tests and the PWA build first. If this fails, no image is built.
@@ -57,19 +57,19 @@ jobs:
       postgres:
         image: postgres:18-alpine
         env:
-          POSTGRES_USER: overload
-          POSTGRES_PASSWORD: overload
-          POSTGRES_DB: overload
+          POSTGRES_USER: open_strength
+          POSTGRES_PASSWORD: open_strength
+          POSTGRES_DB: open_strength
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U overload"
+          --health-cmd "pg_isready -U open_strength"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
-      DATABASE_URL: postgres://overload:overload@localhost:5432/overload
+      DATABASE_URL: postgres://open_strength:open_strength@localhost:5432/open_strength
       PORT: 8080
       MIGRATE_ON_START: "false"
 
@@ -116,19 +116,19 @@ jobs:
       postgres:
         image: postgres:18-alpine
         env:
-          POSTGRES_USER: overload
-          POSTGRES_PASSWORD: overload
-          POSTGRES_DB: overload
+          POSTGRES_USER: open_strength
+          POSTGRES_PASSWORD: open_strength
+          POSTGRES_DB: open_strength
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U overload"
+          --health-cmd "pg_isready -U open_strength"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
-      E2E_DATABASE_URL: postgres://overload:overload@localhost:5432/overload
+      E2E_DATABASE_URL: postgres://open_strength:open_strength@localhost:5432/open_strength
 
     steps:
       - name: Checkout

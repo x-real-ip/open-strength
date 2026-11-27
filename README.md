@@ -1,4 +1,4 @@
-# Overload
+# Open Strength
 
 A personal, self-hosted strength training app: AI-designed training programs, logging with one tap per set, and automatic progressive overload based on what you actually trained. Mobile-first and fine in a desktop browser (sidebar from 900 px), dark theme, installable as a PWA. Runs in the homelab cluster with PostgreSQL (CloudNativePG) and is deployed through [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops).
 
@@ -39,9 +39,9 @@ AI is optional: without a key everything works, just without AI.
 
 ## Deployment
 
-The manifests live in [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops) under `manifests/overload/`, not in this repo. That is also where the database (CloudNativePG), the migrate init container and the SealedSecrets are.
+The manifests live in [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops) under `manifests/open-strength/`, not in this repo. That is also where the database (CloudNativePG), the migrate init container and the SealedSecrets are.
 
-In short: a release tag `v1.2.3` builds image `ghcr.io/x-real-ip/overload:1.2.3`, the workflow sends a dispatch to the gitops repo, which pins the tag in the overlay, and Argo CD rolls it out.
+In short: a release tag `v1.2.3` builds image `ghcr.io/x-real-ip/open-strength:1.2.3`, the workflow sends a dispatch to the gitops repo, which pins the tag in the overlay, and Argo CD rolls it out.
 
 ## Connecting Authentik
 
@@ -57,9 +57,9 @@ The app does the OpenID Connect login itself (authorization code + PKCE, through
    - Signing key: your default certificate
    - Scopes: the default *openid*, *email* and *profile* (profile also provides `groups`)
    - Leave *Include claims in id_token* on
-2. **Applications → Create**: name *Overload*, slug `overload`, and attach the provider. To only let yourself in, bind a group or user to the application, or use `ALLOWED_USERS`/`ALLOWED_GROUPS`.
-3. In the gitops repo (`manifests/overload/base/`) set:
-   - in `configmap.yaml`: `AUTH_MODE: "oidc"` and `OIDC_CLIENT_ID: "<client id from the provider>"`. `OIDC_ISSUER_URL` is already `https://auth.lan.stamx.nl/application/o/overload/`.
+2. **Applications → Create**: name *Open Strength*, slug `open-strength`, and attach the provider. To only let yourself in, bind a group or user to the application, or use `ALLOWED_USERS`/`ALLOWED_GROUPS`.
+3. In the gitops repo (`manifests/open-strength/base/`) set:
+   - in `configmap.yaml`: `AUTH_MODE: "oidc"` and `OIDC_CLIENT_ID: "<client id from the provider>"`. `OIDC_ISSUER_URL` is already `https://auth.lan.stamx.nl/application/o/open-strength/`.
    - in `sealedsecret.yaml`: the sealed `OIDC_CLIENT_SECRET` (scope `cluster-wide`, controller `sealed-secrets` in `kube-system`).
 4. Merge the PR. The login screen now shows *Sign in with Authentik*. Signing out also ends the Authentik session (RP-initiated logout).
 
@@ -73,7 +73,7 @@ Note: in this mode the app trusts the headers blindly. That is only safe if noth
 
 ### Until Authentik is ready
 
-`AUTH_MODE: password` with `APP_PASSWORD` in `overload-secrets`. That is also how the cluster configuration starts.
+`AUTH_MODE: password` with `APP_PASSWORD` in `open-strength-secrets`. That is also how the cluster configuration starts.
 
 ## Local development
 
@@ -81,7 +81,7 @@ Requires Node.js 22.18 or newer (the server runs TypeScript directly, without a 
 
 ```bash
 npm install && npm --prefix web install
-export DATABASE_URL=postgres://overload:change-me@localhost:5432/overload
+export DATABASE_URL=postgres://open_strength:change-me@localhost:5432/open_strength
 npm run migrate              # run migrations on their own (idempotent)
 npm run dev                  # API on :8080 (also migrates on start)
 npm --prefix web run dev     # frontend on :5173, proxies /api to :8080
@@ -101,7 +101,7 @@ Agreements for whoever (or whatever) works on the code are in [`CLAUDE.md`](CLAU
 
 ## Configuration
 
-All settings are environment variables. For local use they are in `.env.example`; in the cluster they come from ConfigMap `overload-config` and Secret `overload-secrets`.
+All settings are environment variables. For local use they are in `.env.example`; in the cluster they come from ConfigMap `open-strength-config` and Secret `open-strength-secrets`.
 
 | Variable | Meaning |
 |---|---|
@@ -127,7 +127,7 @@ Without an AI key everything except the AI features works: programs are then rul
 
 ## Backup, export and migration
 
-- **Database**: in the cluster Postgres runs as CloudNativePG cluster `overload-db` on a TrueNAS volume. A manual dump: `kubectl -n tools exec overload-db-1 -- pg_dump -Fc -U postgres overload > overload.dump`.
+- **Database**: in the cluster Postgres runs as CloudNativePG cluster `open-strength-db` on a TrueNAS volume. A manual dump: `kubectl -n tools exec open-strength-db-1 -- pg_dump -Fc -U postgres open_strength > open-strength.dump`.
 - **Exports in the app** (Profile → Data): JSON with everything (including your favourites and "never use" marks), and CSV with all sets. You import a JSON export with *Import from an export file*. That replaces all data.
 - **Migrating from 1.0 (SQLite)**: export in the old version with *Export everything* and import that file. Booleans and JSON fields are converted automatically, and the id sequences simply carry on.
 

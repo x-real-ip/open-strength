@@ -21,7 +21,7 @@ export default function TodayPage() {
       <main className="page">
         <div className="center-screen">
           <div className="stack" style={{ justifyItems: 'center', maxWidth: 340 }}>
-            <h1 style={{ fontSize: 64 }}>Overload</h1>
+            <h1 style={{ fontSize: 64, textAlign: 'center' }}>Open Strength</h1>
             <p className="muted">
               {t(
                 'A training program that fits you, logging sets in seconds, and knowing exactly what you lift next time.',
@@ -69,7 +69,7 @@ export default function TodayPage() {
     <main className="page">
       <div className="page-head">
         <div className="brand">
-          OVERLOAD <span className="version">{versionLabel(info.version)}</span>
+          OPEN STRENGTH <span className="version">{versionLabel(info.version)}</span>
         </div>
         {data.lastWorkout && (
           <Link to={`/workout/${data.lastWorkout.id}/summary`} className="faint small">

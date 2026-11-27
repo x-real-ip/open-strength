@@ -69,7 +69,7 @@ async function buildPrompt(profile: Profile, opts: { current?: Program | null; i
     .filter((e) => !prefs.excluded.has(e.id))
     .map(
       (e) =>
-        `${prefs.favorites.has(e.id) ? '♥ ' : ''}${e.source === 'overload' ? '* ' : ''}${e.id} | ${e.name} | primary: ${e.primary} | pattern: ${e.pattern} | load: ${e.loadType}${e.weightNote ? ` (${e.weightNote})` : ''}`,
+        `${prefs.favorites.has(e.id) ? '♥ ' : ''}${e.source === 'curated' ? '* ' : ''}${e.id} | ${e.name} | primary: ${e.primary} | pattern: ${e.pattern} | load: ${e.loadType}${e.weightNote ? ` (${e.weightNote})` : ''}`,
     )
     .join('\n');
   const stalls = await detectStalls();

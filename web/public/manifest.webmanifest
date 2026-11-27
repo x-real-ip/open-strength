@@ -1,7 +1,7 @@
 {
-  "name": "Overload",
-  "short_name": "Overload",
-  "description": "Persoonlijke krachttraining met automatische progressive overload",
+  "name": "Open Strength",
+  "short_name": "Open Strength",
+  "description": "Personal strength training with automatic progressive overload",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -13,6 +13,7 @@ export interface PendingSet {
   completed: boolean;
 }
 
+// Keeps the name from before the rename to Open Strength, so data already on devices survives.
 const DB_NAME = 'overload';
 const STORE = 'pendingSets';
 /** Where 1.1 kept the queue, and the fallback when IndexedDB is unavailable. */
@@ -60,7 +61,7 @@ function writeLocal() {
 }
 
 function announce() {
-  window.dispatchEvent(new CustomEvent('overload:queue', { detail: cache.size }));
+  window.dispatchEvent(new CustomEvent('open-strength:queue', { detail: cache.size }));
 }
 
 /** Loads the queue. Call once before rendering; never throws. */

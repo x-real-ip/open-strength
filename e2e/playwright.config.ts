@@ -33,7 +33,7 @@ export default defineConfig({
       AUTH_MODE: 'none',
       MIGRATE_ON_START: 'true',
       WEB_DIR: 'web/dist',
-      DATABASE_URL: process.env.E2E_DATABASE_URL ?? 'postgres://overload:overload@127.0.0.1:5432/overload',
+      DATABASE_URL: process.env.E2E_DATABASE_URL ?? 'postgres://open_strength:open_strength@127.0.0.1:5432/open_strength',
     },
   },
 });

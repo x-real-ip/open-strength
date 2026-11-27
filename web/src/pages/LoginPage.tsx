@@ -42,7 +42,7 @@ export default function LoginPage({ info, onSuccess }: { info: AppInfo; onSucces
     <main className="page no-nav">
       <div className="center-screen">
         <div className="stack" style={{ width: '100%', maxWidth: 360 }}>
-          <h1 style={{ fontSize: 56 }}>Overload</h1>
+          <h1 style={{ fontSize: 56 }}>Open Strength</h1>
 
           {info.authMode === 'password' && (
             <form className="stack" onSubmit={submit}>

@@ -79,7 +79,7 @@ export default function ExercisesPage() {
   }
   groups = groups.filter((g) => g.items.length);
   const programmable = exercises.filter((e) => e.programmable).length;
-  const curated = exercises.filter((e) => e.source === 'overload').length;
+  const curated = exercises.filter((e) => e.source === 'curated').length;
 
   const chip = (f: MineFilter, label: ReactNode) => (
     <button type="button" aria-pressed={mine === f} onClick={() => setMine(mine === f ? 'all' : f)}>

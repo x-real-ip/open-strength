@@ -29,14 +29,14 @@ export async function startTestDb(): Promise<{ url: string; stop: () => Promise<
 
   const { default: EmbeddedPostgres } = await import('embedded-postgres');
   // Let embedded-postgres create the directory itself (it may run initdb as another user).
-  const dir = path.join(os.tmpdir(), `overload-pg-${process.pid}-${Date.now()}`);
+  const dir = path.join(os.tmpdir(), `open-strength-pg-${process.pid}-${Date.now()}`);
   const port = await freePort();
   const server = new EmbeddedPostgres({ databaseDir: dir, user: 'postgres', password: 'test', port, persistent: false, onLog: () => {} });
   await server.initialise();
   await server.start();
-  await server.createDatabase('overload');
+  await server.createDatabase('open_strength');
   return {
-    url: `postgres://postgres:test@127.0.0.1:${port}/overload`,
+    url: `postgres://postgres:test@127.0.0.1:${port}/open_strength`,
     stop: async () => {
       await server.stop();
       fs.rmSync(dir, { recursive: true, force: true });

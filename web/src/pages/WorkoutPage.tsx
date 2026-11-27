@@ -74,6 +74,7 @@ export default function WorkoutPage() {
   const library = useExercises();
   const stripRef = useRef<HTMLDivElement>(null);
 
+  // Keeps the name from before the rename to Open Strength, so data already on devices survives.
   const posKey = `overload.workout.${workoutId}.current`;
 
   const load = useCallback(async () => {
@@ -103,10 +104,10 @@ export default function WorkoutPage() {
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     const onQueue = (e: Event) => setUnsynced((e as CustomEvent<number>).detail);
-    window.addEventListener('overload:queue', onQueue);
+    window.addEventListener('open-strength:queue', onQueue);
     return () => {
       window.clearInterval(t);
-      window.removeEventListener('overload:queue', onQueue);
+      window.removeEventListener('open-strength:queue', onQueue);
     };
   }, []);
 

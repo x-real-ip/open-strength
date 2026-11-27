@@ -44,7 +44,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   } catch {
     throw new ApiError(t('No connection to the server', 'Geen verbinding met de server'), 0);
   }
-  if (res.status === 401) window.dispatchEvent(new Event('overload:unauthorized'));
+  if (res.status === 401) window.dispatchEvent(new Event('open-strength:unauthorized'));
   const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
   if (!res.ok) throw new ApiError(data?.error ?? t(`Request failed (${res.status})`, `Verzoek mislukt (${res.status})`), res.status);
   return data as T;

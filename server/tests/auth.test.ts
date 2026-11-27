@@ -21,7 +21,7 @@ const idpServer = http.createServer();
 await new Promise<void>((r) => idpServer.listen(0, '127.0.0.1', r));
 const issuer = `http://127.0.0.1:${(idpServer.address() as any).port}`;
 const provider = new Provider(issuer, {
-  clients: [{ client_id: 'overload', client_secret: 'secret', redirect_uris: ['https://fitness.example.com/api/auth/oidc/callback'] }],
+  clients: [{ client_id: 'open-strength', client_secret: 'secret', redirect_uris: ['https://fitness.example.com/api/auth/oidc/callback'] }],
   pkce: { required: () => true },
 });
 idpServer.on('request', provider.callback());
@@ -78,7 +78,7 @@ test('proxy: trusts the Authentik headers and applies the allowlist', async () =
 test('oidc: login redirects to the provider with PKCE, state and nonce; callback without state is refused', async () => {
   config.auth.mode = 'oidc';
   config.auth.oidcIssuer = issuer;
-  config.auth.oidcClientId = 'overload';
+  config.auth.oidcClientId = 'open-strength';
   config.auth.oidcClientSecret = 'secret';
   config.auth.oidcAllowInsecure = true;
   config.publicUrl = 'https://fitness.example.com';
@@ -88,7 +88,7 @@ test('oidc: login redirects to the provider with PKCE, state and nonce; callback
   assert.equal(res.statusCode, 302);
   const location = new URL(res.headers.location as string);
   assert.equal(location.origin, issuer);
-  assert.equal(location.searchParams.get('client_id'), 'overload');
+  assert.equal(location.searchParams.get('client_id'), 'open-strength');
   assert.equal(location.searchParams.get('redirect_uri'), 'https://fitness.example.com/api/auth/oidc/callback');
   assert.equal(location.searchParams.get('code_challenge_method'), 'S256');
   assert.ok(location.searchParams.get('state'));

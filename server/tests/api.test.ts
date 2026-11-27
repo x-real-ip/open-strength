@@ -134,7 +134,7 @@ test('full flow: profile, program, workout, progression, stats, export', async (
   // Swapping an exercise keeps sets/reps and offers sensible alternatives.
   const alts = await call('GET', `/api/program-exercises/${pe.id}/alternatives`);
   assert.ok(alts.body.alternatives.length > 0);
-  assert.equal(alts.body.alternatives[0].source, 'overload', 'curated alternatives come first');
+  assert.equal(alts.body.alternatives[0].source, 'curated', 'curated alternatives come first');
 
   // Imported exercises can be swapped in; the target comes from the start-weight estimate.
   const pe2 = programAfter.body.program.days[0].exercises[1];
@@ -169,7 +169,7 @@ test('full flow: profile, program, workout, progression, stats, export', async (
   assert.ok(!ids.includes('deadlift'), 'excluded exercise is not used');
 
   const exported = await call('GET', '/api/export/json');
-  assert.equal(exported.body.app, 'overload');
+  assert.equal(exported.body.app, 'open-strength');
   assert.equal(exported.body.tables.workouts.length, 1);
   assert.equal(exported.body.tables.exercise_preferences.length, 2, 'marks are part of the export');
   const csv = await call('GET', '/api/export/sets.csv');
@@ -291,5 +291,5 @@ test('everything the user sees follows the language in the profile', async () =>
   // Errors too.
   assert.match((await call('POST', '/api/import/json', { foo: 1 })).body.error, /geen exportbestand/);
   assert.equal((await call('PUT', '/api/profile', { ...current, language: 'en' })).status, 200);
-  assert.match((await call('POST', '/api/import/json', { foo: 1 })).body.error, /not an Overload export/);
+  assert.match((await call('POST', '/api/import/json', { foo: 1 })).body.error, /not an Open Strength export/);
 });

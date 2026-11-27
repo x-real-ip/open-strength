@@ -112,7 +112,7 @@ export const CURATED: ExerciseDef[] = defs.map((d) => {
     secondary: [],
     ...d,
     category: 'strength',
-    source: 'overload',
+    source: 'curated',
     programmable: true,
     steps: GUIDES_EN[d.id]?.steps ?? [],
     photos: g ? [`/exercises/${g.photo}-0.webp`, `/exercises/${g.photo}-1.webp`] : [],
@@ -141,7 +141,7 @@ const WEIGHT_NOTE_NL: Record<string, string> = { 'per hand': 'per hand', 'per si
  */
 export function localizeExercise<T extends LibraryExercise>(ex: T, lang: Lang): T {
   if (lang === 'en') return ex;
-  const g = ex.source === 'overload' ? GUIDES[ex.id] : undefined;
+  const g = ex.source === 'curated' ? GUIDES[ex.id] : undefined;
   return {
     ...ex,
     ...(g ? { name: g.name, steps: g.steps, photoNote: g.similar } : {}),
@@ -202,7 +202,7 @@ export function alternativesFor(id: string, equipment: Equipment[], exclude: str
     (e.pattern === ex.pattern ? 0 : 10) +
     (e.primary === ex.primary ? 0 : 5) +
     (prefs.favorites.has(e.id) ? -3 : 0) +
-    (e.source === 'overload' ? 0 : 2) +
+    (e.source === 'curated' ? 0 : 2) +
     (e.loadType === 'bodyweight' ? 1 : 0);
   return pool
     .filter((e) => e.pattern === ex.pattern || e.primary === ex.primary)

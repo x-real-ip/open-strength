@@ -50,8 +50,8 @@ export default function App() {
   useEffect(() => {
     load();
     const onUnauthorized = () => setInfo((i) => (i ? { ...i, authenticated: false } : i));
-    window.addEventListener('overload:unauthorized', onUnauthorized);
-    return () => window.removeEventListener('overload:unauthorized', onUnauthorized);
+    window.addEventListener('open-strength:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('open-strength:unauthorized', onUnauthorized);
   }, []);
 
   useEffect(() => {
