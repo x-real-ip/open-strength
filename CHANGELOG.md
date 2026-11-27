@@ -11,7 +11,8 @@ Eerste release die via GitOps naar het cluster gaat.
 - **Offline**: niet-gesynchroniseerde sets staan nu in IndexedDB in plaats van localStorage. Een wachtrij uit 1.1 wordt automatisch overgezet.
 - Een nieuw profiel begint met sessies van 30 minuten.
 - Nieuwe namen voor omgevingsvariabelen, de oude blijven werken: `APP_URL` (was `PUBLIC_URL`), `OIDC_ISSUER_URL` (was `OIDC_ISSUER`). Nieuw: `LOG_LEVEL`, `MIGRATE_ON_START`.
-- De image draait als uid/gid 3001. Docker Compose gebruikt Postgres 18.
+- De image draait als uid/gid 3001.
+- Docker Compose is weg: lokaal draai je tegen een eigen Postgres via `DATABASE_URL`. De oude endpoints `/api/health` en `/api/ready` zijn vervangen door `/healthz`.
 - `CLAUDE.md` met de werkafspraken voor deze repo.
 
 ## 1.1.0 — 2026-10-30

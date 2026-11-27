@@ -5,7 +5,6 @@ ignore: |
   node_modules/
   web/node_modules/
   web/dist/
-  data/
 
 rules:
   # Lines may be as long as stays readable; otherwise long values get split

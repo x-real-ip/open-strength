@@ -19,7 +19,6 @@ infrastructure:
           - "deploy/**"
           - ".github/**"
           - "Dockerfile"
-          - "docker-compose.yml"
 
 bug:
   - head-branch: ["^fix", "fix"]

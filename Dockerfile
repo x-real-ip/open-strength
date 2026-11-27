@@ -27,6 +27,5 @@ RUN addgroup -g 3001 overload && adduser -u 3001 -G overload -S -H overload
 USER 3001:3001
 
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
 # Migrations run from this image too: node --disable-warning=ExperimentalWarning server/migrate.ts
 CMD ["node", "--disable-warning=ExperimentalWarning", "server/index.ts"]

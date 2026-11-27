@@ -7,7 +7,6 @@ Persoonlijke, self-hosted krachttrainingsapp: AI-gegenereerde trainingsprogramma
 - [Wat de app doet](#wat-de-app-doet)
 - [Uitrollen](#uitrollen)
 - [Authentik koppelen](#authentik-koppelen)
-- [Docker Compose](#docker-compose)
 - [Lokaal ontwikkelen](#lokaal-ontwikkelen)
 - [Configuratie](#configuratie)
 - [Back-up, export en migratie](#back-up-export-en-migratie)
@@ -67,24 +66,12 @@ Let op: in deze modus vertrouwt de app de headers blind. Dat is alleen veilig al
 
 `AUTH_MODE: password` met `APP_PASSWORD` in `overload-secrets`. Zo start de clusterconfiguratie ook.
 
-## Docker Compose
-
-Voor een enkele host, of als database tijdens het ontwikkelen:
-
-```bash
-cp .env.example .env          # zet minimaal POSTGRES_PASSWORD
-docker compose up -d --build
-```
-
-De app draait dan op `http://localhost:8080`, Postgres 18 op `127.0.0.1:5432` en de data staat in `./data/postgres`. Een backup maak je met `docker compose exec db pg_dump -U overload -Fc overload > overload.dump`.
-
 ## Lokaal ontwikkelen
 
-Vereist Node.js 22.18 of nieuwer (de server draait TypeScript direct, zonder buildstap) en een Postgres, bijvoorbeeld die uit Compose:
+Vereist Node.js 22.18 of nieuwer (de server draait TypeScript direct, zonder buildstap) en een Postgres naar keuze:
 
 ```bash
 npm install && npm --prefix web install
-docker compose up -d db
 export DATABASE_URL=postgres://overload:change-me@localhost:5432/overload
 npm run migrate              # migraties los draaien (idempotent)
 npm run dev                  # API op :8080 (migreert ook zelf bij het opstarten)
@@ -101,7 +88,7 @@ Afspraken voor wie (of wat) aan de code werkt staan in [`CLAUDE.md`](CLAUDE.md).
 
 ## Configuratie
 
-Alle instellingen zijn omgevingsvariabelen. Voor Compose en lokaal staan ze in `.env.example`; in het cluster komen ze uit ConfigMap `overload-config` en Secret `overload-secrets`.
+Alle instellingen zijn omgevingsvariabelen. Voor lokaal staan ze in `.env.example`; in het cluster komen ze uit ConfigMap `overload-config` en Secret `overload-secrets`.
 
 | Variabele | Betekenis |
 |---|---|
@@ -126,7 +113,7 @@ Zonder AI-sleutel werkt alles behalve de AI-functies: programma's worden dan reg
 
 ## Back-up, export en migratie
 
-- **Database**: in het cluster draait Postgres als CloudNativePG-cluster `overload-db` op een TrueNAS-volume; zie [`deploy/README.md`](deploy/README.md) voor een handmatige dump. Bij Compose: `pg_dump` zoals hierboven.
+- **Database**: in het cluster draait Postgres als CloudNativePG-cluster `overload-db` op een TrueNAS-volume; zie [`deploy/README.md`](deploy/README.md) voor een handmatige dump.
 - **Exports in de app** (Profile → Data): JSON met alles, en CSV met alle sets. Een JSON-export importeer je via *Import from export file*. Dat vervangt alle data.
 - **Migratie vanaf 1.0 (SQLite)**: exporteer in de oude versie via *Export everything* en importeer dat bestand. Booleans en JSON-velden worden automatisch omgezet, en de id-reeksen lopen daarna gewoon door.
 

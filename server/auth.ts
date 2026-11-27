@@ -109,7 +109,7 @@ export function resolveUser(req: FastifyRequest): SessionUser | null {
   }
 }
 
-const OPEN_PATHS = new Set(['/api/health', '/api/ready', '/api/info', '/api/auth/login', '/api/auth/logout', '/api/auth/oidc/login', '/api/auth/oidc/callback']);
+const OPEN_PATHS = new Set(['/api/info', '/api/auth/login', '/api/auth/logout', '/api/auth/oidc/login', '/api/auth/oidc/callback']);
 
 export async function authHook(req: FastifyRequest, reply: FastifyReply) {
   req.user = resolveUser(req);

@@ -38,5 +38,6 @@ Working agreements for this repository.
 ```bash
 npm run typecheck && npm test && npm run build
 yamllint .
-docker build .
 ```
+
+CI builds the image from the `Dockerfile`; there is no Docker setup for local use.

@@ -15,13 +15,6 @@ export async function coreRoutes(app: FastifyInstance) {
     return reply.code(503).send({ status: 'error', database: 'error' });
   });
 
-  // Kept for compatibility with 1.1 probes and the compose healthcheck.
-  app.get('/api/health', async () => ({ ok: true }));
-  app.get('/api/ready', async (_req, reply) => {
-    if (await databaseReady()) return { ok: true };
-    return reply.code(503).send({ ok: false, error: 'Database unavailable' });
-  });
-
   app.get('/api/info', async (req): Promise<AppInfo> => ({
     aiConfigured: aiConfigured(),
     aiProvider: config.ai.provider,
