@@ -81,6 +81,12 @@ export interface ExerciseDef {
   startFactor: number;
   /** Shown next to the weight, e.g. "per hand". */
   weightNote?: string;
+  /** How to do it, in short steps. */
+  steps: string[];
+  /** Example photos: start and end position. */
+  photos: string[];
+  /** Set when the photos show a close variant instead of this exact exercise. */
+  photoNote?: string;
 }
 
 export type Decision = 'start' | 'increase' | 'hold' | 'decrease' | 'reps' | 'deload';
