@@ -1,7 +1,7 @@
 {
   "name": "Overload",
   "short_name": "Overload",
-  "description": "Personal strength training with automatic progressive overload",
+  "description": "Persoonlijke krachttraining met automatische progressive overload",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

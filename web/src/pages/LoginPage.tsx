@@ -3,16 +3,16 @@ import type { AppInfo } from '@shared/types.ts';
 import { api } from '../api.ts';
 
 const LOGIN_ERRORS: Record<string, string> = {
-  expired: 'The sign-in took too long. Try again.',
-  failed: 'Sign-in failed. Try again, or check the server logs.',
-  forbidden: 'Your account is not allowed to use this app.',
+  expired: 'Het inloggen duurde te lang. Probeer het opnieuw.',
+  failed: 'Inloggen is mislukt. Probeer het opnieuw, of kijk in de serverlogs.',
+  forbidden: 'Je account heeft geen toegang tot deze app.',
 };
 
 export default function LoginPage({ info, onSuccess }: { info: AppInfo; onSuccess: () => void }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(() => {
     const code = new URLSearchParams(location.search).get('login_error');
-    return code ? LOGIN_ERRORS[code] ?? 'Sign-in failed.' : null;
+    return code ? LOGIN_ERRORS[code] ?? 'Inloggen is mislukt.' : null;
   });
   const [busy, setBusy] = useState(false);
 
@@ -39,12 +39,12 @@ export default function LoginPage({ info, onSuccess }: { info: AppInfo; onSucces
           {info.authMode === 'password' && (
             <form className="stack" onSubmit={submit}>
               <label className="field">
-                <span>Password</span>
+                <span>Wachtwoord</span>
                 <input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
               </label>
               {error && <p className="error">{error}</p>}
               <button className="btn primary big block" disabled={busy || !password}>
-                Sign in
+                Inloggen
               </button>
             </form>
           )}
@@ -53,7 +53,7 @@ export default function LoginPage({ info, onSuccess }: { info: AppInfo; onSucces
             <>
               {error && <p className="error">{error}</p>}
               <a className="btn primary big block" href="/api/auth/oidc/login">
-                Sign in with {info.oidcProviderName}
+                Inloggen met {info.oidcProviderName}
               </a>
             </>
           )}
@@ -61,10 +61,10 @@ export default function LoginPage({ info, onSuccess }: { info: AppInfo; onSucces
           {info.authMode === 'proxy' && (
             <>
               <p className="muted">
-                No signed-in user was passed by the sign-in proxy. Open the app through your {info.oidcProviderName} address, or check that your account is allowed.
+                De inlogproxy gaf geen ingelogde gebruiker door. Open de app via je {info.oidcProviderName}-adres, of controleer of je account toegang heeft.
               </p>
               <button className="btn block" onClick={() => location.reload()}>
-                Try again
+                Opnieuw proberen
               </button>
             </>
           )}

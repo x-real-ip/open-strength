@@ -33,7 +33,7 @@ export default function ProgramPage() {
       setData({ program: res.program });
       setDayIdx(0);
       setInstructions('');
-      toast(res.notice ?? (mode === 'adjust' ? 'Program adjusted' : 'New program ready'));
+      toast(res.notice ?? (mode === 'adjust' ? 'Programma aangepast' : 'Nieuw programma staat klaar'));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       toast((e as Error).message);
@@ -46,17 +46,17 @@ export default function ProgramPage() {
     return (
       <main className="page">
         <div className="page-head">
-          <h1>Program</h1>
+          <h1>Programma</h1>
         </div>
         <div className="panel stack">
           <p className="muted" style={{ margin: 0 }}>
-            No active program. Fill in your profile, then build one.
+            Geen actief programma. Vul je profiel in en maak er dan een.
           </p>
           <Link className="btn block" to="/profile">
-            Go to profile
+            Naar profiel
           </Link>
           <button className="btn primary block" onClick={() => generate('new')} disabled={Boolean(busy)}>
-            {busy ? 'Building…' : 'Build my program'}
+            {busy ? 'Bezig…' : 'Maak mijn programma'}
           </button>
         </div>
       </main>
@@ -70,16 +70,16 @@ export default function ProgramPage() {
     <main className="page">
       <div className="page-head" style={{ display: 'block' }}>
         <div className="muted small">
-          Week {program.currentWeek} of {program.weeks}
+          Week {program.currentWeek} van {program.weeks}
           {program.deloadWeek ? `, deload in week ${program.deloadWeek}` : ''}
-          {program.source === 'ai' ? ', designed by AI' : ', rule-based'}
+          {program.source === 'ai' ? ', ontworpen door AI' : ', regelgebaseerd'}
         </div>
         <h1 style={{ marginTop: 4 }}>{program.name}</h1>
       </div>
 
       {program.rationale && (
         <details className="why panel tight" style={{ marginBottom: 16 }}>
-          <summary>Why this program</summary>
+          <summary>Waarom dit programma</summary>
           <p className="muted small" style={{ marginBottom: 0 }}>
             {program.rationale}
           </p>
@@ -107,12 +107,12 @@ export default function ProgramPage() {
                   {e.name}
                 </div>
                 <div className="sub">
-                  {e.sets} × {repRange(e.repMin, e.repMax)}, rest {rest(e.restSeconds)}
-                  {e.superset ? ' after the round' : ''}
+                  {e.sets} × {repRange(e.repMin, e.repMax)}, rust {rest(e.restSeconds)}
+                  {e.superset ? ' na de ronde' : ''}
                 </div>
               </div>
               <div className="num" style={{ fontSize: 22, fontWeight: 600 }}>
-                {e.loadType === 'bodyweight' ? <span className="small muted">BW</span> : `${kg(e.target?.weight ?? 0)} kg`}
+                {e.loadType === 'bodyweight' ? <span className="small muted">LG</span> : `${kg(e.target?.weight ?? 0)} kg`}
               </div>
               <IconChevron />
             </button>
@@ -121,37 +121,37 @@ export default function ProgramPage() {
       </section>
 
       <section className="section stack" id="change">
-        <h2>Change the program</h2>
+        <h2>Programma aanpassen</h2>
         {info.aiConfigured ? (
           <>
             <label className="field">
-              <span>What should change? (optional)</span>
+              <span>Wat moet er anders? (optioneel)</span>
               <textarea
                 className="textarea"
-                placeholder="For example: more back work, no barbell squats, shorter sessions"
+                placeholder="Bijvoorbeeld: meer rugwerk, geen barbell squats, kortere trainingen"
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
               />
             </label>
             <button className="btn primary block" disabled={Boolean(busy)} onClick={() => generate('adjust')}>
-              {busy === 'adjust' ? 'Adjusting… (up to a minute)' : 'Adjust current program'}
+              {busy === 'adjust' ? 'Bezig met aanpassen… (tot een minuut)' : 'Huidig programma aanpassen'}
             </button>
-            <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm('Replace this program with a completely new one?') && generate('new')}>
-              {busy === 'new' ? 'Building…' : 'Build a new program'}
+            <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm('Dit programma vervangen door een compleet nieuw programma?') && generate('new')}>
+              {busy === 'new' ? 'Bezig…' : 'Nieuw programma maken'}
             </button>
           </>
         ) : (
           <>
-            <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm('Rebuild the program from your profile?') && generate('new')}>
-              {busy ? 'Building…' : 'Rebuild from profile'}
+            <button className="btn block" disabled={Boolean(busy)} onClick={() => confirm('Het programma opnieuw opbouwen vanuit je profiel?') && generate('new')}>
+              {busy ? 'Bezig…' : 'Opnieuw opbouwen vanuit profiel'}
             </button>
             <p className="faint small" style={{ margin: 0 }}>
-              Written requests need AI. Add an API key on the server to enable it. Without it you can still swap exercises and rebuild from your profile.
+              Geschreven wensen hebben AI nodig. Zet daarvoor een API-sleutel op de server. Zonder AI kun je nog steeds oefeningen wisselen en opnieuw opbouwen vanuit je profiel.
             </p>
           </>
         )}
         <p className="faint small" style={{ margin: 0 }}>
-          Weights you have earned carry over to the new program.
+          Gewichten die je hebt opgebouwd gaan mee naar het nieuwe programma.
         </p>
       </section>
 
@@ -188,21 +188,21 @@ function ExerciseSheet({ exercise, onClose, onChanged }: { exercise: ProgramExer
             {exercise.target && <DecisionTag decision={exercise.target.decision} />}
           </div>
           <div className="muted small">
-            {exercise.sets} sets of {repRange(exercise.repMin, exercise.repMax)} reps, rest {rest(exercise.restSeconds)}
-            {exercise.weightNote ? `, weight ${exercise.weightNote}` : ''}
+            {exercise.sets} sets van {repRange(exercise.repMin, exercise.repMax)} herhalingen, rust {rest(exercise.restSeconds)}
+            {exercise.weightNote ? `, gewicht ${exercise.weightNote}` : ''}
           </div>
           {exercise.target && <p className="small" style={{ margin: 0 }}>{exercise.target.reason}</p>}
-          {exercise.notes && <p className="small muted" style={{ margin: 0 }}>Cue: {exercise.notes}</p>}
+          {exercise.notes && <p className="small muted" style={{ margin: 0 }}>Tip: {exercise.notes}</p>}
 
           {!bw && (
             <div className="stepper">
-              <div className="cap">Next weight (kg)</div>
+              <div className="cap">Volgend gewicht (kg)</div>
               <div className="ctrl">
-                <button type="button" aria-label="Less weight" onClick={() => setWeight((w) => addStep(w, exercise.increment, -1))}>
+                <button type="button" aria-label="Minder gewicht" onClick={() => setWeight((w) => addStep(w, exercise.increment, -1))}>
                   −
                 </button>
-                <input type="number" inputMode="decimal" step="any" aria-label="Weight in kg" value={weight} onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} />
-                <button type="button" aria-label="More weight" onClick={() => setWeight((w) => addStep(w, exercise.increment, 1))}>
+                <input type="number" inputMode="decimal" step="any" aria-label="Gewicht in kg" value={weight} onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} />
+                <button type="button" aria-label="Meer gewicht" onClick={() => setWeight((w) => addStep(w, exercise.increment, 1))}>
                   +
                 </button>
               </div>
@@ -213,18 +213,18 @@ function ExerciseSheet({ exercise, onClose, onChanged }: { exercise: ProgramExer
               className="btn primary block"
               onClick={async () => {
                 await api.setWeight(exercise.id, weight);
-                toast('Weight updated');
+                toast('Gewicht aangepast');
                 onChanged();
               }}
             >
-              Use {kg(weight)} kg next time
+              Volgende keer {kg(weight)} kg
             </button>
           )}
           <button className="btn block" onClick={() => setSwap(true)}>
-            Swap for another exercise
+            Wisselen voor een andere oefening
           </button>
           <Link className="btn ghost block" to={`/progress/${exercise.exerciseId}`}>
-            View history
+            Historie bekijken
           </Link>
         </div>
       </Sheet>
@@ -233,7 +233,7 @@ function ExerciseSheet({ exercise, onClose, onChanged }: { exercise: ProgramExer
         onClose={() => setSwap(false)}
         programExerciseId={exercise.id}
         onSwapped={() => {
-          toast('Exercise swapped');
+          toast('Oefening gewisseld');
           onChanged();
         }}
       />

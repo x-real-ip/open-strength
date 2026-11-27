@@ -31,19 +31,19 @@ export async function trainingFacts(profile: Profile | null): Promise<string> {
   const avgPerWeek = recentWeeks.reduce((a, w) => a + w.workouts, 0) / recentWeeks.length;
   const lines: string[] = [];
 
-  lines.push(`Completed workouts: ${stats.totals.workouts}; sets: ${stats.totals.sets}; total volume: ${stats.totals.volumeKg} kg.`);
-  lines.push(`Average workouts per week (last 4 weeks): ${avgPerWeek.toFixed(1)}${profile ? ` (planned: ${profile.daysPerWeek})` : ''}.`);
-  lines.push(`Weekly volume (kg), oldest to newest: ${stats.weekly.map((w) => w.volumeKg).join(', ')}.`);
+  lines.push(`Afgeronde trainingen: ${stats.totals.workouts}; sets: ${stats.totals.sets}; totaal volume: ${stats.totals.volumeKg} kg.`);
+  lines.push(`Gemiddeld aantal trainingen per week (laatste 4 weken): ${avgPerWeek.toFixed(1).replace('.', ',')}${profile ? ` (gepland: ${profile.daysPerWeek})` : ''}.`);
+  lines.push(`Volume per week (kg), oudste eerst: ${stats.weekly.map((w) => w.volumeKg).join(', ')}.`);
   if (stats.muscles.length) {
-    lines.push(`Sets per week per muscle group, last 4 weeks (previous 4 weeks): ${stats.muscles.map((m) => `${m.muscle} ${m.setsPerWeekRecent} (${m.setsPerWeekPrevious})`).join(', ')}.`);
+    lines.push(`Sets per week per spiergroep, laatste 4 weken (4 weken daarvoor): ${stats.muscles.map((m) => `${m.muscle} ${m.setsPerWeekRecent} (${m.setsPerWeekPrevious})`).join(', ')}.`);
   }
   if (program) {
-    lines.push(`Active program: "${program.name}", week ${program.currentWeek} of ${program.weeks}${program.deloadWeek ? `, deload in week ${program.deloadWeek}` : ''}${program.isComplete ? ' (completed)' : ''}.`);
+    lines.push(`Actief programma: "${program.name}", week ${program.currentWeek} van ${program.weeks}${program.deloadWeek ? `, deload in week ${program.deloadWeek}` : ''}${program.isComplete ? ' (afgerond)' : ''}.`);
     for (const d of program.days) {
-      lines.push(`  ${d.name}: ${d.exercises.map((e) => `${e.name} ${e.sets}x${e.repMin}-${e.repMax}${e.target ? ` next ${e.loadType === 'bodyweight' ? 'bodyweight' : formatKg(e.target.weight)} (${e.target.decision})` : ''}`).join('; ')}`);
+      lines.push(`  ${d.name}: ${d.exercises.map((e) => `${e.name} ${e.sets}x${e.repMin}-${e.repMax}${e.target ? ` volgende keer ${e.loadType === 'bodyweight' ? 'lichaamsgewicht' : formatKg(e.target.weight)} (${e.target.decision})` : ''}`).join('; ')}`);
     }
   }
-  lines.push(stalls.length ? `Stalling exercises: ${stalls.map((s) => `${s.name} (no improvement for ${s.sessions} sessions)`).join(', ')}.` : 'No stalling exercises detected.');
+  lines.push(stalls.length ? `Stagnerende oefeningen: ${stalls.map((s) => `${s.name} (geen vooruitgang in ${s.sessions} trainingen)`).join(', ')}.` : 'Geen stagnerende oefeningen.');
   return lines.join('\n');
 }
 
@@ -53,10 +53,10 @@ async function systemPrompt(profile: Profile | null): Promise<string> {
 Rules:
 - Base every statement about the user's progress on the data below. If the data is insufficient, say so instead of guessing.
 - You do not set training weights. Next-session weights are calculated by the app's progression engine from logged sets (double progression). Explain those recommendations when asked, but never invent different numbers.
-- If the program should change (exercise swaps, volume, split), say what you would change and why, and tell the user they can tap "Adjust program" to have the app rebuild it with that request.
+- If the program should change (exercise swaps, volume, split), say what you would change and why, and tell the user they can tap "Programma aanpassen met dit advies" to have the app rebuild it with that request.
 - Keep answers concise and structured for a phone screen: short paragraphs or a few bullets.
 - Not a medical professional: for pain or injury, advise seeing a physiotherapist or doctor.
-- Reply in the same language as the user's latest message.
+- Reply in Dutch unless the user's latest message is clearly in another language.
 
 USER PROFILE
 ${profile ? `Age ${profile.age}, ${profile.heightCm} cm, ${profile.weightKg} kg, ${profile.level}, goal: ${profile.goal}, ${profile.daysPerWeek} days/week, ${profile.sessionMinutes} min/session. Limitations: ${profile.limitations || 'none'}.` : 'No profile yet.'}
@@ -69,7 +69,7 @@ ${await historyDigest(5)}`;
 }
 
 async function offlineAnswer(profile: Profile | null): Promise<string> {
-  return `AI coaching is not configured on the server, so here are the facts from your logged training:\n\n${await trainingFacts(profile)}\n\nAdd an AI API key to get a written analysis and answers to your questions.`;
+  return `Er is geen AI ingesteld op de server, dus hier zijn de feiten uit je gelogde trainingen:\n\n${await trainingFacts(profile)}\n\nMet een AI-sleutel krijg je een geschreven analyse en antwoord op je vragen.`;
 }
 
 export async function sendMessage(content: string, profile: Profile | null): Promise<CoachMessage[]> {

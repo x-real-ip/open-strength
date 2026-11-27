@@ -6,11 +6,11 @@ import { useInfo } from '../App.tsx';
 import { ErrorState, Loading, toast, useLoad } from '../components/ui.tsx';
 
 const PROMPTS = [
-  'Analyse my progress',
-  'Which exercises are stalling and what should I change?',
-  'Am I training enough for my goal?',
-  'Explain my next weights',
-  'How is my recovery and training load?',
+  'Analyseer mijn voortgang',
+  'Welke oefeningen stagneren en wat moet ik veranderen?',
+  'Train ik genoeg voor mijn doel?',
+  'Leg mijn volgende gewichten uit',
+  'Hoe zit het met mijn herstel en trainingsbelasting?',
 ];
 
 /** Tiny markdown subset: **bold**, headings and bullet markers. */
@@ -45,7 +45,7 @@ export default function CoachPage() {
 
   useEffect(() => {
     if (params.get('ask') === 'stall') {
-      setText('Some exercises are stalling. What should I change?');
+      setText('Sommige oefeningen stagneren. Wat moet ik veranderen?');
       setParams({}, { replace: true });
     }
   }, [params, setParams]);
@@ -87,12 +87,12 @@ export default function CoachPage() {
           <button
             className="link-btn small"
             onClick={async () => {
-              if (!confirm('Clear the conversation?')) return;
+              if (!confirm('Het gesprek wissen?')) return;
               await api.clearCoach();
               setData({ messages: [] });
             }}
           >
-            Clear
+            Wissen
           </button>
         )}
       </div>
@@ -100,11 +100,11 @@ export default function CoachPage() {
       {messages.length === 0 && (
         <div className="panel stack" style={{ marginBottom: 16 }}>
           <p style={{ margin: 0 }}>
-            Ask about your progress, plateaus, recovery or your program. Answers are based on the workouts you logged.
+            Vraag naar je voortgang, plateaus, herstel of je programma. De antwoorden zijn gebaseerd op de trainingen die je hebt gelogd.
           </p>
           <p className="faint small" style={{ margin: 0 }}>
-            The coach explains weights but never changes them; next weights always come from your logged sets.
-            {!info.aiConfigured && ' AI is not configured on the server, so the coach shows your training facts only.'}
+            De coach legt gewichten uit maar verandert ze nooit; je volgende gewichten komen altijd uit je gelogde sets.
+            {!info.aiConfigured && ' Er is geen AI ingesteld op de server, dus de coach toont alleen feiten uit je trainingen.'}
           </p>
         </div>
       )}
@@ -116,7 +116,7 @@ export default function CoachPage() {
           </div>
         ))}
         {sending && (
-          <div className="msg assistant" aria-label="Coach is typing">
+          <div className="msg assistant" aria-label="De coach typt">
             <span className="typing">
               <i />
               <i />
@@ -127,9 +127,9 @@ export default function CoachPage() {
         {lastAssistant && !sending && info.aiConfigured && (
           <button
             className="btn block"
-            onClick={() => navigate(`/program?instructions=${encodeURIComponent(`Apply this coaching advice:\n${lastAssistant.content.slice(0, 1500)}`)}`)}
+            onClick={() => navigate(`/program?instructions=${encodeURIComponent(`Pas dit advies van de coach toe:\n${lastAssistant.content.slice(0, 1500)}`)}`)}
           >
-            Adjust program with this advice
+            Programma aanpassen met dit advies
           </button>
         )}
         <div ref={endRef} />
@@ -149,7 +149,7 @@ export default function CoachPage() {
           <textarea
             className="textarea"
             rows={1}
-            placeholder="Ask your coach"
+            placeholder="Vraag het je coach"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -160,7 +160,7 @@ export default function CoachPage() {
             }}
           />
           <button className="btn primary" disabled={sending || !text.trim()}>
-            Send
+            Versturen
           </button>
         </form>
       </div>

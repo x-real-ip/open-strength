@@ -8,7 +8,7 @@ export default function SummaryPage() {
   const { data, error, loading, reload } = useLoad(() => api.summary(Number(id)), [id]);
 
   if (loading && !data) return <Loading />;
-  if (error || !data) return <ErrorState message={error ?? 'Not found'} onRetry={reload} />;
+  if (error || !data) return <ErrorState message={error ?? 'Niet gevonden'} onRetry={reload} />;
   const s = data.summary;
   const records = s.outcomes.flatMap((o) => o.newRecords.map((r) => `${o.name}: ${r}`));
 
@@ -16,7 +16,7 @@ export default function SummaryPage() {
     <main className="page">
       <div className="page-head">
         <div>
-          <div className="muted small">Workout done</div>
+          <div className="muted small">Training klaar</div>
           <h1>{s.dayName}</h1>
         </div>
       </div>
@@ -24,7 +24,7 @@ export default function SummaryPage() {
       <div className="stat-row">
         <div className="stat">
           <div className="value">{s.durationMinutes}</div>
-          <div className="label">minutes</div>
+          <div className="label">minuten</div>
         </div>
         <div className="stat">
           <div className="value">{s.totalSets}</div>
@@ -38,7 +38,7 @@ export default function SummaryPage() {
 
       {records.length > 0 && (
         <section className="section panel stack" style={{ gap: 6 }}>
-          <h3>New records</h3>
+          <h3>Nieuwe records</h3>
           {records.map((r) => (
             <div key={r} className="small">
               {r}
@@ -48,7 +48,7 @@ export default function SummaryPage() {
       )}
 
       <section className="section">
-        <h2>Next session</h2>
+        <h2>Volgende training</h2>
         <p className="muted small" style={{ marginTop: 6 }}>
           Calculated from the sets you just logged.
         </p>
@@ -63,11 +63,11 @@ export default function SummaryPage() {
                 </div>
                 <div className="next">
                   {bw ? (
-                    <span>{o.repTargets.join(' / ')} reps</span>
+                    <span>{o.repTargets.join(' / ')} herhalingen</span>
                   ) : o.nextWeight !== o.fromWeight ? (
                     <>
                       <span className="from">{kg(o.fromWeight)}</span>
-                      <span className="arrow" aria-label="to">
+                      <span className="arrow" aria-label="naar">
                         →
                       </span>
                       <span>{kg(o.nextWeight)} kg</span>
@@ -78,7 +78,7 @@ export default function SummaryPage() {
                 </div>
                 <p className="reason">{o.reason}</p>
                 <div className="sets-line">
-                  Today: {o.sets.map((x) => (bw ? x.reps : `${kg(x.weight)}×${x.reps}`)).join(', ')}
+                  Vandaag: {o.sets.map((x) => (bw ? x.reps : `${kg(x.weight)}×${x.reps}`)).join(', ')}
                   {o.weightNote ? ` (${o.weightNote})` : ''}
                 </div>
                 {o.newRecords.map((r) => (
@@ -89,13 +89,13 @@ export default function SummaryPage() {
               </article>
             );
           })}
-          {s.outcomes.length === 0 && <p className="muted">No sets were logged in this workout.</p>}
+          {s.outcomes.length === 0 && <p className="muted">In deze training zijn geen sets gelogd.</p>}
         </div>
       </section>
 
       <section className="section">
         <Link to="/" className="btn primary big block">
-          Done
+          Klaar
         </Link>
       </section>
     </main>

@@ -8,7 +8,7 @@ import { all } from '../db.ts';
 
 async function requireProfile() {
   const profile = await getProfile();
-  if (!profile) throw Object.assign(new Error('Create your profile first'), { status: 409 });
+  if (!profile) throw Object.assign(new Error('Maak eerst je profiel aan'), { status: 409 });
   return profile;
 }
 
@@ -25,7 +25,7 @@ export async function programRoutes(app: FastifyInstance) {
   app.get('/api/programs/:id', async (req) => {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params);
     const program = await loadProgram(id, await getProfile());
-    if (!program) throw Object.assign(new Error('Program not found'), { status: 404 });
+    if (!program) throw Object.assign(new Error('Programma niet gevonden'), { status: 404 });
     return { program };
   });
 
@@ -51,7 +51,7 @@ export async function programRoutes(app: FastifyInstance) {
   app.post('/api/program-exercises/:id/replace', async (req) => {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params);
     const { exerciseId } = z.object({ exerciseId: z.string() }).parse(req.body);
-    if (!getExercise(exerciseId)) throw Object.assign(new Error('Unknown exercise'), { status: 400 });
+    if (!getExercise(exerciseId)) throw Object.assign(new Error('Onbekende oefening'), { status: 400 });
     const profile = await requireProfile();
     await replaceExercise(id, exerciseId, profile);
     const pe = (await getProgramExercise(id))!;
@@ -62,7 +62,7 @@ export async function programRoutes(app: FastifyInstance) {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params);
     const { weight } = z.object({ weight: z.number().min(0).max(1000) }).parse(req.body);
     const pe = await getProgramExercise(id);
-    if (!pe) throw Object.assign(new Error('Exercise not found'), { status: 404 });
+    if (!pe) throw Object.assign(new Error('Oefening niet gevonden'), { status: 404 });
     await setTargetWeight(id, weight);
     return { program: await loadProgram(pe.program_id, await getProfile()) };
   });

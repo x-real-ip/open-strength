@@ -102,7 +102,7 @@ export const config = {
     baseUrl: (str('AI_BASE_URL') ?? (provider === 'anthropic' ? 'https://api.anthropic.com' : 'https://api.openai.com/v1')).replace(/\/$/, ''),
     model: str('AI_MODEL') ?? (provider === 'anthropic' ? 'claude-sonnet-5-5' : 'gpt-4o-mini'),
     /** Language for AI-written text such as program rationale and exercise notes. */
-    language: str('AI_LANGUAGE') ?? 'English',
+    language: str('AI_LANGUAGE') ?? 'Dutch',
     timeoutMs: num('AI_TIMEOUT_MS', 90_000),
   },
   version: packageVersion(),

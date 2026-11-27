@@ -152,7 +152,7 @@ export async function generateProgram(profile: Profile, opts: { current?: Progra
   if (opts.useAi === false || !aiConfigured()) {
     return {
       draft: buildTemplateProgram(profile),
-      notice: aiConfigured() ? null : 'AI is not configured, so a rule-based program was created. Add an API key to get AI-designed programs.',
+      notice: aiConfigured() ? null : 'Er is geen AI ingesteld, dus er is een regelgebaseerd programma gemaakt. Met een API-sleutel ontwerpt de AI je programma’s.',
     };
   }
 
@@ -177,6 +177,6 @@ export async function generateProgram(profile: Profile, opts: { current?: Progra
   }
   return {
     draft: buildTemplateProgram(profile),
-    notice: `The AI program could not be used (${lastError.slice(0, 160)}). A rule-based program was created instead.`,
+    notice: `Het AI-programma was niet bruikbaar (${lastError.slice(0, 160)}). Er is een regelgebaseerd programma gemaakt.`,
   };
 }

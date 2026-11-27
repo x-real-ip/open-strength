@@ -30,11 +30,11 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError('No connection to the server', 0);
+    throw new ApiError('Geen verbinding met de server', 0);
   }
   if (res.status === 401) window.dispatchEvent(new Event('overload:unauthorized'));
   const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
-  if (!res.ok) throw new ApiError(data?.error ?? `Request failed (${res.status})`, res.status);
+  if (!res.ok) throw new ApiError(data?.error ?? `Verzoek mislukt (${res.status})`, res.status);
   return data as T;
 }
 

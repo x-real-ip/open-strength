@@ -139,7 +139,7 @@ test('full flow: profile, program, workout, progression, stats, export', async (
 
   const coach = await call('POST', '/api/coach/messages', { content: 'How am I doing?' });
   assert.equal(coach.status, 200);
-  assert.match(coach.body.messages[1].content, /not configured/);
+  assert.match(coach.body.messages[1].content, /geen AI ingesteld/);
 });
 
 test('imports an export from the SQLite-based version 1.0', async () => {

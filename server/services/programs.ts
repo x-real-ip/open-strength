@@ -123,16 +123,16 @@ export async function initialTarget(ex: ExerciseDef, d: ProgramDraftExercise, pr
     if (last && last.sets.length) {
       const best = Math.max(...last.sets.map((s) => s.reps));
       const target = Math.min(d.repMax, Math.max(d.repMin, best));
-      return { weight: 0, repTargets: Array.from({ length: d.sets }, () => target), decision: 'start', reason: `Based on your last session (best set ${best} reps).` };
+      return { weight: 0, repTargets: Array.from({ length: d.sets }, () => target), decision: 'start', reason: `Op basis van je laatste training (beste set ${best} herhalingen).` };
     }
-    return { weight: 0, repTargets: fresh, decision: 'start', reason: 'Bodyweight exercise: progress by adding reps.' };
+    return { weight: 0, repTargets: fresh, decision: 'start', reason: 'Oefening met lichaamsgewicht: je gaat vooruit door herhalingen toe te voegen.' };
   }
 
   const prior = await latestTargetFor(ex.id, db);
   if (prior && prior.rep_min === d.repMin && prior.rep_max === d.repMax) {
     const reps = prior.rep_targets;
     const repTargets = Array.from({ length: d.sets }, (_, i) => reps[i] ?? reps[reps.length - 1] ?? d.repMin);
-    return { weight: prior.weight, repTargets, decision: 'start', reason: `Carried over from your previous program: ${formatKg(prior.weight)}.` };
+    return { weight: prior.weight, repTargets, decision: 'start', reason: `Meegenomen uit je vorige programma: ${formatKg(prior.weight)}.` };
   }
 
   const last = await lastSessionSets(ex.id, undefined, db);
@@ -145,7 +145,7 @@ export async function initialTarget(ex: ExerciseDef, d: ProgramDraftExercise, pr
       weight,
       repTargets: fresh,
       decision: 'start',
-      reason: `Estimated from your last session (${formatKg(used)}, est. 1RM ${formatKg(Math.round(best))}) for the new ${d.repMin}–${d.repMax} rep range.`,
+      reason: `Geschat uit je laatste training (${formatKg(used)}, geschatte 1RM ${formatKg(Math.round(best))}) voor de nieuwe range van ${d.repMin}–${d.repMax} herhalingen.`,
     };
   }
 
@@ -153,7 +153,7 @@ export async function initialTarget(ex: ExerciseDef, d: ProgramDraftExercise, pr
     weight: clampStartWeight(d.startWeight, ex, profile),
     repTargets: fresh,
     decision: 'start',
-    reason: 'Starting estimate. Pick a weight you can do with good form and 2–3 reps in reserve; the app adjusts after your first session.',
+    reason: 'Eerste schatting. Kies een gewicht dat je met goede techniek doet en waarbij je nog 2–3 herhalingen over hebt; na je eerste training past de app het aan.',
   };
 }
 
@@ -275,7 +275,7 @@ export async function exerciseAlternatives(peId: number, profile: Profile) {
 export async function replaceExercise(peId: number, exerciseId: string, profile: Profile) {
   const pe = await getProgramExercise(peId);
   const def = getExercise(exerciseId);
-  if (!pe || !def) throw Object.assign(new Error('Unknown exercise'), { status: 404 });
+  if (!pe || !def) throw Object.assign(new Error('Onbekende oefening'), { status: 404 });
   await tx(async (c) => {
     await run('UPDATE program_exercises SET exercise_id = $1, notes = $2 WHERE id = $3', [def.id, '', peId], c);
     const t = await initialTarget(def, { exerciseId: def.id, sets: pe.sets, repMin: pe.rep_min, repMax: pe.rep_max, restSeconds: pe.rest_seconds }, profile, c);
@@ -294,7 +294,7 @@ export async function replaceExercise(peId: number, exerciseId: string, profile:
 export async function setTargetWeight(peId: number, weight: number) {
   await run(`UPDATE exercise_targets SET weight = $1, decision = 'hold', reason = $2, updated_at = $3 WHERE program_exercise_id = $4`, [
     weight,
-    `Set manually to ${formatKg(weight)}.`,
+    `Handmatig ingesteld op ${formatKg(weight)}.`,
     nowIso(),
     peId,
   ]);

@@ -94,7 +94,7 @@ test('unusable AI output falls back to the template program after one retry', as
   const res = await app.inject({ method: 'POST', url: '/api/programs/generate', payload: {} });
   assert.equal(res.statusCode, 200);
   assert.equal(res.json().program.source, 'template');
-  assert.match(res.json().notice, /could not be used/);
+  assert.match(res.json().notice, /niet bruikbaar/);
   assert.equal(requests.length - before, 2);
 });
 

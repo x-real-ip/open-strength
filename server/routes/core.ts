@@ -28,12 +28,12 @@ export async function coreRoutes(app: FastifyInstance) {
   }));
 
   app.post('/api/auth/login', async (req, reply) => {
-    if (config.auth.mode !== 'password') return reply.code(400).send({ error: 'Password sign-in is not enabled' });
+    if (config.auth.mode !== 'password') return reply.code(400).send({ error: 'Inloggen met een wachtwoord staat uit' });
     const { password } = z.object({ password: z.string() }).parse(req.body);
-    if (!loginAllowed(req.ip)) return reply.code(429).send({ error: 'Too many attempts. Try again in 15 minutes.' });
+    if (!loginAllowed(req.ip)) return reply.code(429).send({ error: 'Te veel pogingen. Probeer het over 15 minuten opnieuw.' });
     if (!checkPassword(password)) {
       recordFailure(req.ip);
-      return reply.code(401).send({ error: 'Wrong password' });
+      return reply.code(401).send({ error: 'Verkeerd wachtwoord' });
     }
     clearFailures(req.ip);
     passwordLogin(req, reply);

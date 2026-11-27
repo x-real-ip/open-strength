@@ -11,7 +11,7 @@ export default function ExerciseDetail() {
   const { data, error, loading, reload } = useLoad(() => api.exerciseHistory(exerciseId), [exerciseId]);
 
   if (loading && !data) return <Loading />;
-  if (error || !data) return <ErrorState message={error ?? 'Not found'} onRetry={reload} />;
+  if (error || !data) return <ErrorState message={error ?? 'Niet gevonden'} onRetry={reload} />;
 
   const sessions = data.sessions;
   const loaded = sessions.some((s) => s.topWeight > 0);
@@ -20,44 +20,44 @@ export default function ExerciseDetail() {
   return (
     <main className="page">
       <div className="row" style={{ marginBottom: 14 }}>
-        <button className="icon-btn" onClick={() => navigate(-1)} aria-label="Back">
+        <button className="icon-btn" onClick={() => navigate(-1)} aria-label="Terug">
           <IconBack />
         </button>
       </div>
       <h1>{data.name}</h1>
       <p className="muted small" style={{ marginTop: 8 }}>
-        {sessions.length} session{sessions.length === 1 ? '' : 's'}
-        {loaded && best > 0 ? `, best estimated 1RM ${kg(Math.round(best * 10) / 10)} kg` : ''}
+        {sessions.length} training{sessions.length === 1 ? '' : 'en'}
+        {loaded && best > 0 ? `, beste geschatte 1RM ${kg(Math.round(best * 10) / 10)} kg` : ''}
       </p>
 
       {sessions.length === 0 ? (
         <div className="panel">
-          <p className="muted" style={{ margin: 0 }}>No sets logged for this exercise yet.</p>
+          <p className="muted" style={{ margin: 0 }}>Nog geen sets gelogd voor deze oefening.</p>
         </div>
       ) : (
         <div className="stack section">
           {loaded ? (
             <>
               <LineChart
-                title="Estimated 1-rep max"
-                sub="From your best set each session (Epley formula)"
+                title="Geschatte 1RM"
+                sub="Uit je beste set per training (formule van Epley)"
                 unit=" kg"
                 data={sessions.map((s) => ({ label: shortDate(s.date), value: s.e1rm, detail: `${kg(Math.round(s.e1rm * 10) / 10)} kg` }))}
               />
               <LineChart
-                title="Heaviest weight"
+                title="Zwaarste gewicht"
                 unit=" kg"
                 data={sessions.map((s) => ({ label: shortDate(s.date), value: s.topWeight, detail: `${kg(s.topWeight)} kg` }))}
               />
             </>
           ) : null}
           <BarChart
-            title="Total reps per session"
-            data={sessions.map((s) => ({ label: shortDate(s.date), value: s.totalReps, detail: `${s.totalReps} reps` }))}
+            title="Totaal herhalingen per training"
+            data={sessions.map((s) => ({ label: shortDate(s.date), value: s.totalReps, detail: `${s.totalReps} herhalingen` }))}
           />
 
           <section className="section">
-            <h2>Sessions</h2>
+            <h2>Trainingen</h2>
             <div className="list" style={{ marginTop: 12 }}>
               {[...sessions].reverse().map((s, i) => (
                 <div className="list-row" key={i}>
