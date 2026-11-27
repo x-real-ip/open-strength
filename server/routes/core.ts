@@ -2,7 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppInfo } from '../../shared/types.ts';
 import { checkPassword, clearFailures, loginAllowed, logout, oidcCallback, oidcLoginRedirect, passwordLogin, recordFailure } from '../auth.ts';
-import { aiConfigured, config } from '../config.ts';
+import { config } from '../config.ts';
+import { aiConfigured, getAiSettings } from '../services/aiSettings.ts';
 import { databaseReady } from '../db.ts';
 import { EXERCISES } from '../services/exercises.ts';
 import { getProfile, saveProfile } from '../services/profile.ts';
@@ -17,8 +18,8 @@ export async function coreRoutes(app: FastifyInstance) {
 
   app.get('/api/info', async (req): Promise<AppInfo> => ({
     aiConfigured: aiConfigured(),
-    aiProvider: config.ai.provider,
-    aiModel: config.ai.model,
+    aiProvider: getAiSettings().provider,
+    aiModel: getAiSettings().model,
     authMode: config.auth.mode,
     authRequired: config.auth.mode !== 'none',
     authenticated: Boolean(req.user),

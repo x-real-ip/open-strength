@@ -10,6 +10,7 @@ import { coreRoutes } from './routes/core.ts';
 import { dataRoutes } from './routes/data.ts';
 import { insightRoutes } from './routes/insights.ts';
 import { programRoutes } from './routes/programs.ts';
+import { settingsRoutes } from './routes/settings.ts';
 import { workoutRoutes } from './routes/workouts.ts';
 
 export async function buildApp(opts: { logger?: boolean | { level: string } } = {}) {
@@ -32,6 +33,7 @@ export async function buildApp(opts: { logger?: boolean | { level: string } } = 
   await app.register(workoutRoutes);
   await app.register(insightRoutes);
   await app.register(dataRoutes);
+  await app.register(settingsRoutes);
 
   // Serve the built PWA with an SPA fallback.
   if (fs.existsSync(path.join(config.webDir, 'index.html'))) {

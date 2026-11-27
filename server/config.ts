@@ -96,6 +96,7 @@ export const config = {
     allowedGroups: list('ALLOWED_GROUPS'),
   },
 
+  /** Environment defaults for AI; the settings page overrides them (services/aiSettings.ts). */
   ai: {
     provider,
     apiKey: str('AI_API_KEY') ?? str('ANTHROPIC_API_KEY') ?? str('OPENAI_API_KEY') ?? '',
@@ -103,13 +104,9 @@ export const config = {
     model: str('AI_MODEL') ?? (provider === 'anthropic' ? 'claude-sonnet-5-5' : 'gpt-4o-mini'),
     /** Language for AI-written text such as program rationale and exercise notes. */
     language: str('AI_LANGUAGE') ?? 'Dutch',
-    timeoutMs: num('AI_TIMEOUT_MS', 90_000),
+    // Thinking models can take a while to design a program.
+    timeoutMs: num('AI_TIMEOUT_MS', 180_000),
   },
   version: packageVersion(),
 };
 
-/** OpenAI-compatible local servers (Ollama, LM Studio) often need no key. */
-export function aiConfigured(): boolean {
-  if (config.ai.provider === 'openai') return Boolean(config.ai.apiKey || str('AI_BASE_URL'));
-  return Boolean(config.ai.apiKey);
-}

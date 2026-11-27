@@ -275,3 +275,62 @@ export interface AppInfo {
   oidcProviderName: string;
   version: string;
 }
+
+export type AiProviderId = 'anthropic' | 'openai';
+export type Effort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+export type AiFeature = 'program' | 'coach' | 'test';
+
+/** AI settings as the settings page sees them. The API key itself is never sent to the browser. */
+export interface AiSettingsView {
+  provider: AiProviderId;
+  model: string;
+  /** Only for OpenAI-compatible servers (Ollama, LM Studio, ...); empty means the provider default. */
+  baseUrl: string;
+  /** Where the key comes from: saved in the app, the server environment, or nowhere. */
+  keySource: 'app' | 'env' | null;
+  /** Last characters of the key, e.g. "…a1b2". */
+  keyHint: string | null;
+  /** null means: let the model use its own default. */
+  coachEffort: Effort | null;
+  programEffort: Effort | null;
+  /** Stop AI calls once this month's estimated cost reaches this (USD). null means no limit. */
+  monthlyBudgetUsd: number | null;
+  configured: boolean;
+  /** Known Claude models with their list price per million tokens. */
+  models: { id: string; label: string; inputUsd: number; outputUsd: number; note: string }[];
+}
+
+export interface AiSettingsUpdate {
+  provider?: AiProviderId;
+  model?: string;
+  baseUrl?: string;
+  /** A new key, or null to remove the key saved in the app (the server key then applies again). */
+  apiKey?: string | null;
+  coachEffort?: Effort | null;
+  programEffort?: Effort | null;
+  monthlyBudgetUsd?: number | null;
+}
+
+export interface AiUsageEntry {
+  id: number;
+  createdAt: string;
+  feature: AiFeature;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  /** Estimated from the list price; null when the price is unknown (e.g. a local model). */
+  costUsd: number | null;
+  ok: boolean;
+  error: string | null;
+}
+
+export interface AiUsageSummary {
+  month: { start: string; calls: number; inputTokens: number; outputTokens: number; costUsd: number; failed: number };
+  previousMonthCostUsd: number;
+  budgetUsd: number | null;
+  byFeature: { feature: AiFeature; calls: number; costUsd: number; inputTokens: number; outputTokens: number }[];
+  daily: { day: string; costUsd: number; calls: number }[];
+  recent: AiUsageEntry[];
+  /** True when some calls used a model without a known price. */
+  hasUnpricedCalls: boolean;
+}

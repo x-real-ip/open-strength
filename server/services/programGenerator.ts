@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Profile, Program } from '../../shared/types.ts';
-import { aiConfigured, config } from '../config.ts';
+import { config } from '../config.ts';
+import { aiConfigured } from './aiSettings.ts';
 import { AiError, complete, extractJson, type ChatMessage } from './ai.ts';
 import { alternativesFor, availableExercises, getExercise, isAvailable } from './exercises.ts';
 import { normalizeSupersets, type ProgramDraft } from './programs.ts';
@@ -167,7 +168,7 @@ export async function generateProgram(profile: Profile, opts: { current?: Progra
     }
     try {
       lastText = '';
-      const text = await complete({ system: systemPrompt(), messages, maxTokens: 6000, json: true });
+      const text = await complete({ feature: 'program', system: systemPrompt(), messages, maxTokens: 16000, json: true });
       lastText = text;
       return { draft: sanitizeAiProgram(extractJson(text), profile), notice: null };
     } catch (err) {

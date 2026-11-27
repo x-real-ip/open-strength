@@ -1,5 +1,5 @@
 import type { CoachMessage, Profile } from '../../shared/types.ts';
-import { aiConfigured } from '../config.ts';
+import { aiConfigured } from './aiSettings.ts';
 import { all, nowIso, one, run } from '../db.ts';
 import { complete } from './ai.ts';
 import { activeProgramId, loadProgram } from './programs.ts';
@@ -81,7 +81,7 @@ export async function sendMessage(content: string, profile: Profile | null): Pro
     const history = (await listMessages(12)).map((m) => ({ role: m.role, content: m.content }));
     while (history.length && history[0].role !== 'user') history.shift();
     try {
-      reply = await complete({ system: await systemPrompt(profile), messages: history, maxTokens: 1500 });
+      reply = await complete({ feature: 'coach', system: await systemPrompt(profile), messages: history, maxTokens: 4000 });
     } catch (err) {
       // Remove the unanswered question so a retry does not leave two user turns in a row.
       await run('DELETE FROM coach_messages WHERE id = $1', [user.id]);
