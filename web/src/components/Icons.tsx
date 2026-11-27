@@ -75,3 +75,18 @@ export const IconSwap = ({ size = 20 }: P) => (
     <path d="M7 4L4 7l3 3M4 7h12M17 20l3-3-3-3M20 17H8" />
   </svg>
 );
+
+/** Favourite mark; `filled` when the exercise is a favourite. */
+export const IconStar = ({ size = 24, filled = false }: P & { filled?: boolean }) => (
+  <svg {...base(size)} fill={filled ? 'currentColor' : 'none'}>
+    <path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9z" />
+  </svg>
+);
+
+/** "Never use" mark. */
+export const IconBan = ({ size = 24 }: P) => (
+  <svg {...base(size)}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M6 6l12 12" />
+  </svg>
+);

@@ -38,8 +38,11 @@ Working agreements for this repository.
 ## Exercise library
 
 - `server/services/exercises.ts`: `CURATED` (67 exercises), `LIBRARY` (curated plus all of free-exercise-db)
-  and `EXERCISES` (programmable: what programs, swaps and the AI may use). Rule-based templates only pick
-  from `CURATED` (`pickForPattern`).
+  and `EXERCISES` (programmable: what programs, swaps and the AI may use). Rule-based templates pick a
+  favourite first, otherwise from `CURATED` (`pickForPattern`).
+- User marks live in `exercise_preferences` (`services/exercisePrefs.ts`). An excluded exercise must never
+  reach a program: filter it out of the AI catalogue, `sanitizeAiProgram`, `pickForPattern`,
+  `alternativesFor` and the replace route.
 - Every curated exercise needs a Dutch guide in `exerciseGuide.ts` with two photos in
   `web/public/exercises/`; `server/tests/exercises.test.ts` enforces this.
 - Imported exercises (`freeExerciseDb.ts`) come from `server/data/free-exercise-db.json`, pinned to a commit of

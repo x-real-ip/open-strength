@@ -8,7 +8,8 @@ import { ProgramExplanationView, ProgramLookahead } from '../components/ProgramL
 import { DecisionTag, ErrorState, Loading, Sheet, toast, useLoad } from '../components/ui.tsx';
 import { kg, repRange, rest, supersetLabels } from '../format.ts';
 import { addStep } from '../workoutMath.ts';
-import { SwapSheet } from './WorkoutPage.tsx';
+import { PreferenceButtons } from '../components/PreferenceButtons.tsx';
+import { SwapSheet } from '../components/SwapSheet.tsx';
 
 export default function ProgramPage() {
   const info = useInfo();
@@ -236,13 +237,14 @@ function ExerciseSheet({ exercise, onClose, onChanged }: { exercise: ProgramExer
               Volgende keer {kg(weight)} kg
             </button>
           )}
-          <Link className="btn block" to={`/exercises/${exercise.exerciseId}`}>
+          <Link className="btn block" to={`/exercises/${encodeURIComponent(exercise.exerciseId)}`}>
             Hoe doe je dit?
           </Link>
           <button className="btn block" onClick={() => setSwap(true)}>
             Wisselen voor een andere oefening
           </button>
-          <Link className="btn ghost block" to={`/progress/${exercise.exerciseId}`}>
+          <PreferenceButtons exerciseId={exercise.exerciseId} onChanged={(mark) => mark === 'excluded' && onChanged()} />
+          <Link className="btn ghost block" to={`/progress/${encodeURIComponent(exercise.exerciseId)}`}>
             Historie bekijken
           </Link>
         </div>
@@ -251,10 +253,8 @@ function ExerciseSheet({ exercise, onClose, onChanged }: { exercise: ProgramExer
         open={swap}
         onClose={() => setSwap(false)}
         programExerciseId={exercise.id}
-        onSwapped={() => {
-          toast('Oefening gewisseld');
-          onChanged();
-        }}
+        current={{ exerciseId: exercise.exerciseId, name: exercise.name }}
+        onSwapped={onChanged}
       />
     </>
   );

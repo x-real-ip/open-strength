@@ -6,7 +6,10 @@ import type {
   CoachMessage,
   ExerciseDef,
   ExerciseHistory,
+  ExercisePreference,
+  ExercisePreferences,
   LibraryExercise,
+  PreferenceUpdate,
   Profile,
   Program,
   ProgramExplanation,
@@ -56,6 +59,9 @@ export const api = {
   activeProgram: () => request<{ program: Program | null; explanation: ProgramExplanation[] }>('GET', '/api/programs/active'),
   generateProgram: (opts: { instructions?: string; useAi?: boolean; basedOnCurrent?: boolean }) =>
     request<{ program: Program; notice: string | null }>('POST', '/api/programs/generate', opts),
+  preferences: () => request<ExercisePreferences>('GET', '/api/exercise-preferences'),
+  setPreference: (exerciseId: string, preference: ExercisePreference | null) =>
+    request<PreferenceUpdate>('PUT', '/api/exercise-preferences', { exerciseId, preference }),
   alternatives: (peId: number) => request<{ alternatives: ExerciseDef[] }>('GET', `/api/program-exercises/${peId}/alternatives`),
   replaceExercise: (peId: number, exerciseId: string) => request<{ program: Program }>('POST', `/api/program-exercises/${peId}/replace`, { exerciseId }),
   setWeight: (peId: number, weight: number) => request<{ program: Program }>('PUT', `/api/program-exercises/${peId}/weight`, { weight }),

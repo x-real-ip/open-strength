@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { getExercise } from '../services/exercises.ts';
+import { getPreferences, loadPrefs, setPreference } from '../services/exercisePrefs.ts';
 import { getProfile } from '../services/profile.ts';
 import { generateProgram } from '../services/programGenerator.ts';
 import { explainProgram } from '../services/programExplain.ts';
@@ -46,15 +47,26 @@ export async function programRoutes(app: FastifyInstance) {
     return { program: await loadProgram(id, profile), notice };
   });
 
+  app.get('/api/exercise-preferences', async () => getPreferences());
+
+  app.put('/api/exercise-preferences', async (req) => {
+    const { exerciseId, preference } = z
+      .object({ exerciseId: z.string().min(1).max(200), preference: z.enum(['favorite', 'excluded']).nullable() })
+      .strict()
+      .parse(req.body);
+    return setPreference(exerciseId, preference, await getProfile());
+  });
+
   app.get('/api/program-exercises/:id/alternatives', async (req) => {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params);
-    return { alternatives: await exerciseAlternatives(id, await requireProfile()) };
+    return { alternatives: await exerciseAlternatives(id, await requireProfile(), await loadPrefs()) };
   });
 
   app.post('/api/program-exercises/:id/replace', async (req) => {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params);
     const { exerciseId } = z.object({ exerciseId: z.string() }).parse(req.body);
     if (!getExercise(exerciseId)) throw Object.assign(new Error('Onbekende oefening'), { status: 400 });
+    if ((await loadPrefs()).excluded.has(exerciseId)) throw Object.assign(new Error('Deze oefening staat op "niet gebruiken"'), { status: 400 });
     const profile = await requireProfile();
     await replaceExercise(id, exerciseId, profile);
     const pe = (await getProgramExercise(id))!;

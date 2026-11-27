@@ -148,14 +148,24 @@ test('full flow: profile, program, workout, progression, stats, export', async (
   const carried = regen.body.program.days.flatMap((d: any) => d.exercises).find((e: any) => e.exerciseId === pe.exerciseId && e.repMin === pe.repMin && e.repMax === pe.repMax);
   if (carried) assert.equal(carried.target.weight, pe.target.weight);
 
+  // Without AI the rule-based program uses favourites and skips excluded exercises.
+  assert.equal((await call('PUT', '/api/exercise-preferences', { exerciseId: 'Box_Squat', preference: 'favorite' })).status, 200);
+  assert.equal((await call('PUT', '/api/exercise-preferences', { exerciseId: 'deadlift', preference: 'excluded' })).status, 200);
+  const marked = (await call('POST', '/api/programs/generate', {})).body.program;
+  const ids = marked.days.flatMap((d: any) => d.exercises.map((e: any) => e.exerciseId));
+  assert.ok(ids.includes('Box_Squat'), 'favourite squat is used');
+  assert.ok(!ids.includes('deadlift'), 'excluded exercise is not used');
+
   const exported = await call('GET', '/api/export/json');
   assert.equal(exported.body.app, 'overload');
   assert.equal(exported.body.tables.workouts.length, 1);
+  assert.equal(exported.body.tables.exercise_preferences.length, 2, 'marks are part of the export');
   const csv = await call('GET', '/api/export/sets.csv');
   assert.match(String(csv.body), /^date,workout/);
 
   assert.equal((await call('POST', '/api/import/json', exported.body)).status, 200);
   assert.equal((await call('GET', '/api/stats')).body.totals.workouts, 1);
+  assert.deepEqual((await call('GET', '/api/exercise-preferences')).body, { favorites: ['Box_Squat'], excluded: ['deadlift'] });
   assert.equal((await call('POST', '/api/import/json', { foo: 1 })).status, 400);
 
   const coach = await call('POST', '/api/coach/messages', { content: 'How am I doing?' });

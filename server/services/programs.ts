@@ -1,6 +1,6 @@
 import type { Decision, ExerciseDef, Profile, Program, ProgramDay, ProgramExercise, Target } from '../../shared/types.ts';
 import { all, getPool, nowIso, one, run, tx, type Queryable } from '../db.ts';
-import { alternativesFor, getExercise } from './exercises.ts';
+import { alternativesFor, getExercise, type Prefs } from './exercises.ts';
 import { clampStartWeight, e1rm, floorToStep, formatKg, incrementFor } from './weights.ts';
 import { workingWeight } from './progression.ts';
 
@@ -269,12 +269,12 @@ export async function getProgramExercise(peId: number) {
   );
 }
 
-export async function exerciseAlternatives(peId: number, profile: Profile) {
+export async function exerciseAlternatives(peId: number, profile: Profile, prefs: Prefs) {
   const pe = await getProgramExercise(peId);
   if (!pe) return [];
   const inDay = (await all<{ exercise_id: string }>('SELECT exercise_id FROM program_exercises WHERE program_day_id = $1', [pe.program_day_id])).map((r) => r.exercise_id);
   // The sheet shows the best few and searches the rest.
-  return alternativesFor(pe.exercise_id, profile.equipment, inDay).slice(0, 60);
+  return alternativesFor(pe.exercise_id, profile.equipment, inDay, prefs).slice(0, 60);
 }
 
 /** Swap an exercise in the program; sets/reps stay, the target is re-derived from history. */
