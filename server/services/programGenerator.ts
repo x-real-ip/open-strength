@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Profile, Program } from '../../shared/types.ts';
-import { aiConfigured, config } from '../config.ts';
+import { config } from '../config.ts';
+import { aiConfigured } from './aiSettings.ts';
 import { AiError, complete, extractJson, type ChatMessage } from './ai.ts';
 import { alternativesFor, availableExercises, getExercise, isAvailable } from './exercises.ts';
 import { normalizeSupersets, type ProgramDraft } from './programs.ts';
@@ -152,7 +153,7 @@ export async function generateProgram(profile: Profile, opts: { current?: Progra
   if (opts.useAi === false || !aiConfigured()) {
     return {
       draft: buildTemplateProgram(profile),
-      notice: aiConfigured() ? null : 'AI is not configured, so a rule-based program was created. Add an API key to get AI-designed programs.',
+      notice: aiConfigured() ? null : 'AI staat uit, dus er is een regelgebaseerd programma gemaakt. Zet AI aan via Profiel → AI-instellingen om programma’s door de AI te laten ontwerpen.',
     };
   }
 
@@ -167,7 +168,7 @@ export async function generateProgram(profile: Profile, opts: { current?: Progra
     }
     try {
       lastText = '';
-      const text = await complete({ system: systemPrompt(), messages, maxTokens: 6000, json: true });
+      const text = await complete({ feature: 'program', system: systemPrompt(), messages, maxTokens: 16000, json: true });
       lastText = text;
       return { draft: sanitizeAiProgram(extractJson(text), profile), notice: null };
     } catch (err) {
@@ -177,6 +178,6 @@ export async function generateProgram(profile: Profile, opts: { current?: Progra
   }
   return {
     draft: buildTemplateProgram(profile),
-    notice: `The AI program could not be used (${lastError.slice(0, 160)}). A rule-based program was created instead.`,
+    notice: `Het AI-programma was niet bruikbaar (${lastError.slice(0, 160)}). Er is een regelgebaseerd programma gemaakt.`,
   };
 }

@@ -1,8 +1,10 @@
 // Curated exercise library. Programs (AI or template) may only use exercises from this list,
 // so history, statistics and weight steps stay consistent across programs.
 import type { Equipment, ExerciseDef, MovementPattern, MuscleGroup } from '../../shared/types.ts';
+import { GUIDES } from './exerciseGuide.ts';
 
-type Def = Omit<ExerciseDef, 'secondary'> & { secondary?: MuscleGroup[] };
+// `name` here is the English working name; the Dutch display name, steps and photos come from GUIDES.
+type Def = Omit<ExerciseDef, 'secondary' | 'steps' | 'photos' | 'photoNote'> & { secondary?: MuscleGroup[] };
 
 const defs: Def[] = [
   // Horizontal push
@@ -15,7 +17,7 @@ const defs: Def[] = [
   { id: 'close_grip_bench_press', name: 'Close-grip bench press', primary: 'triceps', secondary: ['chest'], equipment: ['barbell', 'bench'], loadType: 'barbell', pattern: 'triceps', compound: true, startFactor: 0.4 },
 
   // Chest isolation
-  { id: 'cable_fly', name: 'Cable fly', primary: 'chest', equipment: ['cable'], loadType: 'cable', pattern: 'chest_iso', compound: false, startFactor: 0.08, weightNote: 'per side' },
+  { id: 'cable_fly', name: 'Cable fly', primary: 'chest', equipment: ['cable'], loadType: 'cable', pattern: 'chest_iso', compound: false, startFactor: 0.08, weightNote: 'per kant' },
   { id: 'dumbbell_fly', name: 'Dumbbell fly', primary: 'chest', equipment: ['dumbbell', 'bench'], loadType: 'dumbbell', pattern: 'chest_iso', compound: false, startFactor: 0.07, weightNote: 'per hand' },
   { id: 'pec_deck', name: 'Pec deck', primary: 'chest', equipment: ['machine'], loadType: 'machine', pattern: 'chest_iso', compound: false, startFactor: 0.3 },
 
@@ -53,7 +55,7 @@ const defs: Def[] = [
   { id: 'front_squat', name: 'Front squat', primary: 'quads', secondary: ['glutes', 'core'], equipment: ['barbell'], loadType: 'barbell', pattern: 'squat', compound: true, startFactor: 0.45 },
   { id: 'leg_press', name: 'Leg press', primary: 'quads', secondary: ['glutes'], equipment: ['machine'], loadType: 'machine', pattern: 'squat', compound: true, startFactor: 1.0 },
   { id: 'hack_squat', name: 'Hack squat', primary: 'quads', secondary: ['glutes'], equipment: ['machine'], loadType: 'machine', pattern: 'squat', compound: true, startFactor: 0.5 },
-  { id: 'goblet_squat', name: 'Goblet squat', primary: 'quads', secondary: ['glutes', 'core'], equipment: ['dumbbell'], loadType: 'dumbbell', pattern: 'squat', compound: true, startFactor: 0.25, weightNote: 'one dumbbell' },
+  { id: 'goblet_squat', name: 'Goblet squat', primary: 'quads', secondary: ['glutes', 'core'], equipment: ['dumbbell'], loadType: 'dumbbell', pattern: 'squat', compound: true, startFactor: 0.25, weightNote: 'één dumbbell' },
   { id: 'kettlebell_goblet_squat', name: 'Kettlebell goblet squat', primary: 'quads', secondary: ['glutes', 'core'], equipment: ['kettlebell'], loadType: 'kettlebell', pattern: 'squat', compound: true, startFactor: 0.2 },
   { id: 'bodyweight_squat', name: 'Bodyweight squat', primary: 'quads', secondary: ['glutes'], equipment: ['bodyweight'], loadType: 'bodyweight', pattern: 'squat', compound: true, startFactor: 0 },
 
@@ -85,7 +87,7 @@ const defs: Def[] = [
   { id: 'cable_curl', name: 'Cable curl', primary: 'biceps', equipment: ['cable'], loadType: 'cable', pattern: 'biceps', compound: false, startFactor: 0.15 },
   { id: 'band_curl', name: 'Band curl', primary: 'biceps', equipment: ['bands'], loadType: 'bodyweight', pattern: 'biceps', compound: false, startFactor: 0 },
   { id: 'triceps_pushdown', name: 'Triceps pushdown', primary: 'triceps', equipment: ['cable'], loadType: 'cable', pattern: 'triceps', compound: false, startFactor: 0.2 },
-  { id: 'overhead_triceps_extension', name: 'Overhead dumbbell triceps extension', primary: 'triceps', equipment: ['dumbbell'], loadType: 'dumbbell', pattern: 'triceps', compound: false, startFactor: 0.12, weightNote: 'one dumbbell' },
+  { id: 'overhead_triceps_extension', name: 'Overhead dumbbell triceps extension', primary: 'triceps', equipment: ['dumbbell'], loadType: 'dumbbell', pattern: 'triceps', compound: false, startFactor: 0.12, weightNote: 'één dumbbell' },
   { id: 'skull_crusher', name: 'EZ-bar skull crusher', primary: 'triceps', equipment: ['barbell', 'bench'], loadType: 'barbell', pattern: 'triceps', compound: false, startFactor: 0.2 },
   { id: 'bench_dip', name: 'Bench dip', primary: 'triceps', secondary: ['chest'], equipment: ['bench'], loadType: 'bodyweight', pattern: 'triceps', compound: false, startFactor: 0 },
   { id: 'band_pushdown', name: 'Band triceps pushdown', primary: 'triceps', equipment: ['bands'], loadType: 'bodyweight', pattern: 'triceps', compound: false, startFactor: 0 },
@@ -97,7 +99,17 @@ const defs: Def[] = [
   { id: 'dead_bug', name: 'Dead bug', primary: 'core', equipment: ['bodyweight'], loadType: 'bodyweight', pattern: 'core', compound: false, startFactor: 0 },
 ];
 
-export const EXERCISES: ExerciseDef[] = defs.map((d) => ({ secondary: [], ...d }));
+export const EXERCISES: ExerciseDef[] = defs.map((d) => {
+  const g = GUIDES[d.id];
+  return {
+    secondary: [],
+    ...d,
+    name: g?.name ?? d.name,
+    steps: g?.steps ?? [],
+    photos: g ? [`/exercises/${g.photo}-0.webp`, `/exercises/${g.photo}-1.webp`] : [],
+    photoNote: g?.similar,
+  };
+});
 
 const byId = new Map(EXERCISES.map((e) => [e.id, e]));
 

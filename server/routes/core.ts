@@ -2,7 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppInfo } from '../../shared/types.ts';
 import { checkPassword, clearFailures, loginAllowed, logout, oidcCallback, oidcLoginRedirect, passwordLogin, recordFailure } from '../auth.ts';
-import { aiConfigured, config } from '../config.ts';
+import { config } from '../config.ts';
+import { aiConfigured, getAiSettings } from '../services/aiSettings.ts';
 import { databaseReady } from '../db.ts';
 import { EXERCISES } from '../services/exercises.ts';
 import { getProfile, saveProfile } from '../services/profile.ts';
@@ -17,8 +18,8 @@ export async function coreRoutes(app: FastifyInstance) {
 
   app.get('/api/info', async (req): Promise<AppInfo> => ({
     aiConfigured: aiConfigured(),
-    aiProvider: config.ai.provider,
-    aiModel: config.ai.model,
+    aiProvider: getAiSettings().provider,
+    aiModel: getAiSettings().model,
     authMode: config.auth.mode,
     authRequired: config.auth.mode !== 'none',
     authenticated: Boolean(req.user),
@@ -28,12 +29,12 @@ export async function coreRoutes(app: FastifyInstance) {
   }));
 
   app.post('/api/auth/login', async (req, reply) => {
-    if (config.auth.mode !== 'password') return reply.code(400).send({ error: 'Password sign-in is not enabled' });
+    if (config.auth.mode !== 'password') return reply.code(400).send({ error: 'Inloggen met een wachtwoord staat uit' });
     const { password } = z.object({ password: z.string() }).parse(req.body);
-    if (!loginAllowed(req.ip)) return reply.code(429).send({ error: 'Too many attempts. Try again in 15 minutes.' });
+    if (!loginAllowed(req.ip)) return reply.code(429).send({ error: 'Te veel pogingen. Probeer het over 15 minuten opnieuw.' });
     if (!checkPassword(password)) {
       recordFailure(req.ip);
-      return reply.code(401).send({ error: 'Wrong password' });
+      return reply.code(401).send({ error: 'Verkeerd wachtwoord' });
     }
     clearFailures(req.ip);
     passwordLogin(req, reply);

@@ -1,45 +1,45 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { Equipment, Goal, Level, Profile } from '@shared/types.ts';
 import { api } from '../api.ts';
 import { useInfo } from '../App.tsx';
 import { ErrorState, Loading, toast, useLoad } from '../components/ui.tsx';
 
 const EQUIPMENT: { id: Equipment; label: string }[] = [
-  { id: 'barbell', label: 'Barbell & rack' },
+  { id: 'barbell', label: 'Barbell en rek' },
   { id: 'dumbbell', label: 'Dumbbells' },
-  { id: 'bench', label: 'Bench' },
+  { id: 'bench', label: 'Bank' },
   { id: 'machine', label: 'Machines' },
-  { id: 'cable', label: 'Cable station' },
+  { id: 'cable', label: 'Kabelstation' },
   { id: 'kettlebell', label: 'Kettlebells' },
-  { id: 'pullup_bar', label: 'Pull-up bar' },
-  { id: 'bands', label: 'Resistance bands' },
+  { id: 'pullup_bar', label: 'Optrekstang' },
+  { id: 'bands', label: 'Weerstandselastieken' },
 ];
 
 const PRESETS: { label: string; equipment: Equipment[] }[] = [
-  { label: 'Full gym', equipment: ['barbell', 'dumbbell', 'bench', 'machine', 'cable', 'kettlebell', 'pullup_bar'] },
-  { label: 'Home with dumbbells', equipment: ['dumbbell', 'bench', 'pullup_bar'] },
-  { label: 'Bodyweight only', equipment: ['pullup_bar'] },
+  { label: 'Volledige sportschool', equipment: ['barbell', 'dumbbell', 'bench', 'machine', 'cable', 'kettlebell', 'pullup_bar'] },
+  { label: 'Thuis met dumbbells', equipment: ['dumbbell', 'bench', 'pullup_bar'] },
+  { label: 'Alleen lichaamsgewicht', equipment: ['pullup_bar'] },
 ];
 
 const LEVELS: { id: Level; label: string }[] = [
   { id: 'beginner', label: 'Beginner' },
-  { id: 'intermediate', label: 'Intermediate' },
-  { id: 'advanced', label: 'Advanced' },
+  { id: 'intermediate', label: 'Gevorderd' },
+  { id: 'advanced', label: 'Ervaren' },
 ];
 
 const GOALS: { id: Goal; label: string }[] = [
-  { id: 'hypertrophy', label: 'Build muscle' },
-  { id: 'strength', label: 'Strength' },
-  { id: 'conditioning', label: 'Conditioning' },
-  { id: 'fat_loss', label: 'Lose fat' },
+  { id: 'hypertrophy', label: 'Spiermassa' },
+  { id: 'strength', label: 'Kracht' },
+  { id: 'conditioning', label: 'Conditie' },
+  { id: 'fat_loss', label: 'Vet verliezen' },
 ];
 
 const STEP_LABELS: { id: keyof Profile['increments']; label: string; needs: Equipment }[] = [
   { id: 'barbell', label: 'Barbell', needs: 'barbell' },
   { id: 'dumbbell', label: 'Dumbbell', needs: 'dumbbell' },
   { id: 'machine', label: 'Machine', needs: 'machine' },
-  { id: 'cable', label: 'Cable', needs: 'cable' },
+  { id: 'cable', label: 'Kabel', needs: 'cable' },
   { id: 'kettlebell', label: 'Kettlebell', needs: 'kettlebell' },
 ];
 
@@ -95,11 +95,11 @@ export default function ProfilePage() {
       await api.saveProfile(p);
       if (!data?.[1].program) {
         const res = await api.generateProgram({});
-        toast(res.notice ?? 'Your program is ready');
+        toast(res.notice ?? 'Je programma staat klaar');
         navigate('/program');
         return;
       }
-      toast('Profile saved');
+      toast('Profiel opgeslagen');
       reload();
     } catch (e) {
       setFormError((e as Error).message);
@@ -111,27 +111,27 @@ export default function ProfilePage() {
   return (
     <main className="page">
       <div className="page-head">
-        <h1>{isNew ? 'Set up your profile' : 'Profile'}</h1>
+        <h1>{isNew ? 'Profiel instellen' : 'Profiel'}</h1>
       </div>
-      {isNew && <p className="muted" style={{ marginTop: -8 }}>A few details so the program fits you. You can change everything later.</p>}
+      {isNew && <p className="muted" style={{ marginTop: -8 }}>Een paar gegevens zodat het programma bij je past. Je kunt alles later aanpassen.</p>}
 
       <section className="section stack">
-        <h2>About you</h2>
+        <h2>Over jou</h2>
         <label className="field">
-          <span>Name</span>
+          <span>Naam</span>
           <input className="input" value={p.name} onChange={(e) => set('name', e.target.value)} autoComplete="given-name" />
         </label>
         <div className="grid-3">
-          <NumberField label="Age" value={p.age} onChange={(v) => set('age', v)} />
-          <NumberField label="Height" suffix="cm" value={p.heightCm} onChange={(v) => set('heightCm', v)} />
-          <NumberField label="Weight" suffix="kg" step={0.1} value={p.weightKg} onChange={(v) => set('weightKg', v)} />
+          <NumberField label="Leeftijd" value={p.age} onChange={(v) => set('age', v)} />
+          <NumberField label="Lengte" suffix="cm" value={p.heightCm} onChange={(v) => set('heightCm', v)} />
+          <NumberField label="Gewicht" suffix="kg" step={0.1} value={p.weightKg} onChange={(v) => set('weightKg', v)} />
         </div>
       </section>
 
       <section className="section stack">
         <h2>Training</h2>
         <div className="field">
-          <span>Experience</span>
+          <span>Ervaring</span>
           <div className="seg">
             {LEVELS.map((l) => (
               <button key={l.id} type="button" aria-pressed={p.level === l.id} onClick={() => set('level', l.id)}>
@@ -141,7 +141,7 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="field">
-          <span>Main goal</span>
+          <span>Hoofddoel</span>
           <div className="seg" style={{ gridAutoFlow: 'row', gridTemplateColumns: '1fr 1fr' }}>
             {GOALS.map((g) => (
               <button key={g.id} type="button" aria-pressed={p.goal === g.id} onClick={() => set('goal', g.id)}>
@@ -151,7 +151,7 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="field">
-          <span>Training days per week</span>
+          <span>Trainingsdagen per week</span>
           <div className="seg">
             {[1, 2, 3, 4, 5, 6].map((d) => (
               <button key={d} type="button" aria-pressed={p.daysPerWeek === d} onClick={() => set('daysPerWeek', d)}>
@@ -161,7 +161,7 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="field">
-          <span>Time per session</span>
+          <span>Tijd per training</span>
           <div className="seg">
             {[30, 45, 60, 75, 90].map((m) => (
               <button key={m} type="button" aria-pressed={p.sessionMinutes === m} onClick={() => set('sessionMinutes', m)}>
@@ -173,7 +173,12 @@ export default function ProfilePage() {
       </section>
 
       <section className="section stack">
-        <h2>Equipment</h2>
+        <div className="spread">
+          <h2>Apparatuur</h2>
+          <Link className="link-btn small" to="/exercises">
+            Bekijk de oefeningen
+          </Link>
+        </div>
         <div className="toggles">
           {PRESETS.map((pr) => (
             <button key={pr.label} type="button" className="link-btn small" onClick={() => set('equipment', pr.equipment)}>
@@ -189,8 +194,8 @@ export default function ProfilePage() {
           ))}
         </div>
         <details className="why">
-          <summary>Smallest weight steps (kg)</summary>
-          <p className="faint small">The smallest jump you can make on each type of equipment. Weight advice is rounded to these steps.</p>
+          <summary>Kleinste gewichtsstappen (kg)</summary>
+          <p className="faint small">De kleinste sprong die je per type apparatuur kunt maken. Gewichtsadvies wordt hierop afgerond.</p>
           <div className="grid-3">
             {STEP_LABELS.filter((s) => p.equipment.includes(s.needs)).map((s) => (
               <NumberField key={s.id} label={s.label} step={0.25} value={p.increments[s.id]} onChange={(v) => set('increments', { ...p.increments, [s.id]: v })} />
@@ -200,19 +205,19 @@ export default function ProfilePage() {
       </section>
 
       <section className="section stack">
-        <h2>Limitations</h2>
+        <h2>Beperkingen</h2>
         <label className="field">
-          <span>Injuries, pain or anything to work around</span>
-          <textarea className="textarea" placeholder="For example: sensitive lower back, avoid overhead pressing" value={p.limitations} onChange={(e) => set('limitations', e.target.value)} />
+          <span>Blessures, pijn of iets waar rekening mee moet worden gehouden</span>
+          <textarea className="textarea" placeholder="Bijvoorbeeld: gevoelige onderrug, geen drukken boven het hoofd" value={p.limitations} onChange={(e) => set('limitations', e.target.value)} />
         </label>
       </section>
 
       <section className="section stack">
         {formError && <p className="error">{formError}</p>}
         <button className="btn primary big block" onClick={save} disabled={saving}>
-          {saving ? (isNew ? 'Building your program…' : 'Saving…') : isNew ? 'Save and build my program' : 'Save profile'}
+          {saving ? (isNew ? 'Je programma wordt gemaakt…' : 'Opslaan…') : isNew ? 'Opslaan en programma maken' : 'Profiel opslaan'}
         </button>
-        {saving && isNew && info.aiConfigured && <p className="faint small">The AI is designing your program. This can take up to a minute.</p>}
+        {saving && isNew && info.aiConfigured && <p className="faint small">De AI ontwerpt je programma. Dit kan tot een minuut duren.</p>}
       </section>
 
       {!isNew && <DataSection />}
@@ -225,10 +230,10 @@ function DataSection() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const importFile = async (file: File) => {
-    if (!confirm('Importing replaces all current data. A backup is made first. Continue?')) return;
+    if (!confirm('Importeren vervangt alle huidige gegevens. Doorgaan?')) return;
     try {
       await api.importJson(JSON.parse(await file.text()));
-      toast('Data imported');
+      toast('Gegevens geïmporteerd');
       setTimeout(() => location.reload(), 600);
     } catch (e) {
       toast((e as Error).message);
@@ -238,25 +243,25 @@ function DataSection() {
   return (
     <>
       <section className="section stack">
-        <h2>Data</h2>
-        <p className="faint small" style={{ margin: 0 }}>Database backups run on the server. Exports are for your own copies and moving data.</p>
+        <h2>Gegevens</h2>
+        <p className="faint small" style={{ margin: 0 }}>Back-ups van de database gebeuren op de server. Exports zijn voor je eigen kopie of om gegevens te verhuizen.</p>
         <div className="list">
           <a className="list-row" href="/api/export/json" download>
             <div className="grow">
-              <div className="title">Export everything</div>
-              <div className="sub">JSON file with profile, programs and all workouts</div>
+              <div className="title">Alles exporteren</div>
+              <div className="sub">JSON-bestand met profiel, programma’s en alle trainingen</div>
             </div>
           </a>
           <a className="list-row" href="/api/export/sets.csv" download>
             <div className="grow">
-              <div className="title">Export sets as CSV</div>
-              <div className="sub">Every logged set, for spreadsheets</div>
+              <div className="title">Sets exporteren als CSV</div>
+              <div className="sub">Elke gelogde set, voor spreadsheets</div>
             </div>
           </a>
           <button className="list-row" onClick={() => fileRef.current?.click()}>
             <div className="grow">
-              <div className="title">Import from export file</div>
-              <div className="sub">Replaces current data; also accepts exports from version 1.0</div>
+              <div className="title">Importeren uit exportbestand</div>
+              <div className="sub">Vervangt de huidige gegevens; werkt ook met exports uit versie 1.0</div>
             </div>
           </button>
         </div>
@@ -270,13 +275,16 @@ function AboutSection() {
   const info = useInfo();
   return (
     <section className="section stack">
-      <h2>About</h2>
+      <h2>Over de app</h2>
+      <Link className="btn block" to="/ai">
+        AI-instellingen en verbruik
+      </Link>
       <div className="panel small muted stack" style={{ gap: 4 }}>
         <div>
-          AI: {info.aiConfigured ? `${info.aiProvider}, model ${info.aiModel}` : 'not configured (rule-based programs, coach shows facts only)'}
+          AI: {info.aiConfigured ? `aan, ${info.aiModel}` : 'uit (regelgebaseerde programma’s, de coach toont alleen feiten)'}
         </div>
-        {info.user && info.authMode !== 'none' && <div>Signed in as {info.user.name ?? info.user.username}</div>}
-        <div>Version {info.version}</div>
+        {info.user && info.authMode !== 'none' && <div>Ingelogd als {info.user.name ?? info.user.username}</div>}
+        <div>Versie {info.version}</div>
       </div>
       {info.authMode !== 'none' && (
         <button
@@ -286,7 +294,7 @@ function AboutSection() {
             location.href = res.redirect ?? '/';
           }}
         >
-          Sign out
+          Uitloggen
         </button>
       )}
     </section>

@@ -21,7 +21,7 @@ function coerce(value: unknown, type: string): unknown {
 }
 
 export async function importJson(data: any) {
-  if (!data || data.app !== 'overload' || typeof data.tables !== 'object') throw Object.assign(new Error('Not an Overload export file'), { status: 400 });
+  if (!data || data.app !== 'overload' || typeof data.tables !== 'object') throw Object.assign(new Error('Dit is geen exportbestand van Overload'), { status: 400 });
   await tx(async (c) => {
     await run(`TRUNCATE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`, [], c);
     for (const t of TABLES) {

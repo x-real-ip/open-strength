@@ -1,7 +1,7 @@
 // Service worker: caches the app shell so the app opens without a connection,
 // and keeps the last response of read-only API calls as an offline fallback.
 // Writes (logged sets) are queued by the app itself and retried when back online.
-const VERSION = 'overload-v2';
+const VERSION = 'overload-v3';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {
@@ -40,8 +40,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Hashed build assets never change: cache first.
-  if (url.pathname.startsWith('/assets/')) {
+  // Hashed build assets and exercise photos never change: cache first.
+  if (url.pathname.startsWith('/assets/') || (url.pathname.startsWith('/exercises/') && url.pathname.endsWith('.webp'))) {
     event.respondWith(
       caches.match(req).then(
         (hit) =>

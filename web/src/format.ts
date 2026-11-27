@@ -1,11 +1,12 @@
-import type { Decision, MuscleGroup } from '@shared/types.ts';
+import type { Decision, Equipment, MovementPattern, MuscleGroup } from '@shared/types.ts';
 
 export function kg(weight: number): string {
-  return Number.isInteger(weight) ? String(weight) : weight.toFixed(2).replace(/0$/, '');
+  // Dutch decimal comma: 42,5.
+  return (Number.isInteger(weight) ? String(weight) : weight.toFixed(2).replace(/0$/, '')).replace('.', ',');
 }
 
 export function weightLabel(weight: number, loadType: string): string {
-  return loadType === 'bodyweight' ? 'Bodyweight' : `${kg(weight)} kg`;
+  return loadType === 'bodyweight' ? 'Lichaamsgewicht' : `${kg(weight)} kg`;
 }
 
 export function repRange(min: number, max: number): string {
@@ -28,46 +29,46 @@ export function clock(totalSeconds: number): string {
 }
 
 export function shortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  return new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
 }
 
 export function relativeDay(iso: string): string {
   const d = new Date(iso);
   const today = new Date();
   const days = Math.round((new Date(today.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000);
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days} days ago`;
+  if (days === 0) return 'Vandaag';
+  if (days === 1) return 'Gisteren';
+  if (days < 7) return `${days} dagen geleden`;
   return shortDate(iso);
 }
 
 export function compact(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')}M`;
   if (n >= 10_000) return `${Math.round(n / 1000)}k`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.', ',')}k`;
   return String(Math.round(n));
 }
 
 export const DECISION_LABEL: Record<Decision, string> = {
-  start: 'Starting weight',
-  increase: 'Increase',
-  hold: 'Hold',
-  decrease: 'Decrease',
-  reps: 'Add difficulty',
+  start: 'Startgewicht',
+  increase: 'Omhoog',
+  hold: 'Gelijk',
+  decrease: 'Omlaag',
+  reps: 'Zwaarder maken',
   deload: 'Deload',
 };
 
 export const MUSCLE_LABEL: Record<MuscleGroup, string> = {
-  chest: 'Chest',
-  back: 'Back',
-  shoulders: 'Shoulders',
-  quads: 'Quads',
+  chest: 'Borst',
+  back: 'Rug',
+  shoulders: 'Schouders',
+  quads: 'Quadriceps',
   hamstrings: 'Hamstrings',
-  glutes: 'Glutes',
+  glutes: 'Billen',
   biceps: 'Biceps',
   triceps: 'Triceps',
-  calves: 'Calves',
-  core: 'Core',
+  calves: 'Kuiten',
+  core: 'Buik en core',
 };
 
 /** Display labels such as "A1" and "A2" for superset members; null for straight sets. */
@@ -80,3 +81,40 @@ export function supersetLabels(exercises: { superset: string | null }[]): (strin
     return `${e.superset}${n}`;
   });
 }
+
+export const EQUIPMENT_LABEL: Record<Equipment, string> = {
+  barbell: 'Barbell',
+  dumbbell: 'Dumbbells',
+  bench: 'Bank',
+  machine: 'Machine',
+  cable: 'Kabel',
+  kettlebell: 'Kettlebell',
+  pullup_bar: 'Optrekstang',
+  bands: 'Elastiek',
+  bodyweight: 'Lichaamsgewicht',
+};
+
+/** "Barbell, Bank", or "Geen apparatuur" for bodyweight-only exercises. */
+export function equipmentText(equipment: Equipment[]): string {
+  return equipment.filter((e) => e !== 'bodyweight').map((e) => EQUIPMENT_LABEL[e]).join(', ') || 'Geen apparatuur';
+}
+
+export const PATTERN_LABEL: Record<MovementPattern, string> = {
+  horizontal_push: 'Horizontaal duwen',
+  vertical_push: 'Verticaal duwen',
+  horizontal_pull: 'Horizontaal trekken',
+  vertical_pull: 'Verticaal trekken',
+  squat: 'Squat',
+  lunge: 'Eén been',
+  hinge: 'Heupscharnier',
+  chest_iso: 'Borst (isolatie)',
+  shoulder_iso: 'Schouders (isolatie)',
+  rear_delt: 'Achterkant schouders',
+  quad_iso: 'Quadriceps (isolatie)',
+  hamstring_iso: 'Hamstrings (isolatie)',
+  glute_iso: 'Billen',
+  calf: 'Kuiten',
+  biceps: 'Biceps',
+  triceps: 'Triceps',
+  core: 'Core',
+};

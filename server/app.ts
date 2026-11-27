@@ -10,6 +10,7 @@ import { coreRoutes } from './routes/core.ts';
 import { dataRoutes } from './routes/data.ts';
 import { insightRoutes } from './routes/insights.ts';
 import { programRoutes } from './routes/programs.ts';
+import { settingsRoutes } from './routes/settings.ts';
 import { workoutRoutes } from './routes/workouts.ts';
 
 export async function buildApp(opts: { logger?: boolean | { level: string } } = {}) {
@@ -20,11 +21,11 @@ export async function buildApp(opts: { logger?: boolean | { level: string } } = 
 
   app.setErrorHandler((err: any, _req, reply) => {
     if (err instanceof ZodError) {
-      return reply.code(400).send({ error: err.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`).join('; ') });
+      return reply.code(400).send({ error: `Ongeldige invoer: ${err.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`).join('; ')}` });
     }
     const status = typeof err.status === 'number' ? err.status : typeof err.statusCode === 'number' ? err.statusCode : 500;
     if (status >= 500) app.log.error(err);
-    return reply.code(status).send({ error: status >= 500 && !err.status ? 'Internal server error' : err.message });
+    return reply.code(status).send({ error: status >= 500 && !err.status ? 'Er ging iets mis op de server' : err.message });
   });
 
   await app.register(coreRoutes);
@@ -32,6 +33,7 @@ export async function buildApp(opts: { logger?: boolean | { level: string } } = 
   await app.register(workoutRoutes);
   await app.register(insightRoutes);
   await app.register(dataRoutes);
+  await app.register(settingsRoutes);
 
   // Serve the built PWA with an SPA fallback.
   if (fs.existsSync(path.join(config.webDir, 'index.html'))) {
@@ -45,7 +47,7 @@ export async function buildApp(opts: { logger?: boolean | { level: string } } = 
       },
     });
     app.setNotFoundHandler((req, reply) => {
-      if (req.url.startsWith('/api/') || req.method !== 'GET') return reply.code(404).send({ error: 'Not found' });
+      if (req.url.startsWith('/api/') || req.method !== 'GET') return reply.code(404).send({ error: 'Niet gevonden' });
       return reply.header('cache-control', 'no-cache').sendFile('index.html');
     });
   }

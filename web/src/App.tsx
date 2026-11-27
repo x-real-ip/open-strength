@@ -3,8 +3,11 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import type { AppInfo } from '@shared/types.ts';
 import { api, flushQueue } from './api.ts';
 import { BottomNav, ErrorState, Loading, ToastHost } from './components/ui.tsx';
+import AiPage from './pages/AiPage.tsx';
 import CoachPage from './pages/CoachPage.tsx';
 import ExerciseDetail from './pages/ExerciseDetail.tsx';
+import ExerciseGuidePage from './pages/ExerciseGuidePage.tsx';
+import ExercisesPage from './pages/ExercisesPage.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
 import ProgramPage from './pages/ProgramPage.tsx';
@@ -15,6 +18,9 @@ import WorkoutPage from './pages/WorkoutPage.tsx';
 
 const InfoContext = createContext<AppInfo | null>(null);
 export const useInfo = () => useContext(InfoContext)!;
+const RefreshInfoContext = createContext<() => void>(() => {});
+/** Reload /api/info, e.g. after the AI settings changed. */
+export const useRefreshInfo = () => useContext(RefreshInfoContext);
 
 export default function App() {
   const [info, setInfo] = useState<AppInfo | null>(null);
@@ -48,19 +54,24 @@ export default function App() {
 
   return (
     <InfoContext.Provider value={info}>
+      <RefreshInfoContext.Provider value={load}>
       <Routes>
         <Route path="/" element={<TodayPage />} />
         <Route path="/program" element={<ProgramPage />} />
         <Route path="/progress" element={<ProgressPage />} />
         <Route path="/progress/:exerciseId" element={<ExerciseDetail />} />
+        <Route path="/exercises" element={<ExercisesPage />} />
+        <Route path="/exercises/:exerciseId" element={<ExerciseGuidePage />} />
         <Route path="/coach" element={<CoachPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/ai" element={<AiPage />} />
         <Route path="/workout/:id" element={<WorkoutPage />} />
         <Route path="/workout/:id/summary" element={<SummaryPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {!fullScreen && <BottomNav />}
       <ToastHost />
+      </RefreshInfoContext.Provider>
     </InfoContext.Provider>
   );
 }

@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ExerciseDef, LoggedSet, Workout, WorkoutExercise } from '@shared/types.ts';
 import { api, dropQueuedSet, flushQueue, pendingCount, pendingFor, queueSet } from '../api.ts';
+import { ExerciseGuide } from '../components/ExerciseGuide.tsx';
 import { IconCheck, IconClose, IconSwap } from '../components/Icons.tsx';
+import { useExercises } from '../exercises.ts';
 import { loadRest, primeAudio, RestTimer, saveRest, type RestState } from '../components/RestTimer.tsx';
 import { DecisionTag, ErrorState, Loading, Sheet, toast } from '../components/ui.tsx';
-import { clock, kg, relativeDay, repRange, rest as restLabel, supersetLabels } from '../format.ts';
+import { clock, equipmentText, kg, relativeDay, repRange, rest as restLabel, supersetLabels } from '../format.ts';
 import { addStep } from '../workoutMath.ts';
 
 type SetsByExercise = Record<number, LoggedSet[]>;
@@ -65,6 +67,8 @@ export default function WorkoutPage() {
   const [unsynced, setUnsynced] = useState(pendingCount());
   const [finishing, setFinishing] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const library = useExercises();
   const stripRef = useRef<HTMLDivElement>(null);
 
   const posKey = `overload.workout.${workoutId}.current`;
@@ -183,12 +187,12 @@ export default function WorkoutPage() {
       const inGroup = group.find(open);
       const target = inGroup ?? workout.exercises.findIndex((_, i) => !group.includes(i) && open(i));
       if (target === -1) {
-        toast('All exercises done. Finish when ready.');
+        toast('Alle oefeningen gedaan. Rond af als je klaar bent.');
         return;
       }
       startRest();
       if (target !== current) setCurrent(target);
-      toast(inGroup !== undefined ? `Round done. Next: ${workout.exercises[target].name}` : `Next: ${workout.exercises[target].name}`);
+      toast(inGroup !== undefined ? `Ronde klaar. Nu: ${workout.exercises[target].name}` : `Nu: ${workout.exercises[target].name}`);
       return;
     }
 
@@ -197,9 +201,9 @@ export default function WorkoutPage() {
     if (!(exerciseDone && nextOpen === -1)) startRest();
     if (exerciseDone && nextOpen !== -1) {
       setCurrent(nextOpen);
-      toast(`Next: ${workout.exercises[nextOpen].name}`);
+      toast(`Nu: ${workout.exercises[nextOpen].name}`);
     } else if (exerciseDone) {
-      toast('All exercises done. Finish when ready.');
+      toast('Alle oefeningen gedaan. Rond af als je klaar bent.');
     }
   };
 
@@ -212,18 +216,18 @@ export default function WorkoutPage() {
     try {
       await api.deleteSet(workoutId, ex.programExerciseId, last.setIndex);
     } catch {
-      toast('Could not remove the set on the server');
+      toast('De set kon niet van de server verwijderd worden');
     }
   };
 
   const finish = async () => {
     const missing = workout.exercises.reduce((a, e) => a + Math.max(0, e.sets - (logged[e.programExerciseId]?.length ?? 0)), 0);
-    if (missing > 0 && !confirm(`${missing} planned set${missing === 1 ? ' is' : 's are'} not logged. Finish anyway?`)) return;
+    if (missing > 0 && !confirm(`${missing} geplande set${missing === 1 ? ' is' : 's zijn'} niet gelogd. Toch afronden?`)) return;
     setFinishing(true);
     await flushQueue();
     if (pendingFor(workoutId).length > 0) {
       setFinishing(false);
-      toast('Some sets are not saved yet. Check your connection and try again.');
+      toast('Nog niet alle sets zijn opgeslagen. Controleer je verbinding en probeer het opnieuw.');
       return;
     }
     try {
@@ -238,7 +242,7 @@ export default function WorkoutPage() {
   };
 
   const discard = async () => {
-    if (!confirm('Discard this workout and all its logged sets?')) return;
+    if (!confirm('Deze training en alle gelogde sets weggooien?')) return;
     for (const p of pendingFor(workoutId)) dropQueuedSet(workoutId, p.programExerciseId, p.setIndex);
     await api.discardWorkout(workoutId);
     updateRest(null);
@@ -257,21 +261,21 @@ export default function WorkoutPage() {
     <main className="page no-nav">
       <div className="wk-top">
         <div className="bar">
-          <button className="icon-btn" onClick={() => navigate('/')} aria-label="Leave workout (progress is kept)">
+          <button className="icon-btn" onClick={() => navigate('/')} aria-label="Training verlaten (voortgang blijft bewaard)">
             <IconClose />
           </button>
           <div className="title">
             <strong>{workout.dayName}</strong>
             <span className="small muted">
-              {clock(elapsed)}, {doneCount} of {workout.exercises.length} done
+              {clock(elapsed)}, {doneCount} van {workout.exercises.length} klaar
               {unsynced > 0 && <span className="sync-badge">, {unsynced} not synced</span>}
             </span>
           </div>
           <button className="btn primary" onClick={finish} disabled={finishing} style={{ minHeight: 44 }}>
-            {finishing ? 'Saving…' : 'Finish'}
+            {finishing ? 'Opslaan…' : 'Afronden'}
           </button>
         </div>
-        <div className="strip" ref={stripRef} role="tablist" aria-label="Exercises">
+        <div className="strip" ref={stripRef} role="tablist" aria-label="Oefeningen">
           {workout.exercises.map((e, i) => {
             const n = logged[e.programExerciseId]?.length ?? 0;
             const done = n >= e.sets;
@@ -305,18 +309,18 @@ export default function WorkoutPage() {
             {ex.name}
           </h2>
           {sets.length === 0 && (
-            <button className="icon-btn" onClick={() => setSwapOpen(true)} aria-label="Swap exercise">
+            <button className="icon-btn" onClick={() => setSwapOpen(true)} aria-label="Oefening wisselen">
               <IconSwap />
             </button>
           )}
         </div>
         <div className="presc">
           <span>
-            <b>{ex.sets}</b> sets of <b>{repRange(ex.repMin, ex.repMax)}</b> reps
+            <b>{ex.sets}</b> sets van <b>{repRange(ex.repMin, ex.repMax)}</b> herhalingen
           </span>
           <span>
             {bodyweight ? (
-              <b>Bodyweight</b>
+              <b>Lichaamsgewicht</b>
             ) : (
               <>
                 <b>{kg(ex.targetWeight)} kg</b>
@@ -325,31 +329,36 @@ export default function WorkoutPage() {
             )}
           </span>
           <span>
-            Rest {restLabel(ex.restSeconds)}
-            {ex.superset ? ' after the round' : ''}
+            Rust {restLabel(ex.restSeconds)}
+            {ex.superset ? ' na de ronde' : ''}
           </span>
         </div>
+        {library?.get(ex.exerciseId)?.steps.length ? (
+          <button className="link-btn small" style={{ marginTop: 6 }} onClick={() => setGuideOpen(true)}>
+            Hoe doe je dit?
+          </button>
+        ) : null}
         {ex.superset && (
           <p className="ss-note">
-            Superset with{' '}
+            Superset met{' '}
             {groupOf(current)
               .filter((i) => i !== current)
               .map((i) => workout.exercises[i].name)
-              .join(' and ')}
-            : one set of each, then rest.
+              .join(' en ')}
+            : één set van elk, dan rust.
           </p>
         )}
         <details className="advice">
           <summary className="spread" style={{ listStyle: 'none', cursor: 'pointer' }}>
             <DecisionTag decision={ex.decision} />
-            <span className="faint small">Why this target?</span>
+            <span className="faint small">Waarom dit doel?</span>
           </summary>
           <p>{ex.reason}</p>
-          {ex.notes && <p>Cue: {ex.notes}</p>}
+          {ex.notes && <p>Tip: {ex.notes}</p>}
         </details>
         {ex.previous && (
           <div className="prev">
-            Last time ({relativeDay(ex.previous.date).toLowerCase()}):{' '}
+            Vorige keer ({relativeDay(ex.previous.date).toLowerCase()}):{' '}
             <b>{ex.previous.sets.map((s) => (bodyweight ? `${s.reps}` : `${kg(s.weight)}×${s.reps}`)).join(', ')}</b>
           </div>
         )}
@@ -375,46 +384,46 @@ export default function WorkoutPage() {
                     <div className="stepper">
                       <div className="cap">kg{ex.weightNote ? `, ${ex.weightNote}` : ''}</div>
                       <div className="ctrl">
-                        <button type="button" aria-label="Less weight" onClick={() => setDraft((d) => ({ ...d, weight: addStep(d.weight, step, -1) }))}>
+                        <button type="button" aria-label="Minder gewicht" onClick={() => setDraft((d) => ({ ...d, weight: addStep(d.weight, step, -1) }))}>
                           −
                         </button>
                         <input
                           type="number"
                           inputMode="decimal"
                           step="any"
-                          aria-label="Weight in kg"
+                          aria-label="Gewicht in kg"
                           value={Number.isFinite(draft.weight) ? draft.weight : ''}
                           onChange={(e) => setDraft((d) => ({ ...d, weight: parseFloat(e.target.value) }))}
                           onFocus={(e) => e.target.select()}
                         />
-                        <button type="button" aria-label="More weight" onClick={() => setDraft((d) => ({ ...d, weight: addStep(d.weight, step, 1) }))}>
+                        <button type="button" aria-label="Meer gewicht" onClick={() => setDraft((d) => ({ ...d, weight: addStep(d.weight, step, 1) }))}>
                           +
                         </button>
                       </div>
                     </div>
                   )}
                   <div className="stepper">
-                    <div className="cap">reps</div>
+                    <div className="cap">herhalingen</div>
                     <div className="ctrl">
-                      <button type="button" aria-label="Fewer reps" onClick={() => setDraft((d) => ({ ...d, reps: Math.max(0, d.reps - 1) }))}>
+                      <button type="button" aria-label="Minder herhalingen" onClick={() => setDraft((d) => ({ ...d, reps: Math.max(0, d.reps - 1) }))}>
                         −
                       </button>
                       <input
                         type="number"
                         inputMode="numeric"
-                        aria-label="Reps"
+                        aria-label="Herhalingen"
                         value={Number.isFinite(draft.reps) ? draft.reps : ''}
                         onChange={(e) => setDraft((d) => ({ ...d, reps: parseInt(e.target.value, 10) }))}
                         onFocus={(e) => e.target.select()}
                       />
-                      <button type="button" aria-label="More reps" onClick={() => setDraft((d) => ({ ...d, reps: d.reps + 1 }))}>
+                      <button type="button" aria-label="Meer herhalingen" onClick={() => setDraft((d) => ({ ...d, reps: d.reps + 1 }))}>
                         +
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="rir" role="group" aria-label="Reps in reserve (optional)">
-                  <span>Reps left</span>
+                <div className="rir" role="group" aria-label="Herhalingen over (optioneel)">
+                  <span>Nog over</span>
                   {[0, 1, 2, 3, 4].map((r) => (
                     <button key={r} type="button" aria-pressed={draft.rir === r} onClick={() => setDraft((d) => ({ ...d, rir: d.rir === r ? null : r }))}>
                       {r === 4 ? '4+' : r}
@@ -427,12 +436,12 @@ export default function WorkoutPage() {
                   onClick={() => commitSet(i, { ...draft, weight: bodyweight ? 0 : draft.weight }, i >= ex.sets)}
                 >
                   <IconCheck size={26} />
-                  {s ? 'Update set' : `Log ${bodyweight ? '' : `${kg(draft.weight)} kg × `}${draft.reps}`}
+                  {s ? 'Set bijwerken' : `Log ${bodyweight ? '' : `${kg(draft.weight)} kg × `}${draft.reps}`}
                 </button>
                 {editing !== null && (
                   <div className="set-tools">
                     <button className="link-btn small" onClick={() => setEditing(null)}>
-                      Cancel
+                      Annuleren
                     </button>
                   </div>
                 )}
@@ -441,12 +450,12 @@ export default function WorkoutPage() {
           }
           if (s) {
             return (
-              <button className="set-done" key={i} onClick={() => setEditing(i)} aria-label={`Set ${i + 1}, tap to edit`}>
+              <button className="set-done" key={i} onClick={() => setEditing(i)} aria-label={`Set ${i + 1}, tik om te wijzigen`}>
                 <span className="set-no">{i + 1}</span>
                 <span className="result">
                   {bodyweight ? (
                     <>
-                      {s.reps} <small>reps</small>
+                      {s.reps} <small>herh.</small>
                     </>
                   ) : (
                     <>
@@ -465,7 +474,7 @@ export default function WorkoutPage() {
                 {bodyweight ? '' : `${kg(sets.length ? sets[sets.length - 1].weight : ex.targetWeight)} `}
                 <small>{bodyweight ? '' : 'kg × '}</small>
                 {ex.repTargets[i] ?? ex.repMin}
-                {bodyweight && <small> reps</small>}
+                {bodyweight && <small> herh.</small>}
               </span>
               <span />
             </div>
@@ -474,14 +483,14 @@ export default function WorkoutPage() {
         <div className="set-tools">
           {sets.length >= ex.sets && editing === null ? (
             <button className="link-btn small" onClick={() => setEditing(sets.length)}>
-              Add an extra set
+              Extra set toevoegen
             </button>
           ) : (
             <span />
           )}
           {sets.length > 0 && (
             <button className="link-btn small" onClick={removeLastSet}>
-              Remove last set
+              Laatste set verwijderen
             </button>
           )}
         </div>
@@ -489,7 +498,7 @@ export default function WorkoutPage() {
 
       <section className="section">
         <button className="btn danger block" onClick={discard}>
-          Discard workout
+          Training weggooien
         </button>
       </section>
 
@@ -499,11 +508,18 @@ export default function WorkoutPage() {
             {rest && <RestTimer rest={rest} onChange={updateRest} />}
             {!rest && showNext && (
               <button className="btn primary big block" onClick={() => setCurrent(nextTarget)}>
-                Next: {workout.exercises[nextTarget].name}
+                Volgende: {workout.exercises[nextTarget].name}
               </button>
             )}
           </div>
         </div>
+      )}
+
+      {library?.get(ex.exerciseId) && (
+        <Sheet open={guideOpen} onClose={() => setGuideOpen(false)} label={ex.name}>
+          <h2 style={{ marginBottom: 12 }}>{ex.name}</h2>
+          <ExerciseGuide exercise={library.get(ex.exerciseId)!} />
+        </Sheet>
       )}
 
       <SwapSheet
@@ -513,7 +529,7 @@ export default function WorkoutPage() {
         onSwapped={async () => {
           setSwapOpen(false);
           await load();
-          toast('Exercise swapped in your program');
+          toast('Oefening gewisseld in je programma');
         }}
       />
     </main>
@@ -534,13 +550,13 @@ export function SwapSheet({ open, onClose, programExerciseId, onSwapped }: { ope
   }, [open, programExerciseId]);
 
   return (
-    <Sheet open={open} onClose={onClose} label="Swap exercise">
-      <h2>Swap exercise</h2>
-      <p className="muted small">Same sets and reps. The starting weight comes from your history with the new exercise, if any.</p>
+    <Sheet open={open} onClose={onClose} label="Oefening wisselen">
+      <h2>Oefening wisselen</h2>
+      <p className="muted small">Zelfde sets en herhalingen. Het startgewicht komt uit je historie met de nieuwe oefening, als die er is.</p>
       {!alts ? (
         <div className="spinner" style={{ margin: '20px auto' }} />
       ) : alts.length === 0 ? (
-        <p className="muted">No alternatives with your equipment.</p>
+        <p className="muted">Geen alternatieven met jouw apparatuur.</p>
       ) : (
         <div className="list">
           {alts.map((a) => (
@@ -562,7 +578,7 @@ export function SwapSheet({ open, onClose, programExerciseId, onSwapped }: { ope
             >
               <div className="grow">
                 <div className="title">{a.name}</div>
-                <div className="sub">{a.equipment.filter((e) => e !== 'bodyweight').join(', ') || 'No equipment'}</div>
+                <div className="sub">{equipmentText(a.equipment)}</div>
               </div>
             </button>
           ))}

@@ -1,10 +1,14 @@
 import type {
+  AiSettingsUpdate,
+  AiSettingsView,
+  AiUsageSummary,
   AppInfo,
   CoachMessage,
   ExerciseDef,
   ExerciseHistory,
   Profile,
   Program,
+  ProgramExplanation,
   StatsResponse,
   TodayResponse,
   Workout,
@@ -30,11 +34,11 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError('No connection to the server', 0);
+    throw new ApiError('Geen verbinding met de server', 0);
   }
   if (res.status === 401) window.dispatchEvent(new Event('overload:unauthorized'));
   const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
-  if (!res.ok) throw new ApiError(data?.error ?? `Request failed (${res.status})`, res.status);
+  if (!res.ok) throw new ApiError(data?.error ?? `Verzoek mislukt (${res.status})`, res.status);
   return data as T;
 }
 
@@ -48,7 +52,7 @@ export const api = {
   saveProfile: (p: Profile) => request<{ profile: Profile }>('PUT', '/api/profile', p),
 
   today: () => request<TodayResponse>('GET', '/api/today'),
-  activeProgram: () => request<{ program: Program | null }>('GET', '/api/programs/active'),
+  activeProgram: () => request<{ program: Program | null; explanation: ProgramExplanation[] }>('GET', '/api/programs/active'),
   generateProgram: (opts: { instructions?: string; useAi?: boolean; basedOnCurrent?: boolean }) =>
     request<{ program: Program; notice: string | null }>('POST', '/api/programs/generate', opts),
   alternatives: (peId: number) => request<{ alternatives: ExerciseDef[] }>('GET', `/api/program-exercises/${peId}/alternatives`),
@@ -75,6 +79,11 @@ export const api = {
   clearCoach: () => request<{ ok: true }>('DELETE', '/api/coach/messages'),
 
   importJson: (data: unknown) => request<{ ok: true }>('POST', '/api/import/json', data),
+
+  aiSettings: () => request<AiSettingsView>('GET', '/api/settings/ai'),
+  saveAiSettings: (update: AiSettingsUpdate) => request<AiSettingsView>('PUT', '/api/settings/ai', update),
+  testAi: () => request<{ ok: true; reply: string; ms: number }>('POST', '/api/settings/ai/test'),
+  usage: () => request<AiUsageSummary>('GET', '/api/usage'),
 };
 
 // ---------------------------------------------------------------------------

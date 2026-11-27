@@ -12,7 +12,9 @@ test('spec example 12/11/10 at 40 kg holds the weight', () => {
   assert.equal(r.decision, 'hold');
   assert.equal(r.nextWeight, 40);
   assert.deepEqual(r.repTargets, [12, 12, 11]);
-  assert.match(r.reason, /Sets 2 and 3/);
+  assert.match(r.reason, /Sets 2 en 3/);
+  // The wording from the spec: stay at 40 kg, aim for 12/12/11.
+  assert.match(r.reason, /Blijf op 40 kg en mik op 12\/12\/11/);
 });
 
 test('all sets at the top with reserve increases one step', () => {
@@ -20,7 +22,7 @@ test('all sets at the top with reserve increases one step', () => {
   assert.equal(r.decision, 'increase');
   assert.equal(r.nextWeight, 42.5);
   assert.deepEqual(r.repTargets, [8, 8, 8]);
-  assert.match(r.reason, /40 kg to 42.5 kg/);
+  assert.match(r.reason, /van 40 kg naar 42,5 kg/);
 });
 
 test('top of range but a set to failure holds', () => {
@@ -58,7 +60,7 @@ test('clearly too heavy decreases immediately', () => {
 test('incomplete session holds', () => {
   const r = evaluateProgression({ ...bench, session: [s(40, 12), s(40, 12)] });
   assert.equal(r.decision, 'hold');
-  assert.match(r.reason, /Only 2 of 3/);
+  assert.match(r.reason, /2 van de 3 sets/);
 });
 
 test('a lighter back-off set counts as a miss', () => {

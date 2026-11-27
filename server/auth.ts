@@ -115,7 +115,7 @@ export async function authHook(req: FastifyRequest, reply: FastifyReply) {
   req.user = resolveUser(req);
   if (!req.url.startsWith('/api/')) return;
   if (OPEN_PATHS.has(req.url.split('?')[0])) return;
-  if (!req.user) return reply.code(401).send({ error: 'Sign in required' });
+  if (!req.user) return reply.code(401).send({ error: 'Je moet inloggen' });
 }
 
 // ---------- Password mode ----------

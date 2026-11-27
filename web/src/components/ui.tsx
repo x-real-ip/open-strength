@@ -6,14 +6,14 @@ import { IconCoach, IconProfile, IconProgram, IconProgress, IconToday } from './
 
 export function BottomNav() {
   const items = [
-    { to: '/', label: 'Today', icon: <IconToday /> },
-    { to: '/program', label: 'Program', icon: <IconProgram /> },
-    { to: '/progress', label: 'Progress', icon: <IconProgress /> },
+    { to: '/', label: 'Vandaag', icon: <IconToday /> },
+    { to: '/program', label: 'Programma', icon: <IconProgram /> },
+    { to: '/progress', label: 'Voortgang', icon: <IconProgress /> },
     { to: '/coach', label: 'Coach', icon: <IconCoach /> },
-    { to: '/profile', label: 'Profile', icon: <IconProfile /> },
+    { to: '/profile', label: 'Profiel', icon: <IconProfile /> },
   ];
   return (
-    <nav className="nav" aria-label="Main">
+    <nav className="nav" aria-label="Hoofdmenu">
       {items.map((i) => (
         <NavLink key={i.to} to={i.to} end={i.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
           {i.icon}
@@ -49,7 +49,7 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
 export function Loading() {
   return (
     <div className="center-screen">
-      <div className="spinner" role="status" aria-label="Loading" />
+      <div className="spinner" role="status" aria-label="Laden" />
     </div>
   );
 }
@@ -61,7 +61,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
         <p className="error">{message}</p>
         {onRetry && (
           <button className="btn" onClick={onRetry}>
-            Try again
+            Opnieuw proberen
           </button>
         )}
       </div>

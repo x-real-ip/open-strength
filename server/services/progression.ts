@@ -49,12 +49,12 @@ export function workingWeight(sets: SetResult[], fallback: number): number {
   return best;
 }
 
-const list = (nums: number[]) => nums.join(', ');
+const list = (nums: number[]) => nums.join('/');
 
 function setNumbers(indices: number[]): string {
   const n = indices.map((i) => i + 1);
   if (n.length === 1) return `Set ${n[0]}`;
-  return `Sets ${n.slice(0, -1).join(', ')} and ${n[n.length - 1]}`;
+  return `Sets ${n.slice(0, -1).join(', ')} en ${n[n.length - 1]}`;
 }
 
 function fill(n: number, value: number): number[] {
@@ -79,7 +79,7 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
       decision: 'hold',
       nextWeight: input.prescribedWeight,
       repTargets: fill(sets, repMin),
-      reason: 'No sets were logged, so the target stays the same.',
+      reason: 'Er zijn geen sets gelogd, dus het doel blijft hetzelfde.',
     };
   }
 
@@ -103,14 +103,14 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
         decision: 'reps',
         nextWeight: weight,
         repTargets: fill(sets, repMax),
-        reason: `All sets reached ${repMax} reps (${list(reps)}). Make it harder: add load, slow the tempo or switch to a harder variation.`,
+        reason: `Alle sets haalden ${repMax} herhalingen (${list(reps)}). Maak het zwaarder: voeg gewicht toe, train langzamer of kies een zwaardere variant.`,
       };
     }
     return {
       decision: 'hold',
       nextWeight: weight,
       repTargets: nextRepTargets(),
-      reason: `Not every set reached ${repMax} reps yet (${list(reps)}). Aim for one more rep per set.`,
+      reason: `Nog niet elke set haalde ${repMax} herhalingen (${list(reps)}). Mik op één herhaling meer per set.`,
     };
   }
 
@@ -120,20 +120,20 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
         decision: 'hold',
         nextWeight: weight,
         repTargets: fill(sets, repMax),
-        reason: `You reached ${repMax} reps on every set (${list(reps)}), but at least one set went to failure. Repeat ${formatKg(weight)} and hit the same reps with 1–2 reps in reserve before adding weight.`,
+        reason: `Je haalde ${repMax} herhalingen in elke set (${list(reps)}), maar minstens één set ging tot falen. Herhaal ${formatKg(weight)} en haal dezelfde herhalingen met 1–2 over voordat het gewicht omhoog gaat.`,
       };
     }
     const clearlyEasy = session.every((s) => s.reps >= repMax + 2) && (minRir === null || minRir >= 2);
     const steps = clearlyEasy ? 2 : 1;
     const next = roundToStep(weight + steps * increment, increment);
-    const reserve = minRir !== null ? ` with at least ${minRir} reps in reserve` : '';
+    const reserve = minRir !== null ? ` met minstens ${minRir} herhaling${minRir === 1 ? '' : 'en'} over` : '';
     return {
       decision: 'increase',
       nextWeight: next,
       repTargets: fill(sets, repMin),
       reason: clearlyEasy
-        ? `Every set went well past the top of the ${range} range (${list(reps)})${reserve}. Jump two steps: ${formatKg(weight)} → ${formatKg(next)}, and build back up from ${repMin} reps.`
-        : `All ${sets} sets reached the top of the ${range} range (${list(reps)})${reserve}. Increase from ${formatKg(weight)} to ${formatKg(next)} and build back up from ${repMin} reps.`,
+        ? `Elke set ging ruim boven de ${range} herhalingen (${list(reps)})${reserve}. Twee stappen omhoog: ${formatKg(weight)} → ${formatKg(next)}, en bouw weer op vanaf ${repMin} herhalingen.`
+        : `Alle ${sets} sets haalden de bovenkant van ${range} herhalingen (${list(reps)})${reserve}. Omhoog van ${formatKg(weight)} naar ${formatKg(next)} en bouw weer op vanaf ${repMin} herhalingen.`,
     };
   }
 
@@ -151,8 +151,8 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
         nextWeight: Math.max(0, next),
         repTargets: fill(sets, repMin + 1 <= repMax ? repMin + 1 : repMin),
         reason: clearlyTooHeavy
-          ? `Reps were well below the ${range} range (${list(reps)}), so ${formatKg(weight)} is too heavy for now. Drop to ${formatKg(next)} and rebuild with solid reps.`
-          : `Second session in a row below ${repMin} reps at ${formatKg(weight)} (${list(reps)}). Drop to ${formatKg(next)} to build back up with good technique.`,
+          ? `De herhalingen lagen ruim onder ${range} (${list(reps)}), dus ${formatKg(weight)} is nu te zwaar. Ga naar ${formatKg(next)} en bouw weer op met goede herhalingen.`
+          : `Tweede training op rij onder ${repMin} herhalingen op ${formatKg(weight)} (${list(reps)}). Ga naar ${formatKg(next)} en bouw weer op met goede techniek.`,
       };
     }
 
@@ -160,7 +160,7 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
       decision: 'hold',
       nextWeight: weight,
       repTargets: nextRepTargets(),
-      reason: `${setNumbers(missed)} fell short of ${repMin} reps (${list(reps)}). Stay at ${formatKg(weight)}; if it happens again next session, the weight goes down.`,
+      reason: `${setNumbers(missed)} bleef onder ${repMin} herhalingen (${list(reps)}). Blijf op ${formatKg(weight)}; gebeurt dat de volgende training weer, dan gaat het gewicht omlaag.`,
     };
   }
 
@@ -169,7 +169,7 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
       decision: 'hold',
       nextWeight: weight,
       repTargets: nextRepTargets(),
-      reason: `Only ${session.length} of ${sets} sets were done. Stay at ${formatKg(weight)} and complete all sets.`,
+      reason: `Je deed ${session.length} van de ${sets} sets. Blijf op ${formatKg(weight)} en maak alle sets af.`,
     };
   }
 
@@ -179,6 +179,6 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
     decision: 'hold',
     nextWeight: weight,
     repTargets: targets,
-    reason: `${shortOfTop.length === session.length ? `No set reached ${repMax} yet` : `${setNumbers(shortOfTop)} didn't reach ${repMax} yet`} (${list(reps)}). Stay at ${formatKg(weight)} and aim for ${list(targets)}.`,
+    reason: `${shortOfTop.length === session.length ? `Nog geen set haalde ${repMax}` : `${setNumbers(shortOfTop)} haalde${shortOfTop.length === 1 ? '' : 'n'} ${repMax} nog niet`} (${list(reps)}). Blijf op ${formatKg(weight)} en mik op ${list(targets)}.`,
   };
 }

@@ -11,7 +11,7 @@ export default function TodayPage() {
   const [busy, setBusy] = useState(false);
 
   if (loading && !data) return <Loading />;
-  if (error || !data) return <ErrorState message={error ?? 'Could not load'} onRetry={reload} />;
+  if (error || !data) return <ErrorState message={error ?? 'Laden is mislukt'} onRetry={reload} />;
 
   if (!data.hasProfile) {
     return (
@@ -19,9 +19,9 @@ export default function TodayPage() {
         <div className="center-screen">
           <div className="stack" style={{ justifyItems: 'center', maxWidth: 340 }}>
             <h1 style={{ fontSize: 64 }}>Overload</h1>
-            <p className="muted">Get a training program built around you, log sets in seconds, and know exactly what to lift next time.</p>
+            <p className="muted">Een trainingsprogramma dat bij jou past, sets loggen in een paar seconden, en precies weten wat je de volgende keer tilt.</p>
             <Link className="btn primary big block" to="/profile">
-              Set up your profile
+              Profiel instellen
             </Link>
           </div>
         </div>
@@ -33,7 +33,7 @@ export default function TodayPage() {
     setBusy(true);
     try {
       const res = await api.generateProgram(opts);
-      toast(res.notice ?? 'New program ready');
+      toast(res.notice ?? 'Nieuw programma staat klaar');
       navigate('/program');
     } catch (e) {
       toast((e as Error).message);
@@ -63,7 +63,7 @@ export default function TodayPage() {
         <div className="brand">OVERLOAD</div>
         {data.lastWorkout && (
           <Link to={`/workout/${data.lastWorkout.id}/summary`} className="faint small">
-            Last: {data.lastWorkout.dayName}, {relativeDay(data.lastWorkout.finishedAt).toLowerCase()}
+            Laatst: {data.lastWorkout.dayName}, {relativeDay(data.lastWorkout.finishedAt).toLowerCase()}
           </Link>
         )}
       </div>
@@ -71,37 +71,37 @@ export default function TodayPage() {
       {data.inProgressWorkoutId && (
         <div className="panel stack" style={{ marginBottom: 16 }}>
           <div>
-            <h3>Workout in progress</h3>
-            <p className="muted small" style={{ margin: '4px 0 0' }}>Your logged sets are saved. Pick up where you left off.</p>
+            <h3>Training bezig</h3>
+            <p className="muted small" style={{ margin: '4px 0 0' }}>Je gelogde sets zijn bewaard. Ga verder waar je gebleven was.</p>
           </div>
           <Link className="btn primary block" to={`/workout/${data.inProgressWorkoutId}`}>
-            Resume workout
+            Verder met training
           </Link>
         </div>
       )}
 
       {!program && (
         <div className="panel stack">
-          <h2>No program yet</h2>
-          <p className="muted" style={{ margin: 0 }}>Build a program from your profile to get started.</p>
+          <h2>Nog geen programma</h2>
+          <p className="muted" style={{ margin: 0 }}>Maak een programma op basis van je profiel om te beginnen.</p>
           <button className="btn primary big block" disabled={busy} onClick={() => build({})}>
-            {busy ? 'Building…' : 'Build my program'}
+            {busy ? 'Bezig…' : 'Maak mijn programma'}
           </button>
         </div>
       )}
 
       {program?.isComplete && (
         <div className="panel stack" style={{ marginBottom: 16 }}>
-          <h2>Block complete</h2>
+          <h2>Blok afgerond</h2>
           <p className="muted" style={{ margin: 0 }}>
-            You finished all {program.weeks} weeks of {program.name}. Build the next block; your current weights carry over.
+            Je hebt alle {program.weeks} weken van {program.name} gedaan. Maak het volgende blok; je huidige gewichten gaan mee.
           </p>
           <button
             className="btn primary block"
             disabled={busy}
             onClick={() => build({ basedOnCurrent: true, instructions: 'The current block is complete. Build the next training block based on my results, varying exercises that stalled.' })}
           >
-            {busy ? 'Building…' : 'Build next block'}
+            {busy ? 'Bezig…' : 'Maak het volgende blok'}
           </button>
         </div>
       )}
@@ -111,13 +111,13 @@ export default function TodayPage() {
           <header>
             <div className="spread">
               <span className="muted small">
-                Next workout, week {program.currentWeek} of {program.weeks}
+                Volgende training, week {program.currentWeek} van {program.weeks}
               </span>
-              {data.isDeload && <span className="tag deload">Deload week</span>}
+              {data.isDeload && <span className="tag deload">Deloadweek</span>}
             </div>
             <div className="day-name">{nextDay.name}</div>
             {nextDay.focus && <div className="muted small" style={{ marginTop: 6 }}>{nextDay.focus}</div>}
-            <div className="week-track" aria-label={`Week ${program.currentWeek} of ${program.weeks}`}>
+            <div className="week-track" aria-label={`Week ${program.currentWeek} van ${program.weeks}`}>
               {Array.from({ length: program.weeks }, (_, i) => (
                 <span key={i} className={`${i + 1 < program.currentWeek ? 'done' : ''} ${program.deloadWeek === i + 1 ? 'deload' : ''}`} />
               ))}
@@ -134,7 +134,7 @@ export default function TodayPage() {
                 </span>
                 <span className="weight">
                   {e.loadType === 'bodyweight' ? (
-                    <small>BW</small>
+                    <small>LG</small>
                   ) : (
                     <>
                       {kg(shown.weight)}
@@ -143,7 +143,7 @@ export default function TodayPage() {
                   )}
                 </span>
                 <span className="presc">
-                  {shown.sets} × {repRange(e.repMin, e.repMax)} reps
+                  {shown.sets} × {repRange(e.repMin, e.repMax)} herhalingen
                   {e.weightNote ? `, ${e.weightNote}` : ''}
                 </span>
               </div>
@@ -151,7 +151,7 @@ export default function TodayPage() {
           })}
           <div style={{ padding: 16 }}>
             <button className="btn primary big block" onClick={start} disabled={busy}>
-              Start workout
+              Start training
             </button>
           </div>
         </section>
@@ -162,11 +162,11 @@ export default function TodayPage() {
           <div className="stat-row">
             <div className="stat">
               <div className="value">{data.workoutsThisWeek}</div>
-              <div className="label">this week</div>
+              <div className="label">deze week</div>
             </div>
             <div className="stat">
               <div className="value">{program.completedWorkouts}</div>
-              <div className="label">in this program</div>
+              <div className="label">in dit programma</div>
             </div>
             <div className="stat">
               <div className="value">
@@ -181,19 +181,19 @@ export default function TodayPage() {
 
       {data.stalled.length > 0 && (
         <section className="section">
-          <h2 style={{ marginBottom: 12 }}>Stalling</h2>
+          <h2 style={{ marginBottom: 12 }}>Stagneert</h2>
           <div className="list">
             {data.stalled.map((s) => (
               <Link key={s.exerciseId} className="list-row" to={`/progress/${s.exerciseId}`}>
                 <div className="grow">
                   <div className="title">{s.name}</div>
-                  <div className="sub">No improvement in {s.sessions} sessions</div>
+                  <div className="sub">Geen vooruitgang in {s.sessions} trainingen</div>
                 </div>
               </Link>
             ))}
           </div>
           <Link className="btn block" style={{ marginTop: 10 }} to="/coach?ask=stall">
-            Ask the coach what to change
+            Vraag de coach wat je kunt veranderen
           </Link>
         </section>
       )}

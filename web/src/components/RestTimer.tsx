@@ -84,17 +84,17 @@ export function RestTimer({ rest, onChange }: { rest: RestState; onChange: (r: R
   const adjust = (delta: number) => onChange({ endsAt: Math.max(Date.now(), rest.endsAt + delta * 1000), duration: Math.max(1, rest.duration + delta) });
 
   return (
-    <div className={`rest ${over ? 'over' : ''}`} role="timer" aria-label="Rest timer">
+    <div className={`rest ${over ? 'over' : ''}`} role="timer" aria-label="Rusttimer">
       <div className="fill" style={{ width: `${pct}%` }} />
       <span className="time">{over ? `+${clock(-remaining)}` : clock(remaining)}</span>
-      <span className="small muted">{over ? 'Rest done' : 'Rest'}</span>
+      <span className="small muted">{over ? 'Rust voorbij' : 'Rust'}</span>
       {!over && (
-        <button type="button" onClick={() => adjust(15)} aria-label="Add 15 seconds">
+        <button type="button" onClick={() => adjust(15)} aria-label="15 seconden erbij">
           +15s
         </button>
       )}
       <button type="button" onClick={() => onChange(null)}>
-        {over ? 'Hide' : 'Skip'}
+        {over ? 'Verbergen' : 'Overslaan'}
       </button>
     </div>
   );

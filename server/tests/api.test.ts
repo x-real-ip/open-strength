@@ -139,7 +139,7 @@ test('full flow: profile, program, workout, progression, stats, export', async (
 
   const coach = await call('POST', '/api/coach/messages', { content: 'How am I doing?' });
   assert.equal(coach.status, 200);
-  assert.match(coach.body.messages[1].content, /not configured/);
+  assert.match(coach.body.messages[1].content, /AI staat uit/);
 });
 
 test('imports an export from the SQLite-based version 1.0', async () => {
@@ -191,4 +191,20 @@ test('30-minute sessions get superset pairs that reach the workout screen', asyn
     ['A', 'A', 'B', 'B'],
   );
   assert.equal((await call('DELETE', `/api/workouts/${workout.id}`)).status, 200);
+});
+
+test('the active program explains how it was built and which day is next', async () => {
+  const res = await call('GET', '/api/programs/active');
+  assert.equal(res.status, 200);
+  const { program, explanation } = res.body;
+  assert.equal(program.nextDayIndex, 0, 'no workouts done in this program yet');
+  const titles = explanation.map((s: any) => s.title);
+  for (const t of ['Wie het heeft gemaakt', 'Schema', 'Oefeningen per training', 'Sets, herhalingen en rust', 'Startgewichten', 'Hoe de gewichten veranderen', 'Deloadweek']) {
+    assert.ok(titles.includes(t), `has section ${t}`);
+  }
+  const sets = explanation.find((s: any) => s.title === 'Sets, herhalingen en rust');
+  assert.ok(sets.bullets.some((b: string) => b.includes('3 × 8–12')), 'hypertrophy compound scheme');
+  assert.ok(sets.bullets.some((b: string) => b.includes('superset')), 'superset rest is explained for 30-minute sessions');
+  const perSession = explanation.find((s: any) => s.title === 'Oefeningen per training');
+  assert.equal(perSession.bullets.length, program.days.length, 'one line per training day');
 });

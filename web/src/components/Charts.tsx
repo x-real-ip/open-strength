@@ -20,7 +20,7 @@ function niceMax(max: number): number {
 
 function tick(v: number): string {
   if (v >= 10_000) return `${Math.round(v / 1000)}K`;
-  return Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1);
+  return Number.isInteger(v) ? v.toLocaleString('nl-NL') : v.toFixed(1).replace('.', ',');
 }
 
 function ChartFrame({ title, sub, readout, children, table }: { title: string; sub?: string; readout: ReactNode; children: ReactNode; table: Point[] }) {
@@ -33,7 +33,7 @@ function ChartFrame({ title, sub, readout, children, table }: { title: string; s
         {readout}
       </div>
       <details className="why">
-        <summary>Show as table</summary>
+        <summary>Toon als tabel</summary>
         <table className="small" style={{ width: '100%', marginTop: 6, borderCollapse: 'collapse' }}>
           <tbody>
             {table.map((p, i) => (

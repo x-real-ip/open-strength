@@ -17,7 +17,7 @@ export function deloadPrescription(sets: number, weight: number, increment: numb
   return { sets: Math.max(1, Math.round(sets * 0.6)), weight: increment > 0 ? floorToStep(weight * 0.9, increment) : weight };
 }
 
-const DELOAD_REASON = 'Deload week: fewer sets at about 90% of your working weight to recover. Progression resumes next week.';
+const DELOAD_REASON = 'Deloadweek: minder sets op ongeveer 90% van je werkgewicht om te herstellen. Volgende week gaat de progressie weer verder.';
 
 export async function getToday(profile: Profile | null): Promise<TodayResponse> {
   const pid = await activeProgramId();
@@ -25,15 +25,7 @@ export async function getToday(profile: Profile | null): Promise<TodayResponse> 
   const inProgress = await one<{ id: number }>("SELECT id FROM workouts WHERE status = 'in_progress' ORDER BY id DESC LIMIT 1");
   const last = await one("SELECT id, day_name, finished_at FROM workouts WHERE status = 'completed' ORDER BY finished_at DESC LIMIT 1");
 
-  let nextDay = null;
-  if (program && program.days.length) {
-    const lastInProgram = await one<{ day_index: number }>(
-      "SELECT pd.day_index FROM workouts w JOIN program_days pd ON pd.id = w.program_day_id WHERE w.program_id = $1 AND w.status = 'completed' ORDER BY w.finished_at DESC LIMIT 1",
-      [program.id],
-    );
-    const idx = lastInProgram ? (lastInProgram.day_index + 1) % program.days.length : 0;
-    nextDay = program.days[idx];
-  }
+  const nextDay = program?.days[program.nextDayIndex] ?? null;
 
   const now = new Date();
   const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((now.getUTCDay() + 6) % 7)));
@@ -65,7 +57,7 @@ export async function startWorkout(programDayId: number, profile: Profile | null
   const existing = await one<{ id: number }>("SELECT id FROM workouts WHERE status = 'in_progress' ORDER BY id DESC LIMIT 1");
   if (existing) return existing.id;
   const day = await one('SELECT pd.*, p.id AS pid FROM program_days pd JOIN programs p ON p.id = pd.program_id WHERE pd.id = $1', [programDayId]);
-  if (!day) throw new NotFound('Program day not found');
+  if (!day) throw new NotFound('Trainingsdag niet gevonden');
   const program = (await loadProgram(day.pid, profile))!;
   const isDeload = program.deloadWeek === program.currentWeek && !program.isComplete;
   const row = await one<{ id: number }>(
@@ -77,7 +69,7 @@ export async function startWorkout(programDayId: number, profile: Profile | null
 
 export async function getWorkout(id: number, profile: Profile | null): Promise<Workout> {
   const w = await one('SELECT * FROM workouts WHERE id = $1', [id]);
-  if (!w) throw new NotFound('Workout not found');
+  if (!w) throw new NotFound('Training niet gevonden');
   const program = await loadProgram(w.program_id, profile);
   const day = program?.days.find((d) => d.id === w.program_day_id);
   const logged = await all('SELECT * FROM workout_sets WHERE workout_id = $1 ORDER BY set_index', [id]);
@@ -155,7 +147,7 @@ export const setSchema = z.object({
 
 async function workoutStatus(workoutId: number): Promise<string> {
   const w = await one<{ status: string }>('SELECT status FROM workouts WHERE id = $1', [workoutId]);
-  if (!w) throw new NotFound('Workout not found');
+  if (!w) throw new NotFound('Training niet gevonden');
   return w.status;
 }
 
@@ -164,7 +156,7 @@ export async function upsertSet(workoutId: number, input: unknown) {
   const s = setSchema.parse(input);
   await workoutStatus(workoutId);
   const pe = await one<{ exercise_id: string }>('SELECT exercise_id FROM program_exercises WHERE id = $1', [s.programExerciseId]);
-  if (!pe) throw new NotFound('Exercise not found');
+  if (!pe) throw new NotFound('Oefening niet gevonden');
   await run(
     `INSERT INTO workout_sets (workout_id, program_exercise_id, exercise_id, set_index, weight, reps, rir, completed, updated_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -231,7 +223,7 @@ export async function finishWorkout(id: number, profile: Profile | null): Promis
 
       if (workout.isDeload) {
         const t = await one('SELECT weight, rep_targets FROM exercise_targets WHERE program_exercise_id = $1', [ex.programExerciseId], c);
-        await saveOutcome('deload', t?.weight ?? ex.targetWeight, t?.rep_targets ?? [], 'Deload session logged. Next week you return to your regular working weight.');
+        await saveOutcome('deload', t?.weight ?? ex.targetWeight, t?.rep_targets ?? [], 'Deloadtraining gelogd. Volgende week ga je terug naar je normale werkgewicht.');
         continue;
       }
 
@@ -265,7 +257,7 @@ export async function finishWorkout(id: number, profile: Profile | null): Promis
 
 export async function getSummary(id: number, profile: Profile | null): Promise<WorkoutSummary> {
   const w = await one('SELECT * FROM workouts WHERE id = $1', [id]);
-  if (!w) throw new NotFound('Workout not found');
+  if (!w) throw new NotFound('Training niet gevonden');
   const sets = await all('SELECT * FROM workout_sets WHERE workout_id = $1 AND completed ORDER BY program_exercise_id, set_index', [id]);
   const outcomes = await all('SELECT * FROM workout_outcomes WHERE workout_id = $1', [id]);
   const order = (await getWorkout(id, profile)).exercises.map((e) => e.programExerciseId);
@@ -279,8 +271,8 @@ export async function getSummary(id: number, profile: Profile | null): Promise<W
     if (before.max_weight !== null && exSets.length) {
       const top = Math.max(...exSets.map((s) => s.weight));
       const bestE = Math.max(...exSets.map((s) => e1rm(s.weight, s.reps)));
-      if (top > 0 && top > before.max_weight) newRecords.push(`Heaviest weight: ${formatKg(top)}`);
-      else if (bestE > 0 && before.max_e1rm !== null && bestE > before.max_e1rm + 0.01) newRecords.push(`Best estimated 1RM: ${formatKg(Math.round(bestE * 10) / 10)}`);
+      if (top > 0 && top > before.max_weight) newRecords.push(`Zwaarste gewicht: ${formatKg(top)}`);
+      else if (bestE > 0 && before.max_e1rm !== null && bestE > before.max_e1rm + 0.01) newRecords.push(`Beste geschatte 1RM: ${formatKg(Math.round(bestE * 10) / 10)}`);
     }
     result.push({
       programExerciseId: o.program_exercise_id,

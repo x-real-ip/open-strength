@@ -15,9 +15,11 @@ Persoonlijke, self-hosted krachttrainingsapp: AI-gegenereerde trainingsprogramma
 
 ## Wat de app doet
 
+- **Nederlands**: de hele app, inclusief de uitleg bij elk advies. Gewichten met een komma (42,5 kg).
 - **Profiel**: niveau, doel (standaard spiermassa), trainingsdagen, sessieduur (standaard 30 minuten), apparatuur, beperkingen en gewichtsstappen per type (barbell, dumbbell, machine, cable, kettlebell).
-- **Oefeningenbibliotheek**: een vaste, gecureerde lijst met primaire/secundaire spiergroep, bewegingspatroon, apparatuur en type belasting. Programma's gebruiken alleen oefeningen uit deze lijst, zodat historie en statistieken kloppen.
-- **Programma's**: door de AI ontworpen (bijvoorbeeld full body A/B met supersets voor sessies van 30 minuten), gevalideerd en waar nodig gerepareerd. Is het AI-antwoord onbruikbaar of is er geen AI, dan komt er een regelgebaseerd programma. Programma's hebben weken en een deloadweek.
+- **Oefeningenbibliotheek**: een vaste, gecureerde lijst van 67 oefeningen met primaire/secundaire spiergroep, bewegingspatroon, apparatuur en type belasting. Programma's gebruiken alleen oefeningen uit deze lijst, zodat historie en statistieken kloppen. In de app zie je ze allemaal (Programma → Alle oefeningen), met filter op spiergroep en je apparatuur.
+- **Hoe doe je dit?**: elke oefening heeft Nederlandse stappen en twee foto's (begin- en eindpositie) die als korte animatie afwisselen. De foto's komen uit [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (publiek domein) en zitten in de app zelf, dus ze werken ook offline.
+- **Programma's**: door de AI ontworpen (bijvoorbeeld full body A/B met supersets voor sessies van 30 minuten), gevalideerd en waar nodig gerepareerd. Is het AI-antwoord onbruikbaar of is er geen AI, dan komt er een regelgebaseerd programma. Programma's hebben weken en een deloadweek. Op de programmapagina zie je **hoe het programma is opgebouwd** (schema, keuze van oefeningen, sets en herhalingen bij je doel, startgewichten, progressie, deload) en kun je **vooruitkijken** door het hele blok, met per training de geplande gewichten en de volgende stap.
 - **Supersets**: bij sessies van 45 minuten of korter koppelt de app oefeningen die elkaar niet in de weg zitten (duwen met trekken, benen met bovenlichaam). Je doet een set van de ene, direct een set van de andere, en rust dan.
 - **Training loggen**: het Vandaag-scherm toont de volgende trainingsdag. Gewicht en herhalingen staan vooringevuld, dus één tik per set. RIR is optioneel. De rusttimer start vanzelf, met piep en trilling. Na de laatste set (of de ronde van een superset) ga je door naar de volgende oefening. Per oefening zie je wat je vorige keer deed.
 - **Offline-first**: sets worden eerst op de telefoon opgeslagen (IndexedDB) en gesynchroniseerd zodra er verbinding is.
@@ -28,9 +30,12 @@ Persoonlijke, self-hosted krachttrainingsapp: AI-gegenereerde trainingsprogramma
 
 AI is optioneel: zonder sleutel werkt alles, alleen zonder AI.
 
+- **AI-instellingen** (Profiel → AI-instellingen en verbruik): aanbieder, model, API-sleutel, hoeveel het model nadenkt (apart voor de coach en voor programma's) en een maandbudget. Deze instellingen staan in de database en gaan voor de omgevingsvariabelen; die zijn alleen nog de standaard. De sleutel gaat nooit naar de browser. Met *Verbinding testen* controleer je sleutel en model.
+- **Verbruik**: elke AI-aanroep wordt bijgehouden met tokens en geschatte kosten (op basis van de prijslijst). Je ziet deze maand, per onderdeel, per dag en de laatste aanroepen. Is het maandbudget op, dan stopt de AI tot de volgende maand en valt de app terug op regelgebaseerde programma's.
+
 ## Uitrollen
 
-De manifests staan in [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops) onder `manifests/overload/`, niet in deze repo. Hoe dat in elkaar zit (database, migraties, secrets, een release uitrollen) staat in [`deploy/README.md`](deploy/README.md).
+De manifests staan in [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops) onder `manifests/overload/`, niet in deze repo. Daar staan ook de database (CloudNativePG), de migrate-initContainer en de SealedSecrets.
 
 In het kort: een release-tag `v1.2.3` bouwt image `ghcr.io/x-real-ip/overload:1.2.3`, de workflow stuurt een dispatch naar de gitops-repo, die zet de tag in de overlay, en Argo CD rolt uit.
 
@@ -51,7 +56,7 @@ De app doet zelf de OpenID Connect-login (authorization code + PKCE, via `openid
 2. **Applications → Create**: naam *Overload*, slug `overload`, en koppel de provider. Wil je alleen jezelf toelaten, bind dan een groep of gebruiker aan de applicatie, of gebruik `ALLOWED_USERS`/`ALLOWED_GROUPS`.
 3. Zet in de gitops-repo (`manifests/overload/base/`):
    - in `configmap.yaml`: `AUTH_MODE: "oidc"` en `OIDC_CLIENT_ID: "<client id uit de provider>"`. `OIDC_ISSUER_URL` staat al op `https://auth.lan.stamx.nl/application/o/overload/`.
-   - in `sealedsecret.yaml`: het verzegelde `OIDC_CLIENT_SECRET` (zie [`deploy/README.md`](deploy/README.md#secrets)).
+   - in `sealedsecret.yaml`: het verzegelde `OIDC_CLIENT_SECRET` (scope `cluster-wide`, controller `sealed-secrets` in `kube-system`).
 4. Merge de PR. Het inlogscherm toont nu *Sign in with Authentik*. Uitloggen beëindigt ook de Authentik-sessie (RP-initiated logout).
 
 `auth.lan.stamx.nl` heeft een certificaat van de interne Stamx CA. De deployment mount die CA (ConfigMap `stamx-ca`) en zet `NODE_EXTRA_CA_CERTS`, zodat de app het certificaat vertrouwt.
@@ -104,7 +109,7 @@ Alle instellingen zijn omgevingsvariabelen. Voor lokaal staan ze in `.env.exampl
 | `NODE_EXTRA_CA_CERTS` | Extra CA voor uitgaande TLS, zoals de Stamx CA voor Authentik |
 | `PROXY_USER_HEADER`, `PROXY_EMAIL_HEADER`, `PROXY_GROUPS_HEADER`, `PROXY_LOGOUT_URL` | Proxy-modus (standaard de Authentik-headers) |
 | `ALLOWED_USERS`, `ALLOWED_GROUPS` | Optionele allowlists (kommagescheiden) voor `oidc` en `proxy`. `ALLOWED_USERS` matcht op gebruikersnaam of e-mailadres |
-| `AI_PROVIDER` | `anthropic` (Claude, standaard) of `openai` (elke OpenAI-compatibele API, ook Ollama, LM Studio of LiteLLM) |
+| `AI_PROVIDER` | `anthropic` (Claude, standaard) of `openai` (elke OpenAI-compatibele API, ook Ollama, LM Studio of LiteLLM). Net als de andere `AI_*`-variabelen alleen de standaard: de AI-instellingen in de app gaan voor |
 | `ANTHROPIC_API_KEY` of `AI_API_KEY` | AI-sleutel; blijft op de server |
 | `AI_MODEL`, `AI_BASE_URL` | Model (standaard `claude-sonnet-5-5`, of `gpt-4o-mini` voor `openai`) en endpoint |
 | `AI_LANGUAGE` | Taal van door de AI geschreven programmateksten. De coach antwoordt in de taal van je vraag |
@@ -113,7 +118,7 @@ Zonder AI-sleutel werkt alles behalve de AI-functies: programma's worden dan reg
 
 ## Back-up, export en migratie
 
-- **Database**: in het cluster draait Postgres als CloudNativePG-cluster `overload-db` op een TrueNAS-volume; zie [`deploy/README.md`](deploy/README.md) voor een handmatige dump.
+- **Database**: in het cluster draait Postgres als CloudNativePG-cluster `overload-db` op een TrueNAS-volume. Een handmatige dump: `kubectl -n tools exec overload-db-1 -- pg_dump -Fc -U postgres overload > overload.dump`.
 - **Exports in de app** (Profile → Data): JSON met alles, en CSV met alle sets. Een JSON-export importeer je via *Import from export file*. Dat vervangt alle data.
 - **Migratie vanaf 1.0 (SQLite)**: exporteer in de oude versie via *Export everything* en importeer dat bestand. Booleans en JSON-velden worden automatisch omgezet, en de id-reeksen lopen daarna gewoon door.
 
@@ -153,7 +158,6 @@ server/                   Fastify API (TypeScript, Node 22+), serveert ook de ge
 shared/types.ts           gedeelde types server/frontend
 web/                      React + Vite PWA
   src/offlineStore.ts     IndexedDB-wachtrij voor sets die nog niet op de server staan
-deploy/README.md          hoe de app in het cluster draait
 ```
 
 Een training afronden wacht tot alle sets gesynchroniseerd zijn. `GET /healthz` geeft `{"status":"ok","database":"ok"}`, of status 503 als de database niet antwoordt.
