@@ -4,8 +4,9 @@ Working agreements for this repository.
 
 ## Language
 
-- Code, identifiers, UI text and code comments: **English**.
-- Documentation (`README.md`, `deploy/README.md`, `CHANGELOG.md`): **Dutch**.
+- Code, identifiers and code comments: **English**.
+- UI text and every text the user sees (engine explanations, errors, exercise names and guides): **Dutch**. Weights use a decimal comma (42,5 kg).
+- Documentation (`README.md`, `CHANGELOG.md`): **Dutch**.
 
 ## Stack
 
@@ -20,9 +21,15 @@ Working agreements for this repository.
 ## Deployment
 
 - Deploy only via `x-real-ip/gitops` (`manifests/overload/`). No Kubernetes manifests in
-  this repo. See `deploy/README.md`.
+  this repo.
 - A release tag `v*` deploys: CI dispatches to gitops, which pins the image tag. Never
   push to `main` of gitops directly; Argo CD applies it immediately. Use a PR.
+
+## Exercise library
+
+- `server/services/exercises.ts` is the only list programs may use. Every exercise needs a Dutch guide in
+  `exerciseGuide.ts` with two photos in `web/public/exercises/` (from free-exercise-db, public domain);
+  `server/tests/exercises.test.ts` enforces this.
 
 ## Progression engine
 

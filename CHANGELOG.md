@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 — 2026-11-27
+
+- **Nederlands**: de hele app is vertaald, inclusief de uitleg van de progressie-engine, startgewichten, regelgebaseerde programma's, meldingen en de feiten van de coach. Gewichten met een decimale komma (42,5 kg), herhalingen als 12/12/11. Door de AI geschreven tekst is standaard Nederlands.
+- **Oefeningenbibliotheek in de app**: alle 67 oefeningen die in een programma kunnen komen, per spiergroep, met zoeken en een filter op je apparatuur.
+- **Hoe doe je dit?**: per oefening Nederlandse stappen en twee voorbeeldfoto's (begin- en eindpositie, als korte animatie) uit free-exercise-db (publiek domein), offline beschikbaar. Te openen tijdens de training, vanuit het programma en vanuit de bibliotheek.
+- **Programma: hoe het is opgebouwd**: uitleg in gewone taal van schema, oefeningkeuze, sets/herhalingen/rust bij je doel, startgewichten, progressie en deload, gemaakt uit dezelfde regels die het programma bouwen.
+- **Programma: vooruitkijken**: alle trainingen van het blok per week, met de deloadweek, de geplande gewichten en per oefening de volgende stap.
+
 ## 1.2.0 — 2026-11-27
 
 Eerste release die via GitOps naar het cluster gaat.
