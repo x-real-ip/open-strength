@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { startTestDb } from './helpers.ts';
@@ -70,7 +71,9 @@ test('rest notifications: pushed at the end of the rest, cancelled when you come
   assert.match(key, /^[A-Za-z0-9_-]{80,}$/, 'a VAPID public key');
   assert.equal((await call('GET', '/api/push/key')).body.publicKey, key, 'the same key every time');
 
-  const keys = { p256dh: 'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM', auth: 'tBHItJI5svbpez7KI4CCXg' };
+  // A throwaway subscription key pair, made per run (a P-256 public key and a 16-byte auth secret).
+  const ecdh = crypto.createECDH('prime256v1');
+  const keys = { p256dh: ecdh.generateKeys().toString('base64url'), auth: crypto.randomBytes(16).toString('base64url') };
   assert.equal((await call('POST', '/api/push/subscriptions', { endpoint: 'https://push.example/phone', keys })).status, 200);
   assert.equal((await call('POST', '/api/push/subscriptions', { endpoint: 'https://push.example/gone', keys })).status, 200);
 
