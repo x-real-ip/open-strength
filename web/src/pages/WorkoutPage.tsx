@@ -539,15 +539,20 @@ export default function WorkoutPage() {
 export function SwapSheet({ open, onClose, programExerciseId, onSwapped }: { open: boolean; onClose: () => void; programExerciseId: number; onSwapped: () => void }) {
   const [alts, setAlts] = useState<ExerciseDef[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (!open) return;
     setAlts(null);
+    setQuery('');
     api
       .alternatives(programExerciseId)
       .then((r) => setAlts(r.alternatives))
       .catch(() => setAlts([]));
   }, [open, programExerciseId]);
+
+  const q = query.trim().toLowerCase();
+  const shownAlts = !alts ? [] : q ? alts.filter((a) => a.name.toLowerCase().includes(q)) : alts.slice(0, 8);
 
   return (
     <Sheet open={open} onClose={onClose} label="Oefening wisselen">
@@ -558,30 +563,37 @@ export function SwapSheet({ open, onClose, programExerciseId, onSwapped }: { ope
       ) : alts.length === 0 ? (
         <p className="muted">Geen alternatieven met jouw apparatuur.</p>
       ) : (
-        <div className="list">
-          {alts.map((a) => (
-            <button
-              key={a.id}
-              className="list-row"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await api.replaceExercise(programExerciseId, a.id);
-                  onSwapped();
-                } catch (e) {
-                  toast((e as Error).message);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <div className="grow">
-                <div className="title">{a.name}</div>
-                <div className="sub">{equipmentText(a.equipment)}</div>
-              </div>
-            </button>
-          ))}
+        <div className="stack">
+          {alts.length > 8 && (
+            <input className="input" type="search" placeholder={`Zoeken in ${alts.length} alternatieven`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Alternatief zoeken" />
+          )}
+          <div className="list">
+            {shownAlts.length === 0 && <p className="muted small">Niets gevonden.</p>}
+            {shownAlts.map((a) => (
+              <button
+                key={a.id}
+                className="list-row"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await api.replaceExercise(programExerciseId, a.id);
+                    onSwapped();
+                  } catch (e) {
+                    toast((e as Error).message);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                <div className="grow">
+                  <div className="title">{a.name}</div>
+                  <div className="sub">{equipmentText(a.equipment)}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+          {!query.trim() && alts.length > 8 && <p className="faint small" style={{ margin: 0 }}>De beste 8 staan bovenaan; zoek om de andere te zien.</p>}
         </div>
       )}
     </Sheet>

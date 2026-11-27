@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 — 2026-11-27
+
+- **Alle oefeningen uit free-exercise-db**: de bibliotheek heeft nu 886 oefeningen. Dat zijn de 67 vaste oefeningen plus de volledige lijst uit de fork [x-real-ip/free-exercise-db](https://github.com/x-real-ip/free-exercise-db), inclusief rekken, cardio, plyometrie, olympisch gewichtheffen en strongman. Namen en uitleg van de geïmporteerde oefeningen zijn Engels. Hun foto's komen uit de fork en worden na de eerste keer bewaard voor offline gebruik.
+- **Meer keus bij wisselen en voor de AI**: ongeveer 375 krachtoefeningen uit de import kunnen in een programma. Bij het wisselen zie je de beste acht en kun je zoeken in de rest. De AI krijgt ze ook aangeboden, maar bouwt programma's vooral uit de vaste oefeningen. Het regelgebaseerde programma blijft bij de 67 vaste oefeningen.
+- Bibliotheek: filters op soort oefening en "alleen oefeningen die in een programma kunnen"; per oefening het niveau. Nieuwe spiergroepen: onderrug, trapezius, onderarmen, adductoren, abductoren en nek.
+- `npm run import:exercises [ref]` haalt de lijst opnieuw op uit de fork en zet hem vast op een commit (`server/data/free-exercise-db.json`).
+- `/api/exercises` gaat met gzip over de lijn (ongeveer 170 kB in plaats van 1 MB).
+- Een AI-programma kost door de langere oefeningenlijst iets meer: ongeveer 12.000 extra invoertokens bij een volledig uitgeruste gym, zo'n 2,5 dollarcent per programma met Sonnet 5.5.
+
 ## 1.3.0 — 2026-11-27
 
 - **Nederlands**: de hele app is vertaald, inclusief de uitleg van de progressie-engine, startgewichten, regelgebaseerde programma's, meldingen en de feiten van de coach. Gewichten met een decimale komma (42,5 kg), herhalingen als 12/12/11. Door de AI geschreven tekst is standaard Nederlands.

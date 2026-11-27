@@ -1,3 +1,4 @@
+import zlib from 'node:zlib';
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { startTestDb } from './helpers.ts';
@@ -121,6 +122,26 @@ test('full flow: profile, program, workout, progression, stats, export', async (
   // Swapping an exercise keeps sets/reps and offers sensible alternatives.
   const alts = await call('GET', `/api/program-exercises/${pe.id}/alternatives`);
   assert.ok(alts.body.alternatives.length > 0);
+  assert.equal(alts.body.alternatives[0].source, 'overload', 'curated alternatives come first');
+
+  // Imported exercises can be swapped in; the target comes from the start-weight estimate.
+  const pe2 = programAfter.body.program.days[0].exercises[1];
+  const alts2 = await call('GET', `/api/program-exercises/${pe2.id}/alternatives`);
+  const imported = alts2.body.alternatives.find((a: any) => a.source === 'free-exercise-db');
+  assert.ok(imported, 'imported exercises are offered when swapping');
+  const swapped = await call('POST', `/api/program-exercises/${pe2.id}/replace`, { exerciseId: imported.id });
+  assert.equal(swapped.status, 200);
+  const after = swapped.body.program.days[0].exercises.find((e: any) => e.id === pe2.id);
+  assert.equal(after.exerciseId, imported.id);
+  assert.equal(after.name, imported.name);
+  assert.ok(after.target.weight >= 0);
+  // Library-only exercises (stretching, ...) cannot be swapped in.
+  const library = await app.inject({ method: 'GET', url: '/api/exercises', headers: { 'accept-encoding': 'gzip' } });
+  assert.equal(library.headers['content-encoding'], 'gzip');
+  const all = JSON.parse(zlib.gunzipSync(library.rawPayload).toString());
+  assert.ok(all.length > 800);
+  const stretch = all.find((e: any) => e.category === 'stretching');
+  assert.equal((await call('POST', `/api/program-exercises/${pe2.id}/replace`, { exerciseId: stretch.id })).status, 400);
 
   // Regenerating keeps the earned weight for exercises that carry over with the same rep range.
   const regen = await call('POST', '/api/programs/generate', {});

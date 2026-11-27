@@ -1,10 +1,14 @@
-// Curated exercise library. Programs (AI or template) may only use exercises from this list,
-// so history, statistics and weight steps stay consistent across programs.
-import type { Equipment, ExerciseDef, MovementPattern, MuscleGroup } from '../../shared/types.ts';
+// The exercise library: 67 curated exercises with a Dutch guide, plus the full free-exercise-db
+// list (freeExerciseDb.ts). Programs may only use programmable exercises (EXERCISES), so history,
+// statistics and weight steps stay consistent. Rule-based templates only pick curated ones.
+import type { Equipment, ExerciseDef, LibraryExercise, MovementPattern, MuscleGroup } from '../../shared/types.ts';
 import { GUIDES } from './exerciseGuide.ts';
+import { freeExerciseDb } from './freeExerciseDb.ts';
 
 // `name` here is the English working name; the Dutch display name, steps and photos come from GUIDES.
-type Def = Omit<ExerciseDef, 'secondary' | 'steps' | 'photos' | 'photoNote'> & { secondary?: MuscleGroup[] };
+type Def = Omit<ExerciseDef, 'secondary' | 'steps' | 'photos' | 'photoNote' | 'category' | 'source' | 'programmable'> & {
+  secondary?: MuscleGroup[];
+};
 
 const defs: Def[] = [
   // Horizontal push
@@ -99,17 +103,31 @@ const defs: Def[] = [
   { id: 'dead_bug', name: 'Dead bug', primary: 'core', equipment: ['bodyweight'], loadType: 'bodyweight', pattern: 'core', compound: false, startFactor: 0 },
 ];
 
-export const EXERCISES: ExerciseDef[] = defs.map((d) => {
+/** The curated exercises, in preference order per pattern. */
+export const CURATED: ExerciseDef[] = defs.map((d) => {
   const g = GUIDES[d.id];
   return {
     secondary: [],
     ...d,
+    category: 'strength',
+    source: 'overload',
+    programmable: true,
     name: g?.name ?? d.name,
     steps: g?.steps ?? [],
     photos: g ? [`/exercises/${g.photo}-0.webp`, `/exercises/${g.photo}-1.webp`] : [],
     photoNote: g?.similar,
   };
 });
+
+// A curated exercise replaces the database entry whose photos it uses, unless the photos only show a variant.
+const replaced = new Set(Object.values(GUIDES).filter((g) => !g.similar).map((g) => g.photo));
+const imported = freeExerciseDb(replaced);
+
+/** Everything in the library, curated first. */
+export const LIBRARY: LibraryExercise[] = [...CURATED, ...imported];
+
+/** Exercises programs may use: curated plus the imported strength exercises with a clear pattern. */
+export const EXERCISES: ExerciseDef[] = LIBRARY.filter((e): e is ExerciseDef => e.programmable);
 
 const byId = new Map(EXERCISES.map((e) => [e.id, e]));
 
@@ -129,7 +147,7 @@ export function availableExercises(equipment: Equipment[]): ExerciseDef[] {
 
 /**
  * Alternatives for an exercise: same movement pattern first, then same primary muscle.
- * Loaded variants rank above bodyweight variants when the user has the gear.
+ * Curated exercises rank above imported ones, loaded variants above bodyweight variants.
  */
 export function alternativesFor(id: string, equipment: Equipment[], exclude: string[] = []): ExerciseDef[] {
   const ex = byId.get(id);
@@ -137,15 +155,15 @@ export function alternativesFor(id: string, equipment: Equipment[], exclude: str
   const skip = new Set([id, ...exclude]);
   const pool = availableExercises(equipment).filter((e) => !skip.has(e.id));
   const score = (e: ExerciseDef) =>
-    (e.pattern === ex.pattern ? 0 : 10) + (e.primary === ex.primary ? 0 : 5) + (e.loadType === 'bodyweight' ? 1 : 0);
+    (e.pattern === ex.pattern ? 0 : 10) + (e.primary === ex.primary ? 0 : 5) + (e.source === 'overload' ? 0 : 2) + (e.loadType === 'bodyweight' ? 1 : 0);
   return pool
     .filter((e) => e.pattern === ex.pattern || e.primary === ex.primary)
     .sort((a, b) => score(a) - score(b));
 }
 
-/** Pick the best available exercise for a movement pattern, honouring a preference order. */
+/** Pick the best available curated exercise for a movement pattern, honouring a preference order. */
 export function pickForPattern(pattern: MovementPattern, equipment: Equipment[], used: Set<string>): ExerciseDef | undefined {
-  const candidates = availableExercises(equipment).filter((e) => e.pattern === pattern && !used.has(e.id));
+  const candidates = CURATED.filter((e) => isAvailable(e, equipment) && e.pattern === pattern && !used.has(e.id));
   // Library order within a pattern is the preference order (free weights first, bodyweight last),
   // but prefer anything loadable over bodyweight.
   return candidates.find((e) => e.loadType !== 'bodyweight') ?? candidates[0];

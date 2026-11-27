@@ -28,7 +28,14 @@ export type MuscleGroup =
   | 'biceps'
   | 'triceps'
   | 'calves'
-  | 'core';
+  | 'core'
+  // Only used by free-exercise-db exercises.
+  | 'lower_back'
+  | 'traps'
+  | 'forearms'
+  | 'adductors'
+  | 'abductors'
+  | 'neck';
 
 export type MovementPattern =
   | 'horizontal_push'
@@ -67,26 +74,46 @@ export interface Profile {
   updatedAt?: string;
 }
 
-export interface ExerciseDef {
+export type ExerciseCategory = 'strength' | 'powerlifting' | 'olympic' | 'strongman' | 'plyometrics' | 'stretching' | 'cardio';
+export type ExerciseLevel = 'beginner' | 'intermediate' | 'expert';
+/** `overload`: curated, with a Dutch guide. `free-exercise-db`: imported, English names and steps. */
+export type ExerciseSource = 'overload' | 'free-exercise-db';
+
+/** Any exercise in the library; only programmable ones can be part of a program. */
+export interface LibraryExercise {
   id: string;
   name: string;
   primary: MuscleGroup;
   secondary: MuscleGroup[];
   /** All of these must be available to perform the exercise. */
   equipment: Equipment[];
-  loadType: LoadType;
-  pattern: MovementPattern;
+  /** Equipment outside the profile list (medicine ball, foam roller, ...). */
+  otherEquipment?: string;
+  category: ExerciseCategory;
+  level?: ExerciseLevel;
   compound: boolean;
-  /** Rough working weight for a beginner as a fraction of body weight (per hand for dumbbells). */
-  startFactor: number;
-  /** Shown next to the weight, e.g. "per hand". */
-  weightNote?: string;
+  source: ExerciseSource;
   /** How to do it, in short steps. */
   steps: string[];
   /** Example photos: start and end position. */
   photos: string[];
   /** Set when the photos show a close variant instead of this exact exercise. */
   photoNote?: string;
+  programmable: boolean;
+  pattern?: MovementPattern;
+  loadType?: LoadType;
+  startFactor?: number;
+  /** Shown next to the weight, e.g. "per hand". */
+  weightNote?: string;
+}
+
+/** An exercise programs may use: it has a movement pattern, a load type and a start weight. */
+export interface ExerciseDef extends LibraryExercise {
+  programmable: true;
+  pattern: MovementPattern;
+  loadType: LoadType;
+  /** Rough working weight for a beginner as a fraction of body weight (per hand for dumbbells). */
+  startFactor: number;
 }
 
 export type Decision = 'start' | 'increase' | 'hold' | 'decrease' | 'reps' | 'deload';

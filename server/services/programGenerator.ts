@@ -56,7 +56,10 @@ function systemPrompt(): string {
 
 async function buildPrompt(profile: Profile, opts: { current?: Program | null; instructions?: string }): Promise<string> {
   const catalogue = availableExercises(profile.equipment)
-    .map((e) => `${e.id} | ${e.name} | primary: ${e.primary} | pattern: ${e.pattern} | load: ${e.loadType}${e.weightNote ? ` (${e.weightNote})` : ''}`)
+    .map(
+      (e) =>
+        `${e.source === 'overload' ? '* ' : ''}${e.id} | ${e.name} | primary: ${e.primary} | pattern: ${e.pattern} | load: ${e.loadType}${e.weightNote ? ` (${e.weightNote})` : ''}`,
+    )
     .join('\n');
   const stalls = await detectStalls();
   const history = await historyDigest(4);
@@ -76,7 +79,8 @@ PROFILE
 - Time per session: ${profile.sessionMinutes} minutes (roughly ${exercisesPerSession(profile.sessionMinutes)} exercises)
 - Limitations / points of attention: ${profile.limitations || 'none'}
 
-ALLOWED EXERCISES (use only these ids; equipment is already filtered to what is available)
+ALLOWED EXERCISES (use only these ids; equipment is already filtered to what is available).
+Ids marked * are the app's core exercises with a Dutch how-to guide: build the program mainly from those and use the others for variety or when they suit the person better.
 ${catalogue}
 
 TRAINING HISTORY (most recent sessions per exercise, weight x reps)

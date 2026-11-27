@@ -5,7 +5,9 @@ Working agreements for this repository.
 ## Language
 
 - Code, identifiers and code comments: **English**.
-- UI text and every text the user sees (engine explanations, errors, exercise names and guides): **Dutch**. Weights use a decimal comma (42,5 kg).
+- UI text and every text the user sees (engine explanations, errors, curated exercise names and guides): **Dutch**.
+  Weights use a decimal comma (42,5 kg). Exception: exercises imported from free-exercise-db keep their
+  English names and instructions.
 - Documentation (`README.md`, `CHANGELOG.md`): **Dutch**.
 
 ## Stack
@@ -35,9 +37,15 @@ Working agreements for this repository.
 
 ## Exercise library
 
-- `server/services/exercises.ts` is the only list programs may use. Every exercise needs a Dutch guide in
-  `exerciseGuide.ts` with two photos in `web/public/exercises/` (from free-exercise-db, public domain);
-  `server/tests/exercises.test.ts` enforces this.
+- `server/services/exercises.ts`: `CURATED` (67 exercises), `LIBRARY` (curated plus all of free-exercise-db)
+  and `EXERCISES` (programmable: what programs, swaps and the AI may use). Rule-based templates only pick
+  from `CURATED` (`pickForPattern`).
+- Every curated exercise needs a Dutch guide in `exerciseGuide.ts` with two photos in
+  `web/public/exercises/`; `server/tests/exercises.test.ts` enforces this.
+- Imported exercises (`freeExerciseDb.ts`) come from `server/data/free-exercise-db.json`, pinned to a commit of
+  `x-real-ip/free-exercise-db` by `npm run import:exercises`. Their names and instructions stay English, on
+  purpose; photos load from the fork at the same commit. Pattern, load type and start factor are derived by
+  `classifyPattern` and friends; add a case to the classification test when changing them.
 
 ## Progression engine
 

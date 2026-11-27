@@ -2,22 +2,74 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { EXERCISES } from '../services/exercises.ts';
+import { CURATED, EXERCISES, LIBRARY, pickForPattern } from '../services/exercises.ts';
+import { classifyPattern, PHOTO_BASE } from '../services/freeExerciseDb.ts';
 import { GUIDES } from '../services/exerciseGuide.ts';
 
 const publicDir = path.resolve(import.meta.dirname, '../../web/public');
 
-test('every exercise has a Dutch name, steps and two bundled photos', () => {
-  for (const ex of EXERCISES) {
+test('every curated exercise has a Dutch name, steps and two bundled photos', () => {
+  for (const ex of CURATED) {
     assert.ok(GUIDES[ex.id], `${ex.id} has a guide`);
     assert.ok(ex.steps.length >= 2, `${ex.id} has steps`);
     assert.equal(ex.photos.length, 2, `${ex.id} has two photos`);
     for (const p of ex.photos) assert.ok(fs.existsSync(path.join(publicDir, p)), `${p} exists`);
   }
-  assert.deepEqual(Object.keys(GUIDES).sort(), EXERCISES.map((e) => e.id).sort(), 'no guides for unknown exercises');
+  assert.deepEqual(Object.keys(GUIDES).sort(), CURATED.map((e) => e.id).sort(), 'no guides for unknown exercises');
 });
 
-test('display names are unique', () => {
+test('ids and display names are unique across the library', () => {
+  const ids = LIBRARY.map((e) => e.id);
+  assert.equal(new Set(ids).size, ids.length);
   const names = EXERCISES.map((e) => e.name);
   assert.equal(new Set(names).size, names.length);
+});
+
+test('the whole free-exercise-db list is in the library', () => {
+  const imported = LIBRARY.filter((e) => e.source === 'free-exercise-db');
+  // 876 in the pinned import, minus the entries a curated exercise replaces.
+  const replaced = new Set(Object.values(GUIDES).filter((g) => !g.similar).map((g) => g.photo));
+  assert.equal(imported.length + replaced.size, 876);
+  assert.ok(!imported.some((e) => replaced.has(e.id)), 'curated exercises replace their database entry');
+  for (const e of imported) assert.ok(e.photos.every((p) => p.startsWith(PHOTO_BASE)), `${e.id} photos come from the pinned fork`);
+  // A handful of database entries have no instructions or photos; the guide says so.
+  assert.ok(imported.filter((e) => e.steps.length === 0).length <= 10);
+  assert.ok(imported.filter((e) => e.photos.length < 2).length <= 10);
+  for (const c of ['stretching', 'cardio', 'plyometrics', 'olympic', 'strongman'] as const) {
+    assert.ok(imported.some((e) => e.category === c), `${c} is in the library`);
+    assert.ok(!imported.some((e) => e.category === c && e.programmable), `${c} is never programmable`);
+  }
+});
+
+test('programmable imported exercises are complete', () => {
+  const imported = EXERCISES.filter((e) => e.source === 'free-exercise-db');
+  assert.ok(imported.length > 300, `${imported.length} imported exercises are programmable`);
+  for (const e of imported) {
+    assert.ok(e.pattern && e.loadType && e.startFactor >= 0, e.id);
+    assert.ok(!e.otherEquipment, `${e.id} needs only profile equipment`);
+    assert.ok(!/clean|snatch|jerk|jump|chains/i.test(e.name), `${e.id} is not an explosive or special-setup lift`);
+  }
+});
+
+test('classification of imported exercises', () => {
+  const c = (name: string, primary: string, force: 'push' | 'pull' | 'static' | null = 'pull', mechanic: 'compound' | 'isolation' | null = 'compound') =>
+    classifyPattern({ name, primaryMuscles: [primary], force, mechanic });
+  assert.equal(c('Smith Machine Bent Over Row', 'lats'), 'horizontal_pull', '"machine" is not a chin-up');
+  assert.equal(c('V-Bar Pulldown', 'lats'), 'vertical_pull');
+  assert.equal(c('Decline Dumbbell Flyes', 'chest', 'push', 'isolation'), 'chest_iso');
+  assert.equal(c('Wide-Grip Barbell Bench Press', 'chest', 'push'), 'horizontal_push');
+  assert.equal(c('Floor Press', 'triceps', 'push'), 'horizontal_push');
+  assert.equal(c('Tricep Dumbbell Kickback', 'triceps', 'push', 'isolation'), 'triceps');
+  assert.equal(c('Seated Leg Curl', 'hamstrings', 'pull', 'isolation'), 'hamstring_iso');
+  assert.equal(c('Sumo Deadlift', 'hamstrings'), 'hinge');
+  assert.equal(c('Barbell Walking Lunge', 'quadriceps', 'push'), 'lunge');
+  assert.equal(c('Barbell Shrug', 'traps'), null);
+});
+
+test('rule-based templates only pick curated exercises', () => {
+  const all = ['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'pullup_bar', 'bench', 'bands'] as const;
+  for (const pattern of new Set(EXERCISES.map((e) => e.pattern))) {
+    const pick = pickForPattern(pattern, [...all], new Set());
+    if (pick) assert.equal(pick.source, 'overload', `${pattern} picks ${pick.id}`);
+  }
 });

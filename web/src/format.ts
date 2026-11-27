@@ -1,4 +1,4 @@
-import type { Decision, Equipment, MovementPattern, MuscleGroup } from '@shared/types.ts';
+import type { Decision, Equipment, ExerciseCategory, ExerciseLevel, LibraryExercise, MovementPattern, MuscleGroup } from '@shared/types.ts';
 
 export function kg(weight: number): string {
   // Dutch decimal comma: 42,5.
@@ -69,6 +69,28 @@ export const MUSCLE_LABEL: Record<MuscleGroup, string> = {
   triceps: 'Triceps',
   calves: 'Kuiten',
   core: 'Buik en core',
+  lower_back: 'Onderrug',
+  traps: 'Trapezius',
+  forearms: 'Onderarmen',
+  adductors: 'Adductoren',
+  abductors: 'Abductoren',
+  neck: 'Nek',
+};
+
+export const CATEGORY_LABEL: Record<ExerciseCategory, string> = {
+  strength: 'Kracht',
+  powerlifting: 'Powerlifting',
+  olympic: 'Olympisch gewichtheffen',
+  strongman: 'Strongman',
+  plyometrics: 'Plyometrie',
+  stretching: 'Rekken',
+  cardio: 'Cardio',
+};
+
+export const LEVEL_LABEL: Record<ExerciseLevel, string> = {
+  beginner: 'beginner',
+  intermediate: 'gevorderd',
+  expert: 'expert',
 };
 
 /** Display labels such as "A1" and "A2" for superset members; null for straight sets. */
@@ -95,8 +117,16 @@ export const EQUIPMENT_LABEL: Record<Equipment, string> = {
 };
 
 /** "Barbell, Bank", or "Geen apparatuur" for bodyweight-only exercises. */
-export function equipmentText(equipment: Equipment[]): string {
-  return equipment.filter((e) => e !== 'bodyweight').map((e) => EQUIPMENT_LABEL[e]).join(', ') || 'Geen apparatuur';
+export function equipmentText(equipment: Equipment[], other?: string): string {
+  const names = equipment.filter((e) => e !== 'bodyweight').map((e) => EQUIPMENT_LABEL[e]);
+  if (other) names.push(other);
+  return names.join(', ') || 'Geen apparatuur';
+}
+
+/** Bodyweight is always available; everything else must be in the profile. Unknown gear never is. */
+export function hasEquipment(ex: LibraryExercise, equipment: Equipment[] | null): boolean {
+  if (!equipment) return true;
+  return !ex.otherEquipment && ex.equipment.every((e) => e === 'bodyweight' || equipment.includes(e));
 }
 
 export const PATTERN_LABEL: Record<MovementPattern, string> = {

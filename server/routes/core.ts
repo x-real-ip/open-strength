@@ -1,3 +1,4 @@
+import zlib from 'node:zlib';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppInfo } from '../../shared/types.ts';
@@ -5,7 +6,7 @@ import { checkPassword, clearFailures, loginAllowed, logout, oidcCallback, oidcL
 import { config } from '../config.ts';
 import { aiConfigured, getAiSettings } from '../services/aiSettings.ts';
 import { databaseReady } from '../db.ts';
-import { EXERCISES } from '../services/exercises.ts';
+import { LIBRARY } from '../services/exercises.ts';
 import { getProfile, saveProfile } from '../services/profile.ts';
 
 export async function coreRoutes(app: FastifyInstance) {
@@ -53,7 +54,14 @@ export async function coreRoutes(app: FastifyInstance) {
 
   app.post('/api/auth/logout', async (req, reply) => ({ ok: true, redirect: await logout(req, reply) }));
 
-  app.get('/api/exercises', async () => EXERCISES);
+  // The library (~900 exercises with steps) is fixed per release: serialize and gzip it once.
+  const library = JSON.stringify(LIBRARY);
+  const libraryGz = zlib.gzipSync(library);
+  app.get('/api/exercises', async (req, reply) => {
+    reply.type('application/json; charset=utf-8').header('vary', 'accept-encoding');
+    if (/\bgzip\b/.test(String(req.headers['accept-encoding'] ?? ''))) return reply.header('content-encoding', 'gzip').send(libraryGz);
+    return reply.send(library);
+  });
 
   app.get('/api/profile', async () => ({ profile: await getProfile() }));
   app.put('/api/profile', async (req) => ({ profile: await saveProfile(req.body) }));
