@@ -1,7 +1,7 @@
 // Service worker: caches the app shell so the app opens without a connection,
 // and keeps the last response of read-only API calls as an offline fallback.
 // Writes (logged sets) are queued by the app itself and retried when back online.
-const VERSION = 'overload-v3';
+const VERSION = 'overload-v4';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {
@@ -20,7 +20,26 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
-  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (req.method !== 'GET') return;
+
+  // Photos of imported exercises live in the free-exercise-db fork, pinned to a commit: cache first.
+  if (url.origin === 'https://raw.githubusercontent.com' && url.pathname.endsWith('.jpg')) {
+    event.respondWith(
+      caches.match(req).then(
+        (hit) =>
+          hit ||
+          fetch(req).then((res) => {
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(VERSION).then((c) => c.put(req, copy));
+            }
+            return res;
+          }),
+      ),
+    );
+    return;
+  }
+  if (url.origin !== self.location.origin) return;
 
   // Exports and backups are always live.
   if (url.pathname.startsWith('/api/export') || url.pathname.startsWith('/api/backups')) return;

@@ -1,11 +1,11 @@
 // The exercise library rarely changes, so it is loaded once per page load and shared.
 import { useEffect, useState } from 'react';
-import type { ExerciseDef } from '@shared/types.ts';
+import type { LibraryExercise } from '@shared/types.ts';
 import { api } from './api.ts';
 
-let cache: Promise<ExerciseDef[]> | null = null;
+let cache: Promise<LibraryExercise[]> | null = null;
 
-export function loadExercises(): Promise<ExerciseDef[]> {
+export function loadExercises(): Promise<LibraryExercise[]> {
   cache ??= api.exercises().catch((err) => {
     cache = null;
     throw err;
@@ -14,8 +14,8 @@ export function loadExercises(): Promise<ExerciseDef[]> {
 }
 
 /** The library as a map by id; null while loading. */
-export function useExercises(): Map<string, ExerciseDef> | null {
-  const [map, setMap] = useState<Map<string, ExerciseDef> | null>(null);
+export function useExercises(): Map<string, LibraryExercise> | null {
+  const [map, setMap] = useState<Map<string, LibraryExercise> | null>(null);
   useEffect(() => {
     let live = true;
     loadExercises()

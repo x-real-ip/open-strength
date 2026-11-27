@@ -136,7 +136,10 @@ export async function getStats(weeks = 12): Promise<StatsResponse> {
     add(def.primary, 1);
     def.secondary.forEach((m) => add(m, 0.5));
   }
-  const muscleOrder: MuscleGroup[] = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'glutes', 'biceps', 'triceps', 'calves', 'core'];
+  const muscleOrder: MuscleGroup[] = [
+    'chest', 'back', 'shoulders', 'quads', 'hamstrings', 'glutes', 'biceps', 'triceps', 'calves', 'core',
+    'lower_back', 'traps', 'forearms', 'adductors', 'abductors', 'neck',
+  ];
   const muscles = muscleOrder
     .filter((m) => muscleTotals.has(m))
     .map((m) => ({

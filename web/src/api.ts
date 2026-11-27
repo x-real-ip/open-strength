@@ -6,6 +6,7 @@ import type {
   CoachMessage,
   ExerciseDef,
   ExerciseHistory,
+  LibraryExercise,
   Profile,
   Program,
   ProgramExplanation,
@@ -47,7 +48,7 @@ export const api = {
   login: (password: string) => request<{ ok: true }>('POST', '/api/auth/login', { password }),
   logout: () => request<{ ok: true; redirect: string | null }>('POST', '/api/auth/logout'),
 
-  exercises: () => request<ExerciseDef[]>('GET', '/api/exercises'),
+  exercises: () => request<LibraryExercise[]>('GET', '/api/exercises'),
   profile: () => request<{ profile: Profile | null }>('GET', '/api/profile'),
   saveProfile: (p: Profile) => request<{ profile: Profile }>('PUT', '/api/profile', p),
 

@@ -273,7 +273,8 @@ export async function exerciseAlternatives(peId: number, profile: Profile) {
   const pe = await getProgramExercise(peId);
   if (!pe) return [];
   const inDay = (await all<{ exercise_id: string }>('SELECT exercise_id FROM program_exercises WHERE program_day_id = $1', [pe.program_day_id])).map((r) => r.exercise_id);
-  return alternativesFor(pe.exercise_id, profile.equipment, inDay).slice(0, 8);
+  // The sheet shows the best few and searches the rest.
+  return alternativesFor(pe.exercise_id, profile.equipment, inDay).slice(0, 60);
 }
 
 /** Swap an exercise in the program; sets/reps stay, the target is re-derived from history. */
