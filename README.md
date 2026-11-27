@@ -1,170 +1,176 @@
 # Overload
 
-Persoonlijke, self-hosted krachttrainingsapp: AI-gegenereerde trainingsprogramma's, sets loggen met één tik per set, en automatische progressive overload op basis van wat je echt getraind hebt. Mobile-first, donker thema, installeerbaar als PWA. Draait in het homelab-cluster met PostgreSQL (CloudNativePG) en wordt uitgerold via [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops).
+A personal, self-hosted strength training app: AI-designed training programs, logging with one tap per set, and automatic progressive overload based on what you actually trained. Mobile-first, dark theme, installable as a PWA. Runs in the homelab cluster with PostgreSQL (CloudNativePG) and is deployed through [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops).
 
-## Inhoud
+## Contents
 
-- [Wat de app doet](#wat-de-app-doet)
-- [Uitrollen](#uitrollen)
-- [Authentik koppelen](#authentik-koppelen)
-- [Lokaal ontwikkelen](#lokaal-ontwikkelen)
-- [Configuratie](#configuratie)
-- [Back-up, export en migratie](#back-up-export-en-migratie)
-- [Hoe de progressie werkt](#hoe-de-progressie-werkt)
-- [Architectuur](#architectuur)
+- [What the app does](#what-the-app-does)
+- [Deployment](#deployment)
+- [Connecting Authentik](#connecting-authentik)
+- [Local development](#local-development)
+- [Configuration](#configuration)
+- [Backup, export and migration](#backup-export-and-migration)
+- [How progression works](#how-progression-works)
+- [Architecture](#architecture)
 
-## Wat de app doet
+## What the app does
 
-- **Nederlands**: de hele app, inclusief de uitleg bij elk advies. Gewichten met een komma (42,5 kg).
-- **Profiel**: niveau, doel (standaard spiermassa), trainingsdagen, sessieduur (standaard 30 minuten), apparatuur, beperkingen en gewichtsstappen per type (barbell, dumbbell, machine, cable, kettlebell).
-- **Oefeningenbibliotheek**: de app kent 886 oefeningen. De kern is een gecureerde lijst van 67 oefeningen met Nederlandse naam en uitleg, primaire en secundaire spiergroep, bewegingspatroon, apparatuur en type belasting. Daarnaast staat de volledige [free-exercise-db](https://github.com/x-real-ip/free-exercise-db) erin (eigen fork, publiek domein), met Engelse namen en uitleg: ook rekken, cardio, plyometrie, olympisch gewichtheffen en strongman. Je ziet ze allemaal onder **Oefeningen** in het menu onderin, met zoeken en filters op spiergroep, soort en je apparatuur. Per oefening zie je op welke dagen hij in je programma staat en hoe vaak je hem al deed (en wanneer het laatst). Met *In mijn programma* zie je je oefeningen per trainingsdag, met *Gedaan* alles wat je al getraind hebt, het vaakst gedane eerst. In de uitleg van een oefening staan ook je sets en herhalingen in het programma en je zwaarste set.
-- **Welke oefeningen in een programma kunnen**: het regelgebaseerde programma kiest uit de 67 vaste oefeningen en je favorieten. Bij het wisselen van een oefening en in AI-programma's kunnen ook zo'n 375 krachtoefeningen uit free-exercise-db. Voor die oefeningen leidt de app bewegingspatroon, type belasting en een voorzichtig startgewicht af uit naam, apparatuur en spieren. Explosieve lifts (cleans, snatches, jumps) en varianten met kettingen of reverse bands blijven buiten programma's. Rekken, cardio en de rest zijn alleen om te bekijken.
-- **Jouw keuze: favorieten en "niet gebruiken"**: in de bibliotheek maak je met de ster een oefening favoriet. In de uitleg van een oefening, of vanuit je programma, kies je *Niet gebruiken*. Favorieten komen in je volgende schema waar ze passen, bij de AI en bij het regelgebaseerde programma, ook als ze uit de import komen. Een oefening op "niet gebruiken" komt nooit meer in een schema en wordt niet meer aangeboden bij wisselen. Staat hij nu in je programma, dan vervangt de app hem meteen door het beste alternatief. Met de filters *Favorieten* en *Niet gebruiken* zie je je keuze in één oogopslag. Bij het wisselen zoek je in alle oefeningen en kun je de oude oefening meteen op "nooit meer gebruiken" zetten.
-- **Hoe doe je dit?**: elke oefening heeft stappen en twee foto's (begin- en eindpositie) die als korte animatie afwisselen. De foto's van de 67 vaste oefeningen zitten in de app zelf en werken altijd offline. Die van de overige oefeningen laadt de app uit de fork op GitHub en bewaart ze na de eerste keer, zodat ze daarna ook offline werken.
-- **Programma's**: door de AI ontworpen (bijvoorbeeld full body A/B met supersets voor sessies van 30 minuten), gevalideerd en waar nodig gerepareerd. Is het AI-antwoord onbruikbaar of is er geen AI, dan komt er een regelgebaseerd programma. Programma's hebben weken en een deloadweek. Op de programmapagina zie je **hoe het programma is opgebouwd** (schema, keuze van oefeningen, sets en herhalingen bij je doel, startgewichten, progressie, deload) en kun je **vooruitkijken** door het hele blok, met per training de geplande gewichten en de volgende stap.
-- **Supersets**: bij sessies van 45 minuten of korter koppelt de app oefeningen die elkaar niet in de weg zitten (duwen met trekken, benen met bovenlichaam). Je doet een set van de ene, direct een set van de andere, en rust dan.
-- **Training loggen**: het Vandaag-scherm toont de volgende trainingsdag. Gewicht en herhalingen staan vooringevuld, dus één tik per set. RIR is optioneel. De rusttimer start vanzelf, met piep en trilling. Na de laatste set (of de ronde van een superset) ga je door naar de volgende oefening. Per oefening zie je wat je vorige keer deed.
-- **Offline-first**: sets worden eerst op de telefoon opgeslagen (IndexedDB) en gesynchroniseerd zodra er verbinding is.
-- **Na afloop**: een samenvatting met per oefening het advies voor de volgende sessie, met uitleg in gewone taal.
-- **AI-coach**: chat die je echte trainingsdata meekrijgt. De coach mag gewichten uitleggen maar bepaalt ze niet. Een advies van de coach zet je met één knop om in een aangepast programma.
-- **Statistieken**: geschatte 1RM per oefening, volume per week, sets per spiergroep per week (recent tegenover de periode daarvoor), persoonlijke records en stagnatiedetectie.
-- **Data**: export als JSON (alles) en CSV (sets), import van een JSON-export.
+- **English or Dutch**: English by default; pick Dutch under Profile → Language. Everything follows that choice: screens, the advice and explanations from the progression engine, rule-based programs, errors and the language the AI writes in. Text the app stores (engine advice, names of rule-based programs) keeps both languages, so switching also applies to what is already there. Weights use a decimal point in English (42.5 kg) and a comma in Dutch (42,5 kg).
+- **Profile**: level, goal (muscle growth by default), training days, session length (30 minutes by default), equipment, limitations and weight steps per type (barbell, dumbbell, machine, cable, kettlebell).
+- **Exercise library**: the app knows 886 exercises. The core is a curated list of 67 exercises with an English and Dutch name and how-to, primary and secondary muscle group, movement pattern, equipment and load type. On top of that the whole [free-exercise-db](https://github.com/x-real-ip/free-exercise-db) is included (own fork, public domain) with its English names and instructions: also stretching, cardio, plyometrics, Olympic weightlifting and strongman. You find them all under **Exercises** in the bottom menu, with search and filters on muscle group, type and your equipment. Each exercise shows which days of your program it is on and how often you have done it (and when last). *In my program* shows your exercises per training day, *Done* everything you have trained, most done first. An exercise's page also shows its sets and reps in the program and your heaviest set.
+- **Which exercises can be in a program**: the rule-based program picks from the 67 core exercises and your favourites. When you swap an exercise, and in AI programs, about 375 strength exercises from free-exercise-db can be used too. For those the app derives the movement pattern, load type and a careful starting weight from name, equipment and muscles. Explosive lifts (cleans, snatches, jumps) and variants with chains or reverse bands stay out of programs. Stretching, cardio and the rest are for viewing only.
+- **Your choice: favourites and "never use"**: tap the star in the library to make an exercise a favourite. On an exercise's page, or from your program, choose *Never use*. Favourites go into your next schedule where they fit, with the AI and with the rule-based program, also when they come from the import. An exercise set to "never use" never goes into a schedule again and is no longer offered when swapping. If it is in your program now, the app replaces it right away with the best alternative. The *Favourites* and *Never use* filters show your choices at a glance. When swapping you search all exercises and can set the old exercise to "never use again" in one go.
+- **How do you do this?**: every exercise has steps and two photos (start and end position) that alternate like a short animation. The photos of the 67 core exercises ship with the app and always work offline. Those of the other exercises load from the fork on GitHub and are kept after the first view, so they work offline from then on.
+- **Programs**: designed by the AI (for example full body A/B with supersets for 30-minute sessions), validated and repaired where needed. If the AI answer is unusable or there is no AI, a rule-based program is made. Programs have weeks and a deload week. The program page shows **how the program was built** (schedule, exercise choice, sets and reps for your goal, starting weights, progression, deload) and lets you **look ahead** through the whole block, with the planned weights and the next step per workout.
+- **Supersets**: for sessions of 45 minutes or less the app pairs exercises that do not get in each other's way (push with pull, legs with upper body). You do a set of one, straight away a set of the other, and then rest. They are labelled A1/A2, B1/B2 and so on.
+- **Logging a workout**: the Today screen shows the next training day. Weight and reps are prefilled, so it is one tap per set. RIR is optional. The rest timer starts by itself, with a beep and vibration. After the last set (or the round of a superset) you move on to the next exercise. Each exercise shows what you did last time.
+- **Offline first**: sets are stored on the phone first (IndexedDB) and synced as soon as there is a connection.
+- **Afterwards**: a summary with the advice for the next session per exercise, explained in plain language.
+- **AI coach**: a chat that gets your real training data. The coach may explain weights but never sets them. One button turns the coach's advice into an adjusted program.
+- **Statistics**: estimated 1RM per exercise, volume per week, sets per muscle group per week (recent versus the period before), personal records and stall detection.
+- **Data**: export as JSON (everything) and CSV (sets), import of a JSON export.
 
-AI is optioneel: zonder sleutel werkt alles, alleen zonder AI.
+AI is optional: without a key everything works, just without AI.
 
-- **AI-instellingen** (Profiel → AI-instellingen en verbruik): aanbieder, model, API-sleutel, hoeveel het model nadenkt (apart voor de coach en voor programma's) en een maandbudget. Deze instellingen staan in de database en gaan voor de omgevingsvariabelen; die zijn alleen nog de standaard. De sleutel gaat nooit naar de browser. Met *Verbinding testen* controleer je sleutel en model.
-- **Verbruik**: elke AI-aanroep wordt bijgehouden met tokens en geschatte kosten (op basis van de prijslijst). Je ziet deze maand, per onderdeel, per dag en de laatste aanroepen. Is het maandbudget op, dan stopt de AI tot de volgende maand en valt de app terug op regelgebaseerde programma's.
+- **AI settings** (Profile → AI settings and usage): provider, model, API key, how much the model thinks (separately for the coach and for programs) and a monthly budget. These settings live in the database and take precedence over the environment variables, which are only the defaults. The key is never sent to the browser. *Test connection* checks key and model.
+- **Usage**: every AI call is recorded with tokens and estimated cost (from the price list). You see this month, per feature, per day and the latest calls. When the monthly budget is used up, the AI stops until next month and the app falls back to rule-based programs.
 
-## Uitrollen
+## Deployment
 
-De manifests staan in [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops) onder `manifests/overload/`, niet in deze repo. Daar staan ook de database (CloudNativePG), de migrate-initContainer en de SealedSecrets.
+The manifests live in [`x-real-ip/gitops`](https://github.com/x-real-ip/gitops) under `manifests/overload/`, not in this repo. That is also where the database (CloudNativePG), the migrate init container and the SealedSecrets are.
 
-In het kort: een release-tag `v1.2.3` bouwt image `ghcr.io/x-real-ip/overload:1.2.3`, de workflow stuurt een dispatch naar de gitops-repo, die zet de tag in de overlay, en Argo CD rolt uit.
+In short: a release tag `v1.2.3` builds image `ghcr.io/x-real-ip/overload:1.2.3`, the workflow sends a dispatch to the gitops repo, which pins the tag in the overlay, and Argo CD rolls it out.
 
-## Authentik koppelen
+## Connecting Authentik
 
-Er zijn twee manieren. De app hoeft er niet voor aangepast te worden; het is alleen configuratie.
+There are two ways. The app needs no changes for either; it is only configuration.
 
-### Optie A: OIDC (aanbevolen)
+### Option A: OIDC (recommended)
 
-De app doet zelf de OpenID Connect-login (authorization code + PKCE, via `openid-client`). Dit werkt met elke gateway en er is geen outpost nodig.
+The app does the OpenID Connect login itself (authorization code + PKCE, through `openid-client`). This works with any gateway and needs no outpost.
 
 1. **Authentik → Applications → Providers → Create → OAuth2/OpenID Provider**
    - Client type: *Confidential*
    - Redirect URI (strict): `https://fitness.lan.stamx.nl/api/auth/oidc/callback`
-   - Signing key: je standaardcertificaat
-   - Scopes: de standaard *openid*, *email* en *profile* (profile levert ook `groups`)
-   - Laat *Include claims in id_token* aan staan
-2. **Applications → Create**: naam *Overload*, slug `overload`, en koppel de provider. Wil je alleen jezelf toelaten, bind dan een groep of gebruiker aan de applicatie, of gebruik `ALLOWED_USERS`/`ALLOWED_GROUPS`.
-3. Zet in de gitops-repo (`manifests/overload/base/`):
-   - in `configmap.yaml`: `AUTH_MODE: "oidc"` en `OIDC_CLIENT_ID: "<client id uit de provider>"`. `OIDC_ISSUER_URL` staat al op `https://auth.lan.stamx.nl/application/o/overload/`.
-   - in `sealedsecret.yaml`: het verzegelde `OIDC_CLIENT_SECRET` (scope `cluster-wide`, controller `sealed-secrets` in `kube-system`).
-4. Merge de PR. Het inlogscherm toont nu *Sign in with Authentik*. Uitloggen beëindigt ook de Authentik-sessie (RP-initiated logout).
+   - Signing key: your default certificate
+   - Scopes: the default *openid*, *email* and *profile* (profile also provides `groups`)
+   - Leave *Include claims in id_token* on
+2. **Applications → Create**: name *Overload*, slug `overload`, and attach the provider. To only let yourself in, bind a group or user to the application, or use `ALLOWED_USERS`/`ALLOWED_GROUPS`.
+3. In the gitops repo (`manifests/overload/base/`) set:
+   - in `configmap.yaml`: `AUTH_MODE: "oidc"` and `OIDC_CLIENT_ID: "<client id from the provider>"`. `OIDC_ISSUER_URL` is already `https://auth.lan.stamx.nl/application/o/overload/`.
+   - in `sealedsecret.yaml`: the sealed `OIDC_CLIENT_SECRET` (scope `cluster-wide`, controller `sealed-secrets` in `kube-system`).
+4. Merge the PR. The login screen now shows *Sign in with Authentik*. Signing out also ends the Authentik session (RP-initiated logout).
 
-`auth.lan.stamx.nl` heeft een certificaat van de interne Stamx CA. De deployment mount die CA (ConfigMap `stamx-ca`) en zet `NODE_EXTRA_CA_CERTS`, zodat de app het certificaat vertrouwt.
+`auth.lan.stamx.nl` has a certificate from the internal Stamx CA. The deployment mounts that CA (ConfigMap `stamx-ca`) and sets `NODE_EXTRA_CA_CERTS`, so the app trusts the certificate.
 
-### Optie B: forward-auth / proxy-outpost
+### Option B: forward auth / proxy outpost
 
-Een Authentik proxy-outpost staat vóór de app en geeft de gebruiker door in headers (`X-authentik-username`, `-email` en `-groups`). Zet `AUTH_MODE: proxy`. Uitloggen gaat naar `/outpost.goauthentik.io/sign_out`.
+An Authentik proxy outpost sits in front of the app and passes the user on in headers (`X-authentik-username`, `-email` and `-groups`). Set `AUTH_MODE: proxy`. Signing out goes to `/outpost.goauthentik.io/sign_out`.
 
-Let op: in deze modus vertrouwt de app de headers blind. Dat is alleen veilig als niets anders dan de outpost de app kan bereiken. Gateway API heeft geen standaard forward-auth; met NGINX Gateway Fabric is optie A daarom de eenvoudigste route.
+Note: in this mode the app trusts the headers blindly. That is only safe if nothing but the outpost can reach the app. Gateway API has no standard forward auth; with NGINX Gateway Fabric option A is therefore the simplest route.
 
-### Tot Authentik klaar is
+### Until Authentik is ready
 
-`AUTH_MODE: password` met `APP_PASSWORD` in `overload-secrets`. Zo start de clusterconfiguratie ook.
+`AUTH_MODE: password` with `APP_PASSWORD` in `overload-secrets`. That is also how the cluster configuration starts.
 
-## Lokaal ontwikkelen
+## Local development
 
-Vereist Node.js 22.18 of nieuwer (de server draait TypeScript direct, zonder buildstap) en een Postgres naar keuze:
+Requires Node.js 22.18 or newer (the server runs TypeScript directly, without a build step) and a Postgres of your choice:
 
 ```bash
 npm install && npm --prefix web install
 export DATABASE_URL=postgres://overload:change-me@localhost:5432/overload
-npm run migrate              # migraties los draaien (idempotent)
-npm run dev                  # API op :8080 (migreert ook zelf bij het opstarten)
-npm --prefix web run dev     # frontend op :5173, stuurt /api door naar :8080
-npm test                     # start per testbestand een tijdelijke embedded Postgres
-npm run typecheck            # server en PWA
-npm run build                # bouwt de PWA naar web/dist
-npm run seed:demo            # vult een LEGE database met ~5 weken demotrainingen
+npm run migrate              # run migrations on their own (idempotent)
+npm run dev                  # API on :8080 (also migrates on start)
+npm --prefix web run dev     # frontend on :5173, proxies /api to :8080
+npm test                     # starts a temporary embedded Postgres per test file
+npm run typecheck            # server and PWA
+npm run build                # builds the PWA into web/dist
+npm run seed:demo            # fills an EMPTY database with ~5 weeks of demo workouts
+npm run import:exercises     # re-import free-exercise-db from the fork (optionally a ref)
 ```
 
-`npm test` heeft geen draaiende database nodig. Wil je een bestaande testdatabase gebruiken, zet dan `TEST_DATABASE_URL`. Let op: het `public`-schema daarvan wordt gewist.
+`npm test` needs no running database. To use an existing test database, set `TEST_DATABASE_URL`. Note: its `public` schema is wiped.
 
-Afspraken voor wie (of wat) aan de code werkt staan in [`CLAUDE.md`](CLAUDE.md).
+Agreements for whoever (or whatever) works on the code are in [`CLAUDE.md`](CLAUDE.md).
 
-## Configuratie
+## Configuration
 
-Alle instellingen zijn omgevingsvariabelen. Voor lokaal staan ze in `.env.example`; in het cluster komen ze uit ConfigMap `overload-config` en Secret `overload-secrets`.
+All settings are environment variables. For local use they are in `.env.example`; in the cluster they come from ConfigMap `overload-config` and Secret `overload-secrets`.
 
-| Variabele | Betekenis |
+| Variable | Meaning |
 |---|---|
-| `PORT`, `LOG_LEVEL` | Poort (standaard 8080) en logniveau (`info`, `debug`, …) |
-| `APP_URL` | Publieke URL, nodig voor OIDC-redirects (oude naam `PUBLIC_URL` werkt ook) |
-| `DATABASE_URL` of `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE` | Postgres-verbinding |
-| `DB_SSL`, `DB_SSL_VERIFY`, `DB_POOL_SIZE` | TLS naar Postgres, connection pool |
-| `MIGRATE_ON_START` | Migraties bij het opstarten (standaard `true`; in het cluster `false`, daar doet de initContainer het) |
-| `AUTH_MODE` | `none`, `password`, `proxy` of `oidc` |
-| `SESSION_SECRET`, `SESSION_DAYS` | Ondertekening en duur van sessies. Zonder secret maakt de app er een aan in de database |
-| `APP_PASSWORD` | Wachtwoord voor `password`-modus |
-| `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_SCOPES`, `OIDC_PROVIDER_NAME` | OIDC-modus (oude naam `OIDC_ISSUER` werkt ook) |
-| `NODE_EXTRA_CA_CERTS` | Extra CA voor uitgaande TLS, zoals de Stamx CA voor Authentik |
-| `PROXY_USER_HEADER`, `PROXY_EMAIL_HEADER`, `PROXY_GROUPS_HEADER`, `PROXY_LOGOUT_URL` | Proxy-modus (standaard de Authentik-headers) |
-| `ALLOWED_USERS`, `ALLOWED_GROUPS` | Optionele allowlists (kommagescheiden) voor `oidc` en `proxy`. `ALLOWED_USERS` matcht op gebruikersnaam of e-mailadres |
-| `AI_PROVIDER` | `anthropic` (Claude, standaard) of `openai` (elke OpenAI-compatibele API, ook Ollama, LM Studio of LiteLLM). Net als de andere `AI_*`-variabelen alleen de standaard: de AI-instellingen in de app gaan voor |
-| `ANTHROPIC_API_KEY` of `AI_API_KEY` | AI-sleutel; blijft op de server |
-| `AI_MODEL`, `AI_BASE_URL` | Model (standaard `claude-sonnet-5-5`, of `gpt-4o-mini` voor `openai`) en endpoint |
-| `AI_LANGUAGE` | Taal van door de AI geschreven programmateksten. De coach antwoordt in de taal van je vraag |
+| `PORT`, `LOG_LEVEL` | Port (8080 by default) and log level (`info`, `debug`, …) |
+| `APP_URL` | Public URL, needed for OIDC redirects (the old name `PUBLIC_URL` also works) |
+| `DATABASE_URL` or `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE` | Postgres connection |
+| `DB_SSL`, `DB_SSL_VERIFY`, `DB_POOL_SIZE` | TLS to Postgres, connection pool |
+| `MIGRATE_ON_START` | Run migrations on start (`true` by default; `false` in the cluster, where the init container does it) |
+| `AUTH_MODE` | `none`, `password`, `proxy` or `oidc` |
+| `SESSION_SECRET`, `SESSION_DAYS` | Signing and lifetime of sessions. Without a secret the app creates one in the database |
+| `APP_PASSWORD` | Password for `password` mode |
+| `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_SCOPES`, `OIDC_PROVIDER_NAME` | OIDC mode (the old name `OIDC_ISSUER` also works) |
+| `NODE_EXTRA_CA_CERTS` | Extra CA for outbound TLS, such as the Stamx CA for Authentik |
+| `PROXY_USER_HEADER`, `PROXY_EMAIL_HEADER`, `PROXY_GROUPS_HEADER`, `PROXY_LOGOUT_URL` | Proxy mode (the Authentik headers by default) |
+| `ALLOWED_USERS`, `ALLOWED_GROUPS` | Optional allowlists (comma-separated) for `oidc` and `proxy`. `ALLOWED_USERS` matches the username or email address |
+| `AI_PROVIDER` | `anthropic` (Claude, the default) or `openai` (any OpenAI-compatible API, including Ollama, LM Studio or LiteLLM). Like the other `AI_*` variables only a default: the AI settings in the app take precedence |
+| `ANTHROPIC_API_KEY` or `AI_API_KEY` | AI key; stays on the server |
+| `AI_MODEL`, `AI_BASE_URL` | Model (`claude-sonnet-5-5` by default, or `gpt-4o-mini` for `openai`) and endpoint |
 
-Zonder AI-sleutel werkt alles behalve de AI-functies: programma's worden dan regelgebaseerd opgebouwd en de coach toont berekende feiten uit je trainingshistorie.
+The language the AI writes in follows the language in the profile; `AI_LANGUAGE` is no longer used.
 
-## Back-up, export en migratie
+Without an AI key everything except the AI features works: programs are then rule-based and the coach shows facts calculated from your training history.
 
-- **Database**: in het cluster draait Postgres als CloudNativePG-cluster `overload-db` op een TrueNAS-volume. Een handmatige dump: `kubectl -n tools exec overload-db-1 -- pg_dump -Fc -U postgres overload > overload.dump`.
-- **Exports in de app** (Profile → Data): JSON met alles, en CSV met alle sets. Een JSON-export importeer je via *Import from export file*. Dat vervangt alle data.
-- **Migratie vanaf 1.0 (SQLite)**: exporteer in de oude versie via *Export everything* en importeer dat bestand. Booleans en JSON-velden worden automatisch omgezet, en de id-reeksen lopen daarna gewoon door.
+## Backup, export and migration
 
-## Hoe de progressie werkt
+- **Database**: in the cluster Postgres runs as CloudNativePG cluster `overload-db` on a TrueNAS volume. A manual dump: `kubectl -n tools exec overload-db-1 -- pg_dump -Fc -U postgres overload > overload.dump`.
+- **Exports in the app** (Profile → Data): JSON with everything (including your favourites and "never use" marks), and CSV with all sets. You import a JSON export with *Import from an export file*. That replaces all data.
+- **Migrating from 1.0 (SQLite)**: export in the old version with *Export everything* and import that file. Booleans and JSON fields are converted automatically, and the id sequences simply carry on.
 
-Gewichten worden **nooit door de AI bepaald**. Na elke training berekent een deterministische engine (`server/services/progression.ts`) per oefening het advies, uitsluitend op basis van gelogde sets (double progression):
+## How progression works
 
-- **Verhogen**: alle voorgeschreven sets op of boven de bovengrens van de rep range, zonder set tot falen (RIR 0). Dat geeft één gewichtsstap omhoog, of twee als alle sets de bovengrens met 2+ reps overschreden met ruime reserve. Daarna bouw je weer op vanaf de ondergrens.
-- **Behouden**: nog niet alle sets aan de bovenkant, een set tot falen, of niet alle sets gedaan. Het doel per set wordt dan +1 rep. Voorbeeld: 12/11/10 op 40 kg bij 8–12 reps geeft "blijf op 40 kg, mik op 12/12/11".
-- **Verlagen**: twee sessies op rij onder het minimum op hetzelfde gewicht, of direct als het duidelijk te zwaar is (gemiddeld 2+ reps onder het minimum). Het gewicht gaat dan ongeveer 10% omlaag, afgerond op je gewichtsstappen.
-- **Lichaamsgewicht**: progressie via reps. Bij de bovengrens adviseert de app een zwaardere variant of extra belasting.
-- **Deloadweek**: minder sets op ±90% van het werkgewicht. Deze sessies veranderen je doelen niet.
-- **Stagnatie**: geen vooruitgang in geschatte 1RM (of reps) over drie sessies wordt gemeld op het Vandaag-scherm en meegegeven aan de AI bij een nieuw programma.
+Weights are **never decided by the AI**. After every workout a deterministic engine (`server/services/progression.ts`) works out the advice per exercise, based only on logged sets (double progression):
 
-Dezelfde oefening met dezelfde rep range op verschillende trainingsdagen deelt één progressie. Bij een nieuw programma nemen oefeningen met historie hun opgebouwde gewicht mee; bij een andere rep range wordt dat herberekend via een geschatte 1RM. Startgewichten van de AI worden begrensd rond een schatting op basis van lichaamsgewicht en niveau.
+- **Increase**: all prescribed sets at or above the top of the rep range, without a set to failure (RIR 0). That is one weight step up, or two if all sets went past the top by 2+ reps with plenty in reserve. You then build up again from the bottom of the range.
+- **Hold**: not all sets at the top yet, a set to failure, or not all sets done. The target per set becomes +1 rep. Example: 12/11/10 at 40 kg with 8–12 reps gives "stay at 40 kg and aim for 12/12/11".
+- **Decrease**: two sessions in a row below the minimum at the same weight, or right away if it is clearly too heavy (on average 2+ reps below the minimum). The weight then drops by about 10%, rounded to your weight steps.
+- **Bodyweight**: progression through reps. At the top of the range the app suggests a harder variation or added load.
+- **Deload week**: fewer sets at about 90% of the working weight. These sessions do not change your targets.
+- **Stalling**: no progress in estimated 1RM (or reps) over three sessions is flagged on the Today screen and passed to the AI for a new program.
 
-## Architectuur
+The same exercise with the same rep range on different training days shares one progression. In a new program, exercises with history carry over the weight you built up; with a different rep range it is recalculated through an estimated 1RM. AI starting weights are capped around an estimate based on body weight and level.
+
+## Architecture
 
 ```
-server/                   Fastify API (TypeScript, Node 22+), serveert ook de gebouwde PWA
-  index.ts                start de server
-  migrate.ts              los migratiecommando (npm run migrate, initContainer)
-  config.ts               omgevingsvariabelen
-  db.ts                   PostgreSQL-pool, migraties met advisory lock, query-helpers
-  auth.ts                 none / password / proxy / oidc, ondertekende sessiecookie, allowlists
-  routes/                 core (health, auth, profiel), programs, workouts, insights, data
+server/                   Fastify API (TypeScript, Node 22+), also serves the built PWA
+  index.ts                starts the server
+  migrate.ts              standalone migration command (npm run migrate, init container)
+  config.ts               environment variables
+  db.ts                   PostgreSQL pool, migrations with an advisory lock, query helpers
+  auth.ts                 none / password / proxy / oidc, signed session cookie, allowlists
+  i18n.ts                 English/Dutch server text, stored text in both languages
+  routes/                 core (health, auth, profile), programs, workouts, insights, data, settings
   services/
-    progression.ts        progressive-overload-engine
-    programGenerator.ts   AI-programma's: prompt, validatie, reparatie, retry, fallback
-    programTemplates.ts   regelgebaseerde programma's en superset-koppeling
-    programs.ts           opslag, doelen per oefening, oefening wisselen, supersets normaliseren
-    exercises.ts          de bibliotheek: 67 vaste oefeningen plus de import, en wat in een programma mag
-    freeExerciseDb.ts     free-exercise-db inlezen en krachtoefeningen indelen naar patroon en belasting
-    exercisePrefs.ts      favorieten en "niet gebruiken"; uitgesloten oefeningen uit het programma wisselen
-  data/free-exercise-db.json  de geïmporteerde lijst, vastgezet op één commit van de fork
-  scripts/importExercises.ts  npm run import:exercises [ref]: de lijst opnieuw ophalen uit de fork
-    workouts.ts           training starten, sets opslaan (idempotent), afronden en advies
-    stats.ts              statistieken, stagnatiedetectie, historie voor AI
-    coach.ts              AI-coach met trainingscontext
-    dataExport.ts         JSON/CSV-export en -import (ook v1-formaat)
-  tests/                  node:test met embedded Postgres en een lokale OIDC-provider
-shared/types.ts           gedeelde types server/frontend
+    progression.ts        progressive overload engine
+    programGenerator.ts   AI programs: prompt, validation, repair, retry, fallback
+    programTemplates.ts   rule-based programs and superset pairing
+    programExplain.ts     "how it was built", from the same rules
+    programs.ts           storage, targets per exercise, swapping exercises, normalizing supersets
+    exercises.ts          the library: 67 core exercises plus the import, and what programs may use
+    exerciseGuide.ts      Dutch names and how-to of the core exercises (English: exerciseGuideEn.ts)
+    freeExerciseDb.ts     reads free-exercise-db and classifies strength exercises by pattern and load
+    exercisePrefs.ts      favourites and "never use"; swapping excluded exercises out of the program
+    workouts.ts           starting a workout, saving sets (idempotent), finishing and advice
+    stats.ts              statistics, stall detection, history for the AI
+    coach.ts              AI coach with training context
+    dataExport.ts         JSON/CSV export and import (also the v1 format)
+  data/free-exercise-db.json  the imported list, pinned to one commit of the fork
+  scripts/importExercises.ts  npm run import:exercises [ref]: fetch the list again from the fork
+  tests/                  node:test with embedded Postgres and a local OIDC provider
+shared/types.ts           types shared by server and frontend
 web/                      React + Vite PWA
-  src/offlineStore.ts     IndexedDB-wachtrij voor sets die nog niet op de server staan
+  src/i18n.ts             UI language: t('English', 'Nederlands') in place
+  src/offlineStore.ts     IndexedDB queue for sets not yet on the server
 ```
 
-Een training afronden wacht tot alle sets gesynchroniseerd zijn. `GET /healthz` geeft `{"status":"ok","database":"ok"}`, of status 503 als de database niet antwoordt.
+Finishing a workout waits until all sets are synced. `GET /healthz` returns `{"status":"ok","database":"ok"}`, or status 503 when the database does not answer.

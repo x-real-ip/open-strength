@@ -119,7 +119,7 @@ test('favourites are marked in the prompt; excluded exercises are left out and s
   const prompt = requests[before].body.messages[0].content as string;
   assert.match(prompt, /^♥ Box_Squat \|/m);
   assert.doesNotMatch(prompt, /^(\* )?barbell_bench_press \|/m);
-  assert.match(prompt, /never wants these exercises.*Bankdrukken \(barbell\)/);
+  assert.match(prompt, /never wants these exercises.*Barbell bench press/);
   // The fake model still answers with barbell_bench_press: the app swaps it for an allowed press.
   const first = res.json().program.days[0].exercises[0];
   assert.notEqual(first.exerciseId, 'barbell_bench_press');
@@ -140,7 +140,7 @@ test('unusable AI output falls back to the template program after one retry', as
   const res = await app.inject({ method: 'POST', url: '/api/programs/generate', payload: {} });
   assert.equal(res.statusCode, 200);
   assert.equal(res.json().program.source, 'template');
-  assert.match(res.json().notice, /niet bruikbaar/);
+  assert.match(res.json().notice, /not usable/);
   assert.equal(requests.length - before, 2);
 });
 
@@ -213,7 +213,7 @@ test('settings page: the key is stored but never returned; model, effort and bud
   const before = requests.length;
   const blocked = await app.inject({ method: 'POST', url: '/api/coach/messages', payload: { content: 'Nog een vraag' } });
   assert.equal(blocked.statusCode, 503);
-  assert.match(blocked.json().error, /maandbudget/);
+  assert.match(blocked.json().error, /monthly AI budget/);
   assert.equal(requests.length, before);
 
   // Removing the app key falls back to the server key.

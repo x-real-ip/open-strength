@@ -4,9 +4,10 @@ import { z } from 'zod';
 import type { AppInfo } from '../../shared/types.ts';
 import { checkPassword, clearFailures, loginAllowed, logout, oidcCallback, oidcLoginRedirect, passwordLogin, recordFailure } from '../auth.ts';
 import { config } from '../config.ts';
+import { langOf, UserError } from '../i18n.ts';
 import { aiConfigured, getAiSettings } from '../services/aiSettings.ts';
 import { databaseReady } from '../db.ts';
-import { LIBRARY } from '../services/exercises.ts';
+import { libraryFor } from '../services/exercises.ts';
 import { getProfile, saveProfile } from '../services/profile.ts';
 
 export async function coreRoutes(app: FastifyInstance) {
@@ -27,15 +28,16 @@ export async function coreRoutes(app: FastifyInstance) {
     user: req.user ?? null,
     oidcProviderName: config.auth.oidcProviderName,
     version: config.version,
+    language: langOf(await getProfile().catch(() => null)),
   }));
 
   app.post('/api/auth/login', async (req, reply) => {
-    if (config.auth.mode !== 'password') return reply.code(400).send({ error: 'Inloggen met een wachtwoord staat uit' });
+    if (config.auth.mode !== 'password') throw new UserError(400, 'Password login is turned off', 'Inloggen met een wachtwoord staat uit');
     const { password } = z.object({ password: z.string() }).parse(req.body);
-    if (!loginAllowed(req.ip)) return reply.code(429).send({ error: 'Te veel pogingen. Probeer het over 15 minuten opnieuw.' });
+    if (!loginAllowed(req.ip)) throw new UserError(429, 'Too many attempts. Try again in 15 minutes.', 'Te veel pogingen. Probeer het over 15 minuten opnieuw.');
     if (!checkPassword(password)) {
       recordFailure(req.ip);
-      return reply.code(401).send({ error: 'Verkeerd wachtwoord' });
+      throw new UserError(401, 'Wrong password', 'Verkeerd wachtwoord');
     }
     clearFailures(req.ip);
     passwordLogin(req, reply);
@@ -54,13 +56,20 @@ export async function coreRoutes(app: FastifyInstance) {
 
   app.post('/api/auth/logout', async (req, reply) => ({ ok: true, redirect: await logout(req, reply) }));
 
-  // The library (~900 exercises with steps) is fixed per release: serialize and gzip it once.
-  const library = JSON.stringify(LIBRARY);
-  const libraryGz = zlib.gzipSync(library);
+  // The library (~900 exercises with steps) is fixed per release: serialize and gzip it once per language.
+  // The language is in the URL (?lang=) so caches keep one copy per language.
+  const library = Object.fromEntries(
+    (['en', 'nl'] as const).map((l) => {
+      const json = JSON.stringify(libraryFor(l));
+      return [l, { json, gz: zlib.gzipSync(json) }];
+    }),
+  ) as Record<'en' | 'nl', { json: string; gz: Buffer }>;
   app.get('/api/exercises', async (req, reply) => {
+    const { lang } = z.object({ lang: z.enum(['en', 'nl']).optional() }).parse(req.query);
+    const body = library[lang ?? langOf(await getProfile())];
     reply.type('application/json; charset=utf-8').header('vary', 'accept-encoding');
-    if (/\bgzip\b/.test(String(req.headers['accept-encoding'] ?? ''))) return reply.header('content-encoding', 'gzip').send(libraryGz);
-    return reply.send(library);
+    if (/\bgzip\b/.test(String(req.headers['accept-encoding'] ?? ''))) return reply.header('content-encoding', 'gzip').send(body.gz);
+    return reply.send(body.json);
   });
 
   app.get('/api/profile', async () => ({ profile: await getProfile() }));

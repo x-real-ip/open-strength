@@ -26,10 +26,6 @@ export function floorToStep(weight: number, step: number): number {
   return clean(Math.max(0, Math.floor(weight / step + 1e-9) * step));
 }
 
-export function formatKg(weight: number): string {
-  // Dutch decimal comma: 42,5 kg.
-  return `${(Number.isInteger(weight) ? String(weight) : weight.toFixed(2).replace(/0$/, '')).replace('.', ',')} kg`;
-}
 
 /** Epley estimated one-rep max. Only meaningful for loaded sets with reps in a sane range. */
 export function e1rm(weight: number, reps: number): number {

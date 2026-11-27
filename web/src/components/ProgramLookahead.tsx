@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Program, ProgramExplanation } from '@shared/types.ts';
 import { kg, repRange, supersetLabels } from '../format.ts';
+import { t } from '../i18n.ts';
 import { addStep, deloadPreview } from '../workoutMath.ts';
 
 interface Session {
@@ -22,7 +23,7 @@ function sessionsOf(program: Program): Session[] {
   }));
 }
 
-const STATUS: Record<Session['status'], string> = { done: 'gedaan', next: 'volgende', planned: 'gepland' };
+const status = (s: Session['status']) => ({ done: t('done', 'gedaan'), next: t('next', 'volgende'), planned: t('planned', 'gepland') })[s];
 
 export function ProgramLookahead({ program }: { program: Program }) {
   const sessions = sessionsOf(program);
@@ -30,13 +31,16 @@ export function ProgramLookahead({ program }: { program: Program }) {
   const weeks = Array.from({ length: program.weeks }, (_, w) => sessions.filter((s) => s.week === w + 1));
 
   if (program.isComplete) {
-    return <p className="muted">Dit blok is afgerond. Maak het volgende blok op het Vandaag-scherm.</p>;
+    return <p className="muted">{t('This block is done. Make the next block on the Today screen.', 'Dit blok is afgerond. Maak het volgende blok op het Vandaag-scherm.')}</p>;
   }
 
   return (
     <div className="stack">
       <p className="faint small" style={{ margin: 0 }}>
-        Gewichten in latere weken zijn je huidige doelen. Ze gaan omhoog zodra je de bovenkant van de herhalingen haalt; de volgende stap staat erbij.
+        {t(
+          'Weights in later weeks are your current targets. They go up once you reach the top of the rep range; the next step is shown.',
+          'Gewichten in latere weken zijn je huidige doelen. Ze gaan omhoog zodra je de bovenkant van de herhalingen haalt; de volgende stap staat erbij.',
+        )}
       </p>
       {weeks.map((list, w) => {
         const week = w + 1;
@@ -47,10 +51,10 @@ export function ProgramLookahead({ program }: { program: Program }) {
             <div className="spread" style={{ marginBottom: 8 }}>
               <h3>
                 Week {week}
-                {week === program.currentWeek ? ' (nu)' : ''}
+                {week === program.currentWeek ? t(' (now)', ' (nu)') : ''}
               </h3>
               {deload && <span className="tag deload">Deload</span>}
-              {allDone && <span className="faint small">afgerond</span>}
+              {allDone && <span className="faint small">{t('done', 'afgerond')}</span>}
             </div>
             {!allDone && (
               <div className="list">
@@ -65,7 +69,7 @@ export function ProgramLookahead({ program }: { program: Program }) {
                             {day.name}
                           </div>
                           <div className="sub">
-                            Training {s.index + 1} van {sessions.length}, {STATUS[s.status]}
+                            {t(`Workout ${s.index + 1} of ${sessions.length}`, `Training ${s.index + 1} van ${sessions.length}`)}, {status(s.status)}
                           </div>
                         </div>
                         <span className="faint" aria-hidden="true">
@@ -102,15 +106,20 @@ function SessionPreview({ program, dayIndex, deload }: { program: Program; dayIn
             </div>
             <div className="small muted">
               {shown.sets} × {repRange(e.repMin, e.repMax)}
-              {bw ? ', lichaamsgewicht' : ` op ${kg(shown.weight)} kg`}
+              {bw ? t(', bodyweight', ', lichaamsgewicht') : t(` at ${kg(shown.weight)} kg`, ` op ${kg(shown.weight)} kg`)}
               {e.weightNote && !bw ? ` ${e.weightNote}` : ''}
             </div>
             {!deload && !bw && e.increment > 0 && (
               <div className="small faint">
-                Volgende stap: {kg(addStep(weight, e.increment, 1))} kg zodra je {e.sets} × {e.repMax} haalt
+                {t(
+                  `Next step: ${kg(addStep(weight, e.increment, 1))} kg once you hit ${e.sets} × ${e.repMax}`,
+                  `Volgende stap: ${kg(addStep(weight, e.increment, 1))} kg zodra je ${e.sets} × ${e.repMax} haalt`,
+                )}
               </div>
             )}
-            {!deload && bw && <div className="small faint">Volgende stap: meer herhalingen, tot {e.sets} × {e.repMax}</div>}
+            {!deload && bw && (
+              <div className="small faint">{t(`Next step: more reps, up to ${e.sets} × ${e.repMax}`, `Volgende stap: meer herhalingen, tot ${e.sets} × ${e.repMax}`)}</div>
+            )}
           </div>
         );
       })}
@@ -124,9 +133,9 @@ export function ProgramExplanationView({ sections }: { sections: ProgramExplanat
       {sections.map((s) => (
         <section key={s.title} className="panel stack" style={{ gap: 8 }}>
           <h3>{s.title}</h3>
-          {s.text.map((t) => (
-            <p key={t} className="small" style={{ margin: 0 }}>
-              {t}
+          {s.text.map((line) => (
+            <p key={line} className="small" style={{ margin: 0 }}>
+              {line}
             </p>
           ))}
           {s.bullets && (

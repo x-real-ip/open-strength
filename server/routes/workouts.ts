@@ -8,7 +8,7 @@ const idParam = z.object({ id: z.coerce.number() });
 export async function workoutRoutes(app: FastifyInstance) {
   app.get('/api/today', async () => getToday(await getProfile()));
 
-  app.get('/api/workouts', async () => ({ workouts: await listWorkouts() }));
+  app.get('/api/workouts', async () => ({ workouts: await listWorkouts(await getProfile()) }));
 
   app.post('/api/workouts', async (req) => {
     const { programDayId } = z.object({ programDayId: z.number().int() }).parse(req.body);

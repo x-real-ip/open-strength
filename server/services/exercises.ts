@@ -2,10 +2,12 @@
 // list (freeExerciseDb.ts). Programs may only use programmable exercises (EXERCISES), so history,
 // statistics and weight steps stay consistent. Rule-based templates only pick curated ones.
 import type { Equipment, ExerciseDef, LibraryExercise, MovementPattern, MuscleGroup } from '../../shared/types.ts';
+import type { Lang } from '../i18n.ts';
 import { GUIDES } from './exerciseGuide.ts';
+import { GUIDES_EN } from './exerciseGuideEn.ts';
 import { freeExerciseDb } from './freeExerciseDb.ts';
 
-// `name` here is the English working name; the Dutch display name, steps and photos come from GUIDES.
+// Everything here is English; `localizeExercise` swaps in the Dutch name, steps and notes from GUIDES.
 type Def = Omit<ExerciseDef, 'secondary' | 'steps' | 'photos' | 'photoNote' | 'category' | 'source' | 'programmable'> & {
   secondary?: MuscleGroup[];
 };
@@ -21,7 +23,7 @@ const defs: Def[] = [
   { id: 'close_grip_bench_press', name: 'Close-grip bench press', primary: 'triceps', secondary: ['chest'], equipment: ['barbell', 'bench'], loadType: 'barbell', pattern: 'triceps', compound: true, startFactor: 0.4 },
 
   // Chest isolation
-  { id: 'cable_fly', name: 'Cable fly', primary: 'chest', equipment: ['cable'], loadType: 'cable', pattern: 'chest_iso', compound: false, startFactor: 0.08, weightNote: 'per kant' },
+  { id: 'cable_fly', name: 'Cable fly', primary: 'chest', equipment: ['cable'], loadType: 'cable', pattern: 'chest_iso', compound: false, startFactor: 0.08, weightNote: 'per side' },
   { id: 'dumbbell_fly', name: 'Dumbbell fly', primary: 'chest', equipment: ['dumbbell', 'bench'], loadType: 'dumbbell', pattern: 'chest_iso', compound: false, startFactor: 0.07, weightNote: 'per hand' },
   { id: 'pec_deck', name: 'Pec deck', primary: 'chest', equipment: ['machine'], loadType: 'machine', pattern: 'chest_iso', compound: false, startFactor: 0.3 },
 
@@ -59,7 +61,7 @@ const defs: Def[] = [
   { id: 'front_squat', name: 'Front squat', primary: 'quads', secondary: ['glutes', 'core'], equipment: ['barbell'], loadType: 'barbell', pattern: 'squat', compound: true, startFactor: 0.45 },
   { id: 'leg_press', name: 'Leg press', primary: 'quads', secondary: ['glutes'], equipment: ['machine'], loadType: 'machine', pattern: 'squat', compound: true, startFactor: 1.0 },
   { id: 'hack_squat', name: 'Hack squat', primary: 'quads', secondary: ['glutes'], equipment: ['machine'], loadType: 'machine', pattern: 'squat', compound: true, startFactor: 0.5 },
-  { id: 'goblet_squat', name: 'Goblet squat', primary: 'quads', secondary: ['glutes', 'core'], equipment: ['dumbbell'], loadType: 'dumbbell', pattern: 'squat', compound: true, startFactor: 0.25, weightNote: 'één dumbbell' },
+  { id: 'goblet_squat', name: 'Goblet squat', primary: 'quads', secondary: ['glutes', 'core'], equipment: ['dumbbell'], loadType: 'dumbbell', pattern: 'squat', compound: true, startFactor: 0.25, weightNote: 'one dumbbell' },
   { id: 'kettlebell_goblet_squat', name: 'Kettlebell goblet squat', primary: 'quads', secondary: ['glutes', 'core'], equipment: ['kettlebell'], loadType: 'kettlebell', pattern: 'squat', compound: true, startFactor: 0.2 },
   { id: 'bodyweight_squat', name: 'Bodyweight squat', primary: 'quads', secondary: ['glutes'], equipment: ['bodyweight'], loadType: 'bodyweight', pattern: 'squat', compound: true, startFactor: 0 },
 
@@ -91,7 +93,7 @@ const defs: Def[] = [
   { id: 'cable_curl', name: 'Cable curl', primary: 'biceps', equipment: ['cable'], loadType: 'cable', pattern: 'biceps', compound: false, startFactor: 0.15 },
   { id: 'band_curl', name: 'Band curl', primary: 'biceps', equipment: ['bands'], loadType: 'bodyweight', pattern: 'biceps', compound: false, startFactor: 0 },
   { id: 'triceps_pushdown', name: 'Triceps pushdown', primary: 'triceps', equipment: ['cable'], loadType: 'cable', pattern: 'triceps', compound: false, startFactor: 0.2 },
-  { id: 'overhead_triceps_extension', name: 'Overhead dumbbell triceps extension', primary: 'triceps', equipment: ['dumbbell'], loadType: 'dumbbell', pattern: 'triceps', compound: false, startFactor: 0.12, weightNote: 'één dumbbell' },
+  { id: 'overhead_triceps_extension', name: 'Overhead dumbbell triceps extension', primary: 'triceps', equipment: ['dumbbell'], loadType: 'dumbbell', pattern: 'triceps', compound: false, startFactor: 0.12, weightNote: 'one dumbbell' },
   { id: 'skull_crusher', name: 'EZ-bar skull crusher', primary: 'triceps', equipment: ['barbell', 'bench'], loadType: 'barbell', pattern: 'triceps', compound: false, startFactor: 0.2 },
   { id: 'bench_dip', name: 'Bench dip', primary: 'triceps', secondary: ['chest'], equipment: ['bench'], loadType: 'bodyweight', pattern: 'triceps', compound: false, startFactor: 0 },
   { id: 'band_pushdown', name: 'Band triceps pushdown', primary: 'triceps', equipment: ['bands'], loadType: 'bodyweight', pattern: 'triceps', compound: false, startFactor: 0 },
@@ -112,10 +114,9 @@ export const CURATED: ExerciseDef[] = defs.map((d) => {
     category: 'strength',
     source: 'overload',
     programmable: true,
-    name: g?.name ?? d.name,
-    steps: g?.steps ?? [],
+    steps: GUIDES_EN[d.id]?.steps ?? [],
     photos: g ? [`/exercises/${g.photo}-0.webp`, `/exercises/${g.photo}-1.webp`] : [],
-    photoNote: g?.similar,
+    photoNote: GUIDES_EN[d.id]?.similar,
   };
 });
 
@@ -131,6 +132,35 @@ export const EXERCISES: ExerciseDef[] = LIBRARY.filter((e): e is ExerciseDef => 
 
 const byId = new Map(EXERCISES.map((e) => [e.id, e]));
 const libraryById = new Map(LIBRARY.map((e) => [e.id, e]));
+
+const WEIGHT_NOTE_NL: Record<string, string> = { 'per hand': 'per hand', 'per side': 'per kant', 'one dumbbell': 'één dumbbell' };
+
+/**
+ * The exercise in the given language. Curated exercises have a Dutch name, steps and photo note;
+ * imported ones keep their English text in both languages.
+ */
+export function localizeExercise<T extends LibraryExercise>(ex: T, lang: Lang): T {
+  if (lang === 'en') return ex;
+  const g = ex.source === 'overload' ? GUIDES[ex.id] : undefined;
+  return {
+    ...ex,
+    ...(g ? { name: g.name, steps: g.steps, photoNote: g.similar } : {}),
+    ...(ex.weightNote ? { weightNote: WEIGHT_NOTE_NL[ex.weightNote] ?? ex.weightNote } : {}),
+  };
+}
+
+/** Display name in the given language; the id itself for exercises no longer in the library. */
+export function exerciseName(id: string, lang: Lang): string {
+  const ex = libraryById.get(id);
+  return ex ? localizeExercise(ex, lang).name : id;
+}
+
+const localized: Record<Lang, LibraryExercise[]> = { en: LIBRARY, nl: LIBRARY.map((e) => localizeExercise(e, 'nl')) };
+
+/** The whole library in the given language, curated first. */
+export function libraryFor(lang: Lang): LibraryExercise[] {
+  return localized[lang];
+}
 
 export function getLibraryExercise(id: string): LibraryExercise | undefined {
   return libraryById.get(id);

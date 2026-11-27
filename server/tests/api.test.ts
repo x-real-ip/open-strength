@@ -181,7 +181,7 @@ test('full flow: profile, program, workout, progression, stats, export', async (
 
   const coach = await call('POST', '/api/coach/messages', { content: 'How am I doing?' });
   assert.equal(coach.status, 200);
-  assert.match(coach.body.messages[1].content, /AI staat uit/);
+  assert.match(coach.body.messages[1].content, /AI is off/);
 });
 
 test('imports an export from the SQLite-based version 1.0', async () => {
@@ -241,12 +241,45 @@ test('the active program explains how it was built and which day is next', async
   const { program, explanation } = res.body;
   assert.equal(program.nextDayIndex, 0, 'no workouts done in this program yet');
   const titles = explanation.map((s: any) => s.title);
-  for (const t of ['Wie het heeft gemaakt', 'Schema', 'Oefeningen per training', 'Sets, herhalingen en rust', 'Startgewichten', 'Hoe de gewichten veranderen', 'Deloadweek']) {
+  for (const t of ['Who made it', 'Schedule', 'Exercises per session', 'Sets, reps and rest', 'Starting weights', 'How weights change', 'Deload week']) {
     assert.ok(titles.includes(t), `has section ${t}`);
   }
-  const sets = explanation.find((s: any) => s.title === 'Sets, herhalingen en rust');
+  const sets = explanation.find((s: any) => s.title === 'Sets, reps and rest');
   assert.ok(sets.bullets.some((b: string) => b.includes('3 × 8–12')), 'hypertrophy compound scheme');
   assert.ok(sets.bullets.some((b: string) => b.includes('superset')), 'superset rest is explained for 30-minute sessions');
-  const perSession = explanation.find((s: any) => s.title === 'Oefeningen per training');
+  const perSession = explanation.find((s: any) => s.title === 'Exercises per session');
   assert.equal(perSession.bullets.length, program.days.length, 'one line per training day');
+});
+
+test('everything the user sees follows the language in the profile', async () => {
+  const en = (await call('GET', '/api/programs/active')).body.program;
+  assert.match(en.name, / for muscle growth$/);
+  assert.equal((await call('GET', '/api/info')).body.language, 'en');
+
+  const current = (await call('GET', '/api/profile')).body.profile;
+  assert.equal(current.language, 'en', 'English by default');
+  assert.equal((await call('PUT', '/api/profile', { ...current, language: 'nl' })).status, 200);
+  assert.equal((await call('GET', '/api/info')).body.language, 'nl');
+
+  // The same stored program now reads in Dutch: name, days, engine advice, explanation.
+  const { program, explanation } = (await call('GET', '/api/programs/active')).body;
+  assert.match(program.name, / voor spiermassa$/);
+  assert.notEqual(program.days[0].focus, en.days[0].focus, 'day focus is stored in both languages');
+  assert.ok(program.days.flatMap((d: any) => d.exercises).some((e: any) => /Eerste schatting|Meegenomen|Geschat|lichaamsgewicht/.test(e.target.reason)));
+  assert.ok(explanation.some((s: any) => s.title === 'Wie het heeft gemaakt'));
+  const bench = program.days.flatMap((d: any) => d.exercises).find((e: any) => e.exerciseId === 'barbell_bench_press');
+  if (bench) assert.equal(bench.name, 'Bankdrukken (barbell)');
+
+  // The library: Dutch names and steps for curated exercises, English for imported ones.
+  const nl = (await app.inject({ method: 'GET', url: '/api/exercises?lang=nl' })).json();
+  assert.equal(nl.find((e: any) => e.id === 'barbell_bench_press').name, 'Bankdrukken (barbell)');
+  assert.equal(nl.find((e: any) => e.id === 'Box_Squat').name, 'Box Squat');
+  const enLib = (await app.inject({ method: 'GET', url: '/api/exercises?lang=en' })).json();
+  assert.equal(enLib.find((e: any) => e.id === 'barbell_bench_press').name, 'Barbell bench press');
+  assert.match(enLib.find((e: any) => e.id === 'barbell_bench_press').steps[0], /^Lie on the bench/);
+
+  // Errors too.
+  assert.match((await call('POST', '/api/import/json', { foo: 1 })).body.error, /geen exportbestand/);
+  assert.equal((await call('PUT', '/api/profile', { ...current, language: 'en' })).status, 200);
+  assert.match((await call('POST', '/api/import/json', { foo: 1 })).body.error, /not an Overload export/);
 });

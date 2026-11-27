@@ -9,6 +9,7 @@ import type {
   ExercisePreference,
   ExercisePreferences,
   ExerciseUsage,
+  Language,
   LibraryExercise,
   PreferenceUpdate,
   Profile,
@@ -20,6 +21,7 @@ import type {
   WorkoutSummary,
 } from '@shared/types.ts';
 import { deletePending, getPending, keyOf, pendingAll, putPending, type PendingSet } from './offlineStore.ts';
+import { t } from './i18n.ts';
 
 export class ApiError extends Error {
   status: number;
@@ -39,11 +41,11 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError('Geen verbinding met de server', 0);
+    throw new ApiError(t('No connection to the server', 'Geen verbinding met de server'), 0);
   }
   if (res.status === 401) window.dispatchEvent(new Event('overload:unauthorized'));
   const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
-  if (!res.ok) throw new ApiError(data?.error ?? `Verzoek mislukt (${res.status})`, res.status);
+  if (!res.ok) throw new ApiError(data?.error ?? t(`Request failed (${res.status})`, `Verzoek mislukt (${res.status})`), res.status);
   return data as T;
 }
 
@@ -52,7 +54,7 @@ export const api = {
   login: (password: string) => request<{ ok: true }>('POST', '/api/auth/login', { password }),
   logout: () => request<{ ok: true; redirect: string | null }>('POST', '/api/auth/logout'),
 
-  exercises: () => request<LibraryExercise[]>('GET', '/api/exercises'),
+  exercises: (lang: Language) => request<LibraryExercise[]>('GET', `/api/exercises?lang=${lang}`),
   profile: () => request<{ profile: Profile | null }>('GET', '/api/profile'),
   saveProfile: (p: Profile) => request<{ profile: Profile }>('PUT', '/api/profile', p),
 

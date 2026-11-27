@@ -3,8 +3,9 @@ import type { ExercisePreference } from '@shared/types.ts';
 import { preferenceMessage, preferenceOf, setPreference, usePreferences } from '../preferences.ts';
 import { IconBan, IconStar } from './Icons.tsx';
 import { toast } from './ui.tsx';
+import { t } from '../i18n.ts';
 
-/** "Favoriet" and "Niet gebruiken" toggles for one exercise. */
+/** "Favourite" and "Never use" toggles for one exercise. */
 export function PreferenceButtons({ exerciseId, onChanged }: { exerciseId: string; onChanged?: (mark: ExercisePreference | null) => void }) {
   const prefs = usePreferences();
   const [busy, setBusy] = useState(false);
@@ -24,14 +25,14 @@ export function PreferenceButtons({ exerciseId, onChanged }: { exerciseId: strin
   };
 
   return (
-    <div className="pref-buttons" role="group" aria-label="Jouw keuze">
+    <div className="pref-buttons" role="group" aria-label={t('Your choice', 'Jouw keuze')}>
       <button type="button" className="favorite" aria-pressed={mark === 'favorite'} disabled={busy || !prefs} onClick={() => toggle('favorite')}>
         <IconStar size={18} filled={mark === 'favorite'} />
-        Favoriet
+        {t('Favourite', 'Favoriet')}
       </button>
       <button type="button" className="excluded" aria-pressed={mark === 'excluded'} disabled={busy || !prefs} onClick={() => toggle('excluded')}>
         <IconBan size={18} />
-        Niet gebruiken
+        {t('Never use', 'Niet gebruiken')}
       </button>
     </div>
   );
@@ -41,16 +42,16 @@ export function PreferenceButtons({ exerciseId, onChanged }: { exerciseId: strin
 export function PreferenceMark({ mark }: { mark: ExercisePreference | null }) {
   if (mark === 'favorite')
     return (
-      <span className="pref-mark favorite" title="Favoriet">
+      <span className="pref-mark favorite" title={t('Favourite', 'Favoriet')}>
         <IconStar size={15} filled />
-        <span className="sr-only">Favoriet</span>
+        <span className="sr-only">{t('Favourite', 'Favoriet')}</span>
       </span>
     );
   if (mark === 'excluded')
     return (
-      <span className="pref-mark excluded" title="Niet gebruiken">
+      <span className="pref-mark excluded" title={t('Never use', 'Niet gebruiken')}>
         <IconBan size={15} />
-        <span className="sr-only">Niet gebruiken</span>
+        <span className="sr-only">{t('Never use', 'Niet gebruiken')}</span>
       </span>
     );
   return null;

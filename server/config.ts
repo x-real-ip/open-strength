@@ -102,8 +102,6 @@ export const config = {
     apiKey: str('AI_API_KEY') ?? str('ANTHROPIC_API_KEY') ?? str('OPENAI_API_KEY') ?? '',
     baseUrl: (str('AI_BASE_URL') ?? (provider === 'anthropic' ? 'https://api.anthropic.com' : 'https://api.openai.com/v1')).replace(/\/$/, ''),
     model: str('AI_MODEL') ?? (provider === 'anthropic' ? 'claude-sonnet-5-5' : 'gpt-4o-mini'),
-    /** Language for AI-written text such as program rationale and exercise notes. */
-    language: str('AI_LANGUAGE') ?? 'Dutch',
     // Thinking models can take a while to design a program.
     timeoutMs: num('AI_TIMEOUT_MS', 180_000),
   },

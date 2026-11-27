@@ -2,7 +2,8 @@
 // excluded exercises are never generated, offered as a swap, or left in the active program.
 import type { ExercisePreference, ExercisePreferences, PreferenceUpdate, Profile } from '../../shared/types.ts';
 import { all, getPool, nowIso, run, type Queryable } from '../db.ts';
-import { alternativesFor, getExercise, type Prefs } from './exercises.ts';
+import { langOf, pick, UserError } from '../i18n.ts';
+import { alternativesFor, exerciseName, getExercise, type Prefs } from './exercises.ts';
 import { activeProgramId, replaceExercise } from './programs.ts';
 
 export async function getPreferences(db: Queryable = getPool()): Promise<ExercisePreferences> {
@@ -28,7 +29,7 @@ export async function loadPrefs(): Promise<Prefs> {
  */
 export async function setPreference(exerciseId: string, preference: ExercisePreference | null, profile: Profile | null): Promise<PreferenceUpdate> {
   const def = getExercise(exerciseId);
-  if (!def) throw Object.assign(new Error('Alleen oefeningen die in een programma kunnen, kun je markeren'), { status: 400 });
+  if (!def) throw new UserError(400, 'Only exercises that can be in a program can be marked', 'Alleen oefeningen die in een programma kunnen, kun je markeren');
 
   if (preference) {
     await run(
@@ -57,11 +58,12 @@ export async function setPreference(exerciseId: string, preference: ExercisePref
       );
       const alt = alternativesFor(exerciseId, profile.equipment, inDay, prefs)[0];
       if (!alt) {
-        kept.push(r.day);
+        kept.push(pick(r.day, langOf(profile)));
         continue;
       }
       await replaceExercise(r.id, alt.id, profile);
-      replaced.push({ day: r.day, from: def.name, to: alt.name });
+      const lang = langOf(profile);
+      replaced.push({ day: pick(r.day, lang), from: exerciseName(def.id, lang), to: exerciseName(alt.id, lang) });
     }
   }
   return { preferences: await getPreferences(), replaced, kept };

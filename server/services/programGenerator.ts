@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Profile, Program } from '../../shared/types.ts';
-import { config } from '../config.ts';
+import { AI_LANGUAGE, langOf, pick, loc, type Lang } from '../i18n.ts';
 import { aiConfigured } from './aiSettings.ts';
 import { AiError, complete, extractJson, type ChatMessage } from './ai.ts';
 import { alternativesFor, availableExercises, getExercise, isAvailable, NO_PREFS, type Prefs } from './exercises.ts';
@@ -47,11 +47,11 @@ const GOAL_TEXT: Record<Profile['goal'], string> = {
   fat_loss: 'fat loss while keeping muscle',
 };
 
-function systemPrompt(): string {
+function systemPrompt(lang: Lang): string {
   return [
     'You are an experienced, evidence-based strength coach who designs training programs.',
     'You reply with exactly one JSON object and nothing else.',
-    `Write all human-readable text (name, focus, rationale, notes) in ${config.ai.language}.`,
+    `Write all human-readable text (name, focus, rationale, notes) in ${AI_LANGUAGE[lang]}.`,
   ].join(' ');
 }
 
@@ -166,10 +166,19 @@ export interface GenerateResult {
 
 export async function generateProgram(profile: Profile, opts: { current?: Program | null; instructions?: string; useAi?: boolean } = {}): Promise<GenerateResult> {
   const prefs = await loadPrefs();
+  const lang = langOf(profile);
   if (opts.useAi === false || !aiConfigured()) {
     return {
       draft: buildTemplateProgram(profile, prefs),
-      notice: aiConfigured() ? null : 'AI staat uit, dus er is een regelgebaseerd programma gemaakt. Zet AI aan via Profiel → AI-instellingen om programma’s door de AI te laten ontwerpen.',
+      notice: aiConfigured()
+        ? null
+        : pick(
+            loc(
+              'AI is off, so a rule-based program was made. Turn on AI in Profile → AI settings to have programs designed by the AI.',
+              'AI staat uit, dus er is een regelgebaseerd programma gemaakt. Zet AI aan via Profiel → AI-instellingen om programma’s door de AI te laten ontwerpen.',
+            ),
+            lang,
+          ),
     };
   }
 
@@ -184,7 +193,7 @@ export async function generateProgram(profile: Profile, opts: { current?: Progra
     }
     try {
       lastText = '';
-      const text = await complete({ feature: 'program', system: systemPrompt(), messages, maxTokens: 16000, json: true });
+      const text = await complete({ feature: 'program', system: systemPrompt(lang), messages, maxTokens: 16000, json: true });
       lastText = text;
       return { draft: sanitizeAiProgram(extractJson(text), profile, prefs), notice: null };
     } catch (err) {
@@ -194,6 +203,9 @@ export async function generateProgram(profile: Profile, opts: { current?: Progra
   }
   return {
     draft: buildTemplateProgram(profile, prefs),
-    notice: `Het AI-programma was niet bruikbaar (${lastError.slice(0, 160)}). Er is een regelgebaseerd programma gemaakt.`,
+    notice:
+      lang === 'nl'
+        ? `Het AI-programma was niet bruikbaar (${lastError.slice(0, 160)}). Er is een regelgebaseerd programma gemaakt.`
+        : `The AI program was not usable (${lastError.slice(0, 160)}). A rule-based program was made instead.`,
   };
 }

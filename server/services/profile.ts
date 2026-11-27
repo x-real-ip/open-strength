@@ -21,6 +21,7 @@ export const profileSchema = z.object({
   increments: z
     .object({ barbell: step, dumbbell: step, machine: step, cable: step, kettlebell: step })
     .default(DEFAULT_INCREMENTS),
+  language: z.enum(['en', 'nl']).default('en'),
 });
 
 export async function getProfile(): Promise<Profile | null> {

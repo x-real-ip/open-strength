@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { complete } from '../services/ai.ts';
 import { aiSettingsView, saveAiSettings } from '../services/aiSettings.ts';
 import { usageSummary } from '../services/aiUsage.ts';
+import { AI_LANGUAGE, langOf } from '../i18n.ts';
+import { getProfile } from '../services/profile.ts';
 
 const effort = z.enum(['low', 'medium', 'high', 'xhigh', 'max']).nullable();
 
@@ -27,10 +29,11 @@ export async function settingsRoutes(app: FastifyInstance) {
   // A tiny request to check key, model and connection. Costs a fraction of a cent.
   app.post('/api/settings/ai/test', async () => {
     const started = Date.now();
+    const lang = langOf(await getProfile());
     const reply = await complete({
       feature: 'test',
-      system: 'You are a connection check. Reply with one short Dutch sentence confirming that you work.',
-      messages: [{ role: 'user', content: 'Werk je?' }],
+      system: `You are a connection check. Reply with one short ${AI_LANGUAGE[lang]} sentence confirming that you work.`,
+      messages: [{ role: 'user', content: lang === 'nl' ? 'Werk je?' : 'Do you work?' }],
       maxTokens: 2000,
     });
     return { ok: true, reply: reply.slice(0, 300), ms: Date.now() - started };

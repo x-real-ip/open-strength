@@ -1,6 +1,7 @@
 import type { ExerciseHistory, ExerciseUsage, MuscleGroup, StatsResponse } from '../../shared/types.ts';
 import { all } from '../db.ts';
-import { getExercise } from './exercises.ts';
+import type { Lang } from '../i18n.ts';
+import { exerciseName, getExercise } from './exercises.ts';
 import { e1rm } from './weights.ts';
 
 interface SetRow {
@@ -49,11 +50,11 @@ export async function exerciseUsage(): Promise<Record<string, ExerciseUsage>> {
   );
 }
 
-export async function exerciseHistory(exerciseId: string): Promise<ExerciseHistory> {
-  return historyFromRows(exerciseId, await completedSets(exerciseId));
+export async function exerciseHistory(exerciseId: string, lang: Lang = 'en'): Promise<ExerciseHistory> {
+  return historyFromRows(exerciseId, await completedSets(exerciseId), lang);
 }
 
-function historyFromRows(exerciseId: string, rows: SetRow[]): ExerciseHistory {
+function historyFromRows(exerciseId: string, rows: SetRow[], lang: Lang = 'en'): ExerciseHistory {
   const bySession = new Map<number, SetRow[]>();
   for (const r of rows) {
     const list = bySession.get(r.workout_id) ?? [];
@@ -70,14 +71,14 @@ function historyFromRows(exerciseId: string, rows: SetRow[]): ExerciseHistory {
     volume: sets.reduce((a, s) => a + s.weight * s.reps, 0),
     sets: sets.map((s) => ({ weight: s.weight, reps: s.reps, rir: s.rir })),
   }));
-  return { exerciseId, name: getExercise(exerciseId)?.name ?? exerciseId, sessions };
+  return { exerciseId, name: exerciseName(exerciseId, lang), sessions };
 }
 
 /**
  * An exercise is stalling when its best estimated 1RM (or best reps for bodyweight work)
  * in the last three normal sessions is no better than the session before them.
  */
-export async function detectStalls(): Promise<{ exerciseId: string; name: string; sessions: number }[]> {
+export async function detectStalls(lang: Lang = 'en'): Promise<{ exerciseId: string; name: string; sessions: number }[]> {
   const out: { exerciseId: string; name: string; sessions: number }[] = [];
   for (const [id, rows] of byExercise(await completedSets())) {
     const h = historyFromRows(id, rows).sessions.filter((s) => !s.isDeload);
@@ -95,7 +96,7 @@ export async function detectStalls(): Promise<{ exerciseId: string; name: string
           lastImprovement = i;
         }
       });
-      out.push({ exerciseId: id, name: getExercise(id)?.name ?? id, sessions: h.length - 1 - lastImprovement });
+      out.push({ exerciseId: id, name: exerciseName(id, lang), sessions: h.length - 1 - lastImprovement });
     }
   }
   return out;
@@ -110,7 +111,7 @@ function mondayOf(date: Date): Date {
 
 const DAY = 86_400_000;
 
-export async function getStats(weeks = 12): Promise<StatsResponse> {
+export async function getStats(weeks = 12, lang: Lang = 'en'): Promise<StatsResponse> {
   const sets = await completedSets();
   const workouts = await all<{ id: number; finished_at: string }>("SELECT id, finished_at FROM workouts WHERE status = 'completed' ORDER BY finished_at");
 
@@ -169,7 +170,7 @@ export async function getStats(weeks = 12): Promise<StatsResponse> {
   const records: StatsResponse['records'] = [];
   const exercises: StatsResponse['exercises'] = [];
   for (const [id, list] of perExercise) {
-    const name = getExercise(id)?.name ?? id;
+    const name = exerciseName(id, lang);
     let best = list[0];
     let bestE = 0;
     let bestEDate = list[0].finished_at;

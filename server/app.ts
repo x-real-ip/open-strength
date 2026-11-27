@@ -6,6 +6,8 @@ import fastifyStatic from '@fastify/static';
 import { ZodError } from 'zod';
 import { authHook } from './auth.ts';
 import { config } from './config.ts';
+import { langOf, pick } from './i18n.ts';
+import { getProfile } from './services/profile.ts';
 import { coreRoutes } from './routes/core.ts';
 import { dataRoutes } from './routes/data.ts';
 import { insightRoutes } from './routes/insights.ts';
@@ -19,13 +21,17 @@ export async function buildApp(opts: { logger?: boolean | { level: string } } = 
   await app.register(cookie);
   app.addHook('onRequest', authHook);
 
-  app.setErrorHandler((err: any, _req, reply) => {
+  app.setErrorHandler(async (err: any, _req, reply) => {
+    // Errors carry English and Dutch text (UserError, AiError); the profile decides which one is shown.
+    const lang = langOf(await getProfile().catch(() => null));
     if (err instanceof ZodError) {
-      return reply.code(400).send({ error: `Ongeldige invoer: ${err.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`).join('; ')}` });
+      const issues = err.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`).join('; ');
+      return reply.code(400).send({ error: `${lang === 'nl' ? 'Ongeldige invoer' : 'Invalid input'}: ${issues}` });
     }
     const status = typeof err.status === 'number' ? err.status : typeof err.statusCode === 'number' ? err.statusCode : 500;
     if (status >= 500) app.log.error(err);
-    return reply.code(status).send({ error: status >= 500 && !err.status ? 'Er ging iets mis op de server' : err.message });
+    if (status >= 500 && !err.status) return reply.code(status).send({ error: lang === 'nl' ? 'Er ging iets mis op de server' : 'Something went wrong on the server' });
+    return reply.code(status).send({ error: err.text ? pick(err.text, lang) : err.message });
   });
 
   await app.register(coreRoutes);
@@ -47,7 +53,7 @@ export async function buildApp(opts: { logger?: boolean | { level: string } } = 
       },
     });
     app.setNotFoundHandler((req, reply) => {
-      if (req.url.startsWith('/api/') || req.method !== 'GET') return reply.code(404).send({ error: 'Niet gevonden' });
+      if (req.url.startsWith('/api/') || req.method !== 'GET') return reply.code(404).send({ error: 'Not found' });
       return reply.header('cache-control', 'no-cache').sendFile('index.html');
     });
   }

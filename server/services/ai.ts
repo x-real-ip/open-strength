@@ -5,7 +5,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AiFeature, Effort } from '../../shared/types.ts';
 import { aiConfigured, getAiSettings, type AiSettings } from './aiSettings.ts';
-import { checkBudget, recordUsage } from './aiUsage.ts';
+import { loc, type Localized } from '../i18n.ts';
+import { BudgetExceeded, checkBudget, recordUsage } from './aiUsage.ts';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -21,10 +22,17 @@ export interface CompletionRequest {
   json?: boolean;
 }
 
+const TIMED_OUT = loc('The AI took too long. Try again.', 'De AI deed er te lang over. Probeer het opnieuw.');
+const EMPTY = loc('The AI gave an empty answer.', 'De AI gaf een leeg antwoord.');
+
+/** AI failure shown to the user: English and Dutch text (the error handler picks one). */
 export class AiError extends Error {
   status: number;
-  constructor(message: string, status = 502) {
-    super(message);
+  text: Localized;
+  constructor(message: string | Localized, status = 502) {
+    const text = typeof message === 'string' ? { en: message, nl: message } : message;
+    super(text.en);
+    this.text = text;
     this.status = status;
   }
 }
@@ -39,11 +47,12 @@ function effortFor(feature: AiFeature, s: AiSettings): Effort | null {
 }
 
 export async function complete(req: CompletionRequest): Promise<string> {
-  if (!aiConfigured()) throw new AiError('Er is geen AI ingesteld. Voeg een API-sleutel toe in de AI-instellingen.', 503);
+  if (!aiConfigured())
+    throw new AiError(loc('No AI is set up. Add an API key in the AI settings.', 'Er is geen AI ingesteld. Voeg een API-sleutel toe in de AI-instellingen.'), 503);
   try {
     await checkBudget();
   } catch (err) {
-    throw new AiError((err as Error).message, 503);
+    throw err instanceof BudgetExceeded ? new AiError(err.text, 503) : err;
   }
   const s = getAiSettings();
   return s.provider === 'anthropic' ? completeAnthropic(req, s) : completeOpenAi(req, s);
@@ -51,15 +60,25 @@ export async function complete(req: CompletionRequest): Promise<string> {
 
 function apiErrorMessage(err: unknown): AiError {
   // Most specific first; all SDK errors extend Anthropic.APIError.
-  if (err instanceof Anthropic.AuthenticationError) return new AiError('De API-sleutel wordt niet geaccepteerd. Controleer hem in de AI-instellingen.', 502);
-  if (err instanceof Anthropic.PermissionDeniedError) return new AiError('Deze API-sleutel heeft geen toegang tot dit model.', 502);
-  if (err instanceof Anthropic.NotFoundError) return new AiError('Dit model bestaat niet of is niet beschikbaar voor je account.', 502);
-  if (err instanceof Anthropic.RateLimitError) return new AiError('Te veel verzoeken of je limiet bij Anthropic is bereikt. Probeer het later opnieuw.', 502);
-  if (err instanceof Anthropic.BadRequestError) return new AiError(`De AI-provider weigerde het verzoek: ${err.message}`, 502);
-  if (err instanceof Anthropic.APIConnectionTimeoutError) return new AiError('De AI deed er te lang over. Probeer het opnieuw.', 504);
-  if (err instanceof Anthropic.APIConnectionError) return new AiError('Geen verbinding met de AI-provider. Heeft de server uitgaand internet?', 504);
-  if (err instanceof Anthropic.APIError) return new AiError(`Fout bij de AI-provider (${err.status ?? 'onbekend'}).`, 502);
-  return new AiError(`AI-verzoek mislukt: ${(err as Error).message}`);
+  if (err instanceof Anthropic.AuthenticationError)
+    return new AiError(loc('The API key was not accepted. Check it in the AI settings.', 'De API-sleutel wordt niet geaccepteerd. Controleer hem in de AI-instellingen.'), 502);
+  if (err instanceof Anthropic.PermissionDeniedError)
+    return new AiError(loc('This API key has no access to this model.', 'Deze API-sleutel heeft geen toegang tot dit model.'), 502);
+  if (err instanceof Anthropic.NotFoundError)
+    return new AiError(loc('This model does not exist or is not available to your account.', 'Dit model bestaat niet of is niet beschikbaar voor je account.'), 502);
+  if (err instanceof Anthropic.RateLimitError)
+    return new AiError(
+      loc('Too many requests, or your Anthropic limit was reached. Try again later.', 'Te veel verzoeken of je limiet bij Anthropic is bereikt. Probeer het later opnieuw.'),
+      502,
+    );
+  if (err instanceof Anthropic.BadRequestError)
+    return new AiError(loc(`The AI provider rejected the request: ${err.message}`, `De AI-provider weigerde het verzoek: ${err.message}`), 502);
+  if (err instanceof Anthropic.APIConnectionTimeoutError) return new AiError(TIMED_OUT, 504);
+  if (err instanceof Anthropic.APIConnectionError)
+    return new AiError(loc('No connection to the AI provider. Does the server have outbound internet?', 'Geen verbinding met de AI-provider. Heeft de server uitgaand internet?'), 504);
+  if (err instanceof Anthropic.APIError)
+    return new AiError(loc(`AI provider error (${err.status ?? 'unknown'}).`, `Fout bij de AI-provider (${err.status ?? 'onbekend'}).`), 502);
+  return new AiError(loc(`AI request failed: ${(err as Error).message}`, `AI-verzoek mislukt: ${(err as Error).message}`));
 }
 
 async function completeAnthropic(req: CompletionRequest, s: AiSettings): Promise<string> {
@@ -92,11 +111,11 @@ async function completeAnthropic(req: CompletionRequest, s: AiSettings): Promise
     .trim();
   const problem =
     response.stop_reason === 'refusal'
-      ? 'Het model weigerde dit verzoek.'
+      ? loc('The model refused this request.', 'Het model weigerde dit verzoek.')
       : response.stop_reason === 'max_tokens'
-        ? 'Het antwoord was te lang en is afgekapt.'
+        ? loc('The answer was too long and was cut off.', 'Het antwoord was te lang en is afgekapt.')
         : !text
-          ? 'De AI gaf een leeg antwoord.'
+          ? EMPTY
           : null;
   const u = response.usage;
   await recordUsage({
@@ -108,7 +127,7 @@ async function completeAnthropic(req: CompletionRequest, s: AiSettings): Promise
     cacheRead: u.cache_read_input_tokens ?? 0,
     cacheWrite: u.cache_creation_input_tokens ?? 0,
     ok: !problem,
-    error: problem ?? undefined,
+    error: problem?.en,
   });
   if (problem) throw new AiError(problem);
   return text;
@@ -134,11 +153,15 @@ async function completeOpenAi(req: CompletionRequest, s: AiSettings): Promise<st
       }),
     });
     const body = await res.text();
-    if (!res.ok) throw new AiError(`De AI-provider gaf fout ${res.status}: ${body.slice(0, 200)}`);
+    if (!res.ok) throw new AiError(loc(`The AI provider returned error ${res.status}: ${body.slice(0, 200)}`, `De AI-provider gaf fout ${res.status}: ${body.slice(0, 200)}`));
     data = JSON.parse(body);
   } catch (err) {
     const mapped =
-      err instanceof AiError ? err : (err as Error).name === 'AbortError' ? new AiError('De AI deed er te lang over. Probeer het opnieuw.', 504) : new AiError(`AI-verzoek mislukt: ${(err as Error).message}`);
+      err instanceof AiError
+        ? err
+        : (err as Error).name === 'AbortError'
+          ? new AiError(TIMED_OUT, 504)
+          : new AiError(loc(`AI request failed: ${(err as Error).message}`, `AI-verzoek mislukt: ${(err as Error).message}`));
     await recordUsage({ feature: req.feature, provider: 'openai', model: s.model, input: 0, output: 0, ok: false, error: mapped.message });
     throw mapped;
   } finally {
@@ -152,9 +175,9 @@ async function completeOpenAi(req: CompletionRequest, s: AiSettings): Promise<st
     input: data.usage?.prompt_tokens ?? 0,
     output: data.usage?.completion_tokens ?? 0,
     ok: Boolean(text),
-    error: text ? undefined : 'De AI gaf een leeg antwoord.',
+    error: text ? undefined : EMPTY.en,
   });
-  if (!text) throw new AiError('De AI gaf een leeg antwoord.');
+  if (!text) throw new AiError(EMPTY);
   return text;
 }
 

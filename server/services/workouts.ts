@@ -1,23 +1,25 @@
 import { z } from 'zod';
 import type { Decision, ExerciseOutcome, Profile, TodayResponse, Workout, WorkoutExercise, WorkoutSummary } from '../../shared/types.ts';
 import { all, nowIso, one, run, tx } from '../db.ts';
-import { getExercise } from './exercises.ts';
+import { encode, formatKg, langOf, pick, loc, UserError } from '../i18n.ts';
+import { exerciseName, getExercise, localizeExercise } from './exercises.ts';
 import { evaluateProgression } from './progression.ts';
 import { activeProgramId, lastSessionSets, loadProgram } from './programs.ts';
 import { detectStalls } from './stats.ts';
-import { e1rm, floorToStep, formatKg } from './weights.ts';
+import { e1rm, floorToStep } from './weights.ts';
 
 type Row = Record<string, any>;
 
-export class NotFound extends Error {
-  status = 404;
-}
+const workoutNotFound = () => new UserError(404, 'Workout not found', 'Training niet gevonden');
 
 export function deloadPrescription(sets: number, weight: number, increment: number) {
   return { sets: Math.max(1, Math.round(sets * 0.6)), weight: increment > 0 ? floorToStep(weight * 0.9, increment) : weight };
 }
 
-const DELOAD_REASON = 'Deloadweek: minder sets op ongeveer 90% van je werkgewicht om te herstellen. Volgende week gaat de progressie weer verder.';
+const DELOAD_REASON = loc(
+  'Deload week: fewer sets at about 90% of your working weight to recover. Progression continues next week.',
+  'Deloadweek: minder sets op ongeveer 90% van je werkgewicht om te herstellen. Volgende week gaat de progressie weer verder.',
+);
 
 export async function getToday(profile: Profile | null): Promise<TodayResponse> {
   const pid = await activeProgramId();
@@ -47,9 +49,9 @@ export async function getToday(profile: Profile | null): Promise<TodayResponse> 
     nextDay,
     isDeload: Boolean(program && !program.isComplete && program.deloadWeek === program.currentWeek),
     inProgressWorkoutId: inProgress?.id ?? null,
-    lastWorkout: last ? { id: last.id, dayName: last.day_name, finishedAt: last.finished_at } : null,
+    lastWorkout: last ? { id: last.id, dayName: pick(last.day_name, langOf(profile)), finishedAt: last.finished_at } : null,
     workoutsThisWeek: thisWeek,
-    stalled: await detectStalls(),
+    stalled: await detectStalls(langOf(profile)),
   };
 }
 
@@ -57,7 +59,7 @@ export async function startWorkout(programDayId: number, profile: Profile | null
   const existing = await one<{ id: number }>("SELECT id FROM workouts WHERE status = 'in_progress' ORDER BY id DESC LIMIT 1");
   if (existing) return existing.id;
   const day = await one('SELECT pd.*, p.id AS pid FROM program_days pd JOIN programs p ON p.id = pd.program_id WHERE pd.id = $1', [programDayId]);
-  if (!day) throw new NotFound('Trainingsdag niet gevonden');
+  if (!day) throw new UserError(404, 'Training day not found', 'Trainingsdag niet gevonden');
   const program = (await loadProgram(day.pid, profile))!;
   const isDeload = program.deloadWeek === program.currentWeek && !program.isComplete;
   const row = await one<{ id: number }>(
@@ -69,7 +71,7 @@ export async function startWorkout(programDayId: number, profile: Profile | null
 
 export async function getWorkout(id: number, profile: Profile | null): Promise<Workout> {
   const w = await one('SELECT * FROM workouts WHERE id = $1', [id]);
-  if (!w) throw new NotFound('Training niet gevonden');
+  if (!w) throw workoutNotFound();
   const program = await loadProgram(w.program_id, profile);
   const day = program?.days.find((d) => d.id === w.program_day_id);
   const logged = await all('SELECT * FROM workout_sets WHERE workout_id = $1 ORDER BY set_index', [id]);
@@ -93,7 +95,7 @@ export async function getWorkout(id: number, profile: Profile | null): Promise<W
       sets = d.sets;
       targetWeight = d.weight;
       decision = 'deload';
-      reason = DELOAD_REASON;
+      reason = pick(DELOAD_REASON, langOf(profile));
     }
     repTargets = Array.from({ length: sets }, (_, i) => repTargets[i] ?? repTargets[repTargets.length - 1] ?? pe.repMin);
 
@@ -126,7 +128,7 @@ export async function getWorkout(id: number, profile: Profile | null): Promise<W
     id: w.id,
     programId: w.program_id,
     programDayId: w.program_day_id,
-    dayName: w.day_name,
+    dayName: pick(w.day_name, langOf(profile)),
     status: w.status,
     startedAt: w.started_at,
     finishedAt: w.finished_at,
@@ -147,7 +149,7 @@ export const setSchema = z.object({
 
 async function workoutStatus(workoutId: number): Promise<string> {
   const w = await one<{ status: string }>('SELECT status FROM workouts WHERE id = $1', [workoutId]);
-  if (!w) throw new NotFound('Training niet gevonden');
+  if (!w) throw workoutNotFound();
   return w.status;
 }
 
@@ -156,7 +158,7 @@ export async function upsertSet(workoutId: number, input: unknown) {
   const s = setSchema.parse(input);
   await workoutStatus(workoutId);
   const pe = await one<{ exercise_id: string }>('SELECT exercise_id FROM program_exercises WHERE id = $1', [s.programExerciseId]);
-  if (!pe) throw new NotFound('Oefening niet gevonden');
+  if (!pe) throw new UserError(404, 'Exercise not found', 'Oefening niet gevonden');
   await run(
     `INSERT INTO workout_sets (workout_id, program_exercise_id, exercise_id, set_index, weight, reps, rir, completed, updated_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -223,7 +225,12 @@ export async function finishWorkout(id: number, profile: Profile | null): Promis
 
       if (workout.isDeload) {
         const t = await one('SELECT weight, rep_targets FROM exercise_targets WHERE program_exercise_id = $1', [ex.programExerciseId], c);
-        await saveOutcome('deload', t?.weight ?? ex.targetWeight, t?.rep_targets ?? [], 'Deloadtraining gelogd. Volgende week ga je terug naar je normale werkgewicht.');
+        await saveOutcome(
+          'deload',
+          t?.weight ?? ex.targetWeight,
+          t?.rep_targets ?? [],
+          encode(loc('Deload session logged. Next week you go back to your normal working weight.', 'Deloadtraining gelogd. Volgende week ga je terug naar je normale werkgewicht.')),
+        );
         continue;
       }
 
@@ -244,10 +251,10 @@ export async function finishWorkout(id: number, profile: Profile | null): Promis
         `UPDATE exercise_targets t SET weight = $1, rep_targets = $2, decision = $3, reason = $4, source_workout_id = $5, updated_at = $6
          FROM program_exercises pe JOIN program_days pd ON pd.id = pe.program_day_id
          WHERE t.program_exercise_id = pe.id AND pd.program_id = $7 AND pe.exercise_id = $8 AND pe.rep_min = $9 AND pe.rep_max = $10`,
-        [result.nextWeight, JSON.stringify(result.repTargets), result.decision, result.reason, id, ts, workout.programId, ex.exerciseId, ex.repMin, ex.repMax],
+        [result.nextWeight, JSON.stringify(result.repTargets), result.decision, encode(result.reason), id, ts, workout.programId, ex.exerciseId, ex.repMin, ex.repMax],
         c,
       );
-      await saveOutcome(result.decision, result.nextWeight, result.repTargets, result.reason);
+      await saveOutcome(result.decision, result.nextWeight, result.repTargets, encode(result.reason));
     }
     await run("UPDATE workouts SET status = 'completed', finished_at = $1 WHERE id = $2", [ts, id], c);
   });
@@ -257,7 +264,8 @@ export async function finishWorkout(id: number, profile: Profile | null): Promis
 
 export async function getSummary(id: number, profile: Profile | null): Promise<WorkoutSummary> {
   const w = await one('SELECT * FROM workouts WHERE id = $1', [id]);
-  if (!w) throw new NotFound('Training niet gevonden');
+  if (!w) throw workoutNotFound();
+  const lang = langOf(profile);
   const sets = await all('SELECT * FROM workout_sets WHERE workout_id = $1 AND completed ORDER BY program_exercise_id, set_index', [id]);
   const outcomes = await all('SELECT * FROM workout_outcomes WHERE workout_id = $1', [id]);
   const order = (await getWorkout(id, profile)).exercises.map((e) => e.programExerciseId);
@@ -271,19 +279,20 @@ export async function getSummary(id: number, profile: Profile | null): Promise<W
     if (before.max_weight !== null && exSets.length) {
       const top = Math.max(...exSets.map((s) => s.weight));
       const bestE = Math.max(...exSets.map((s) => e1rm(s.weight, s.reps)));
-      if (top > 0 && top > before.max_weight) newRecords.push(`Zwaarste gewicht: ${formatKg(top)}`);
-      else if (bestE > 0 && before.max_e1rm !== null && bestE > before.max_e1rm + 0.01) newRecords.push(`Beste geschatte 1RM: ${formatKg(Math.round(bestE * 10) / 10)}`);
+      if (top > 0 && top > before.max_weight) newRecords.push(`${lang === 'nl' ? 'Zwaarste gewicht' : 'Heaviest weight'}: ${formatKg(top, lang)}`);
+      else if (bestE > 0 && before.max_e1rm !== null && bestE > before.max_e1rm + 0.01)
+        newRecords.push(`${lang === 'nl' ? 'Beste geschatte 1RM' : 'Best estimated 1RM'}: ${formatKg(Math.round(bestE * 10) / 10, lang)}`);
     }
     result.push({
       programExerciseId: o.program_exercise_id,
       exerciseId: o.exercise_id,
-      name: getExercise(o.exercise_id)?.name ?? o.exercise_id,
+      name: exerciseName(o.exercise_id, lang),
       decision: o.decision,
       fromWeight: o.from_weight,
       nextWeight: o.next_weight,
       repTargets: o.rep_targets,
-      reason: o.reason,
-      weightNote: getExercise(o.exercise_id)?.weightNote,
+      reason: pick(o.reason, lang),
+      weightNote: ((ex) => ex && localizeExercise(ex, lang).weightNote)(getExercise(o.exercise_id)),
       sets: exSets,
       newRecords,
     });
@@ -293,7 +302,7 @@ export async function getSummary(id: number, profile: Profile | null): Promise<W
   const end = w.finished_at ? new Date(w.finished_at).getTime() : Date.now();
   return {
     workoutId: id,
-    dayName: w.day_name,
+    dayName: pick(w.day_name, langOf(profile)),
     durationMinutes: Math.max(1, Math.round((end - start) / 60000)),
     totalSets: sets.length,
     totalVolume: Math.round(sets.reduce((a, s) => a + s.weight * s.reps, 0)),
@@ -301,7 +310,7 @@ export async function getSummary(id: number, profile: Profile | null): Promise<W
   };
 }
 
-export async function listWorkouts(limit = 50) {
+export async function listWorkouts(profile: Profile | null, limit = 50) {
   const rows = await all(
     `SELECT w.id, w.day_name AS "dayName", w.started_at AS "startedAt", w.finished_at AS "finishedAt", w.is_deload AS "isDeload",
             count(s.id)::int AS sets, coalesce(sum(s.weight * s.reps), 0) AS volume
@@ -310,5 +319,5 @@ export async function listWorkouts(limit = 50) {
      GROUP BY w.id ORDER BY w.finished_at DESC LIMIT $1`,
     [limit],
   );
-  return rows.map((r) => ({ ...r, volume: Math.round(r.volume) }));
+  return rows.map((r) => ({ ...r, dayName: pick(r.dayName, langOf(profile)), volume: Math.round(r.volume) }));
 }

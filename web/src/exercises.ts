@@ -2,15 +2,18 @@
 import { useEffect, useState } from 'react';
 import type { LibraryExercise } from '@shared/types.ts';
 import { api } from './api.ts';
+import { getLang } from './i18n.ts';
 
-let cache: Promise<LibraryExercise[]> | null = null;
+// One copy per language: names and steps of the curated exercises differ.
+const cache: Partial<Record<string, Promise<LibraryExercise[]>>> = {};
 
 export function loadExercises(): Promise<LibraryExercise[]> {
-  cache ??= api.exercises().catch((err) => {
-    cache = null;
+  const lang = getLang();
+  cache[lang] ??= api.exercises(lang).catch((err) => {
+    delete cache[lang];
     throw err;
   });
-  return cache;
+  return cache[lang];
 }
 
 /** The library as a map by id; null while loading. */

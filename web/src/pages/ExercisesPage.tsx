@@ -5,7 +5,8 @@ import { api } from '../api.ts';
 import { IconBan, IconChevron, IconStar } from '../components/Icons.tsx';
 import { PreferenceMark } from '../components/PreferenceButtons.tsx';
 import { ErrorState, Loading, toast, useLoad } from '../components/ui.tsx';
-import { CATEGORY_LABEL, equipmentText, hasEquipment, MUSCLE_LABEL, relativeDay } from '../format.ts';
+import { CATEGORIES, categoryLabel, equipmentText, hasEquipment, MUSCLE_GROUPS, muscleLabel, relativeDay } from '../format.ts';
+import { getLang, t } from '../i18n.ts';
 import { loadExercises } from '../exercises.ts';
 import { preferenceMessage, preferenceOf, setPreference, usePreferences } from '../preferences.ts';
 
@@ -14,8 +15,7 @@ type MineFilter = 'all' | 'program' | 'done' | ExercisePreference;
 /** Favourites first and excluded last within a group; otherwise keep the library order. */
 const MARK_ORDER: Record<string, number> = { favorite: 0, none: 1, excluded: 2 };
 
-const MUSCLES = Object.keys(MUSCLE_LABEL) as MuscleGroup[];
-const CATEGORIES = Object.keys(CATEGORY_LABEL) as ExerciseCategory[];
+const MUSCLES = MUSCLE_GROUPS;
 
 interface Group {
   key: string;
@@ -43,7 +43,7 @@ export default function ExercisesPage() {
   }, [data]);
 
   if (loading && !data) return <Loading />;
-  if (error || !data) return <ErrorState message={error ?? 'Laden is mislukt'} onRetry={reload} />;
+  if (error || !data) return <ErrorState message={error ?? t('Loading failed', 'Laden is mislukt')} onRetry={reload} />;
 
   const [exercises, { profile }, { program }, usage] = data;
   const equipment = profile?.equipment ?? null;
@@ -73,9 +73,9 @@ export default function ExercisesPage() {
       items: d.exercises.map((pe) => shown.find((e) => e.id === pe.exerciseId)).filter((e): e is LibraryExercise => !!e),
     }));
   } else if (mine === 'done') {
-    groups = [{ key: 'done', title: 'Meest gedaan eerst', items: [...shown].sort((a, b) => usage[b.id].sessions - usage[a.id].sessions) }];
+    groups = [{ key: 'done', title: t('Most done first', 'Meest gedaan eerst'), items: [...shown].sort((a, b) => usage[b.id].sessions - usage[a.id].sessions) }];
   } else {
-    groups = MUSCLES.map((m) => ({ key: m, title: MUSCLE_LABEL[m], items: shown.filter((e) => e.primary === m).sort((a, b) => rank(a) - rank(b)) }));
+    groups = MUSCLES.map((m) => ({ key: m, title: muscleLabel(m), items: shown.filter((e) => e.primary === m).sort((a, b) => rank(a) - rank(b)) }));
   }
   groups = groups.filter((g) => g.items.length);
   const programmable = exercises.filter((e) => e.programmable).length;
@@ -89,34 +89,42 @@ export default function ExercisesPage() {
 
   return (
     <main className="page">
-      <h1>Oefeningen</h1>
+      <h1>{t('Exercises', 'Oefeningen')}</h1>
       <details className="why" style={{ margin: '8px 0 16px' }}>
-        <summary>Hoe werkt deze lijst?</summary>
+        <summary>{t('How does this list work?', 'Hoe werkt deze lijst?')}</summary>
         <p className="muted small">
-          {exercises.length} oefeningen. {programmable} daarvan kunnen in je programma: bij het wisselen van een oefening en als de AI een programma maakt.
-          Het programma op basis van regels kiest uit de {curated} vaste oefeningen met Nederlandse uitleg, en uit je favorieten. De rest komt uit
-          free-exercise-db en heeft Engelse namen en uitleg.
+          {t(
+            `${exercises.length} exercises. ${programmable} of them can be in your program: when you swap an exercise and when the AI makes a program. The rule-based program picks from the ${curated} core exercises and from your favourites. The rest comes from free-exercise-db.`,
+            `${exercises.length} oefeningen. ${programmable} daarvan kunnen in je programma: bij het wisselen van een oefening en als de AI een programma maakt. Het programma op basis van regels kiest uit de ${curated} vaste oefeningen met Nederlandse uitleg, en uit je favorieten. De rest komt uit free-exercise-db en heeft Engelse namen en uitleg.`,
+          )}
         </p>
-        <p className="muted small">
-          Tik op de <IconStar size={14} /> om een oefening favoriet te maken: de AI en de regels zetten favorieten in je schema waar ze passen. Wil je een
-          oefening nooit meer, open hem dan en kies <strong>Niet gebruiken</strong>.
-        </p>
+        {getLang() === 'nl' ? (
+          <p className="muted small">
+            Tik op de <IconStar size={14} /> om een oefening favoriet te maken: de AI en de regels zetten favorieten in je schema waar ze passen. Wil je een
+            oefening nooit meer, open hem dan en kies <strong>Niet gebruiken</strong>.
+          </p>
+        ) : (
+          <p className="muted small">
+            Tap the <IconStar size={14} /> to make an exercise a favourite: the AI and the rules put favourites in your schedule where they fit. Never want an
+            exercise again? Open it and choose <strong>Never use</strong>.
+          </p>
+        )}
       </details>
 
       <div className="stack" style={{ marginBottom: 16 }}>
-        <div className="chips" role="group" aria-label="Mijn oefeningen">
+        <div className="chips" role="group" aria-label={t('My exercises', 'Mijn oefeningen')}>
           <button type="button" aria-pressed={mine === 'all'} onClick={() => setMine('all')}>
-            Alles
+            {t('All', 'Alles')}
           </button>
-          {chip('program', `In mijn programma (${count('program')})`)}
-          {chip('done', `Gedaan (${count('done')})`)}
+          {chip('program', `${t('In my program', 'In mijn programma')} (${count('program')})`)}
+          {chip('done', `${t('Done', 'Gedaan')} (${count('done')})`)}
           {chip(
             'favorite',
             <>
               <span className="pref-mark favorite">
                 <IconStar size={15} filled />
               </span>
-              Favorieten ({prefs?.favorites.length ?? 0})
+              {t('Favourites', 'Favorieten')} ({prefs?.favorites.length ?? 0})
             </>,
           )}
           {chip(
@@ -125,57 +133,57 @@ export default function ExercisesPage() {
               <span className="pref-mark excluded">
                 <IconBan size={15} />
               </span>
-              Niet gebruiken ({prefs?.excluded.length ?? 0})
+              {t('Never use', 'Niet gebruiken')} ({prefs?.excluded.length ?? 0})
             </>,
           )}
         </div>
-        <input className="input" type="search" placeholder="Zoeken" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Oefening zoeken" />
-        <div className="chips" role="group" aria-label="Spiergroep">
+        <input className="input" type="search" placeholder={t('Search', 'Zoeken')} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t('Search exercises', 'Oefening zoeken')} />
+        <div className="chips" role="group" aria-label={t('Muscle group', 'Spiergroep')}>
           <button type="button" aria-pressed={muscle === null} onClick={() => setMuscle(null)}>
-            Alle spieren
+            {t('All muscles', 'Alle spieren')}
           </button>
           {MUSCLES.map((m) => (
             <button key={m} type="button" aria-pressed={muscle === m} onClick={() => setMuscle(muscle === m ? null : m)}>
-              {MUSCLE_LABEL[m]}
+              {muscleLabel(m)}
             </button>
           ))}
         </div>
-        <div className="chips" role="group" aria-label="Soort">
+        <div className="chips" role="group" aria-label={t('Type', 'Soort')}>
           <button type="button" aria-pressed={category === null} onClick={() => setCategory(null)}>
-            Alle soorten
+            {t('All types', 'Alle soorten')}
           </button>
           {CATEGORIES.map((c) => (
             <button key={c} type="button" aria-pressed={category === c} onClick={() => setCategory(category === c ? null : c)}>
-              {CATEGORY_LABEL[c]}
+              {categoryLabel(c)}
             </button>
           ))}
         </div>
         {equipment && mine === 'all' && (
           <label className="row small muted" style={{ gap: 8 }}>
             <input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} />
-            Alleen oefeningen met mijn apparatuur
+            {t('Only exercises with my equipment', 'Alleen oefeningen met mijn apparatuur')}
           </label>
         )}
         <label className="row small muted" style={{ gap: 8 }}>
           <input type="checkbox" checked={onlyProgram} onChange={(e) => setOnlyProgram(e.target.checked)} />
-          Alleen oefeningen die in een programma kunnen
+          {t('Only exercises that can be in a program', 'Alleen oefeningen die in een programma kunnen')}
         </label>
         <p className="faint small" style={{ margin: 0 }}>
-          {shown.length} {shown.length === 1 ? 'oefening' : 'oefeningen'}
+          {shown.length} {shown.length === 1 ? t('exercise', 'oefening') : t('exercises', 'oefeningen')}
         </p>
       </div>
 
       {groups.length === 0 && (
         <p className="muted">
           {mine === 'program'
-            ? 'Je hebt nog geen programma. Maak er een via Programma.'
+            ? t('You have no program yet. Make one under Program.', 'Je hebt nog geen programma. Maak er een via Programma.')
             : mine === 'done'
-              ? 'Je hebt nog geen training afgerond.'
+              ? t('You have not finished a workout yet.', 'Je hebt nog geen training afgerond.')
               : mine === 'favorite'
-                ? 'Nog geen favorieten. Tik op de ster bij een oefening.'
+                ? t('No favourites yet. Tap the star next to an exercise.', 'Nog geen favorieten. Tik op de ster bij een oefening.')
                 : mine === 'excluded'
-                  ? 'Je hebt geen oefeningen op "niet gebruiken" staan.'
-                  : 'Geen oefeningen gevonden.'}
+                  ? t('You have no exercises set to "never use".', 'Je hebt geen oefeningen op "niet gebruiken" staan.')
+                  : t('No exercises found.', 'Geen oefeningen gevonden.')}
         </p>
       )}
       {groups.map((g) => (
@@ -218,11 +226,11 @@ function ExerciseRow({
 }) {
   const [busy, setBusy] = useState(false);
   const notes = [
-    mark === 'excluded' ? 'niet gebruiken' : null,
+    mark === 'excluded' ? t('never use', 'niet gebruiken') : null,
     equipmentText(e.equipment, e.otherEquipment),
-    e.category !== 'strength' ? CATEGORY_LABEL[e.category] : null,
-    !e.programmable ? 'alleen bekijken' : null,
-    !available ? 'niet met jouw apparatuur' : null,
+    e.category !== 'strength' ? categoryLabel(e.category) : null,
+    !e.programmable ? t('view only', 'alleen bekijken') : null,
+    !available ? t('not with your equipment', 'niet met jouw apparatuur') : null,
   ].filter(Boolean);
 
   const toggleFavorite = async () => {
@@ -250,10 +258,14 @@ function ExerciseRow({
           <div className="sub">{notes.join(' · ')}</div>
           {(days.length > 0 || usage) && (
             <div className="pills">
-              {days.length > 0 && <span className="pill program">In programma: {days.join(', ')}</span>}
+              {days.length > 0 && (
+                <span className="pill program">
+                  {t('In program', 'In programma')}: {days.join(', ')}
+                </span>
+              )}
               {usage && (
                 <span className="pill done">
-                  {usage.sessions}× gedaan · {relativeDay(usage.lastDone).toLowerCase()}
+                  {t(`Done ${usage.sessions}×`, `${usage.sessions}× gedaan`)} · {relativeDay(usage.lastDone).toLowerCase()}
                 </span>
               )}
             </div>
@@ -266,7 +278,7 @@ function ExerciseRow({
           type="button"
           className="star"
           aria-pressed={mark === 'favorite'}
-          aria-label={`${e.name} favoriet`}
+          aria-label={t(`${e.name} favourite`, `${e.name} favoriet`)}
           disabled={busy || !ready}
           onClick={toggleFavorite}
         >

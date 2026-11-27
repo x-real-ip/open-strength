@@ -1,6 +1,7 @@
 // Small dependency-free SVG charts. Single series only (the title names it, no legend);
 // tapping or hovering a mark shows its value in the readout line under the chart.
 import { useState, type ReactNode } from 'react';
+import { decimal, locale, t } from '../i18n.ts';
 
 export interface Point {
   label: string;
@@ -20,7 +21,7 @@ function niceMax(max: number): number {
 
 function tick(v: number): string {
   if (v >= 10_000) return `${Math.round(v / 1000)}K`;
-  return Number.isInteger(v) ? v.toLocaleString('nl-NL') : v.toFixed(1).replace('.', ',');
+  return Number.isInteger(v) ? v.toLocaleString(locale()) : decimal(v.toFixed(1));
 }
 
 function ChartFrame({ title, sub, readout, children, table }: { title: string; sub?: string; readout: ReactNode; children: ReactNode; table: Point[] }) {
@@ -33,7 +34,7 @@ function ChartFrame({ title, sub, readout, children, table }: { title: string; s
         {readout}
       </div>
       <details className="why">
-        <summary>Toon als tabel</summary>
+        <summary>{t('Show as table', 'Toon als tabel')}</summary>
         <table className="small" style={{ width: '100%', marginTop: 6, borderCollapse: 'collapse' }}>
           <tbody>
             {table.map((p, i) => (

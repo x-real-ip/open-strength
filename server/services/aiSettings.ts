@@ -15,7 +15,6 @@ export interface AiSettings {
   coachEffort: Effort | null;
   programEffort: Effort | null;
   monthlyBudgetUsd: number | null;
-  language: string;
   timeoutMs: number;
 }
 
@@ -31,14 +30,14 @@ type Stored = Partial<{
 }>;
 
 /** List prices in USD per million tokens. Used to estimate cost; the Anthropic Console is the source of truth. */
-export const MODEL_PRICES: Record<string, { label: string; input: number; output: number; cacheRead: number; note: string }> = {
-  'claude-sonnet-5-5': { label: 'Claude Sonnet 5.5', input: 2, output: 10, cacheRead: 0.1, note: 'Aanbevolen: goed in programma’s ontwerpen, betaalbaar.' },
-  'claude-haiku-5-5': { label: 'Claude Haiku 5.5', input: 0.1, output: 0.5, cacheRead: 0.01, note: 'Veel goedkoper; prima voor de coach, minder sterk in programma’s.' },
-  'claude-opus-5-5': { label: 'Claude Opus 5.5', input: 4, output: 20, cacheRead: 0.2, note: 'Het sterkste model, twee keer zo duur als Sonnet.' },
+export const MODEL_PRICES: Record<string, { label: string; input: number; output: number; cacheRead: number }> = {
+  'claude-sonnet-5-5': { label: 'Claude Sonnet 5.5', input: 2, output: 10, cacheRead: 0.1 },
+  'claude-haiku-5-5': { label: 'Claude Haiku 5.5', input: 0.1, output: 0.5, cacheRead: 0.01 },
+  'claude-opus-5-5': { label: 'Claude Opus 5.5', input: 4, output: 20, cacheRead: 0.2 },
   // Models a refusal fallback can route to; not offered in the picker.
-  'claude-sonnet-5': { label: 'Claude Sonnet 5', input: 2, output: 10, cacheRead: 0.2, note: '' },
-  'claude-opus-5': { label: 'Claude Opus 5', input: 5, output: 25, cacheRead: 0.5, note: '' },
-  'claude-opus-4-8': { label: 'Claude Opus 4.8', input: 5, output: 25, cacheRead: 0.5, note: '' },
+  'claude-sonnet-5': { label: 'Claude Sonnet 5', input: 2, output: 10, cacheRead: 0.2 },
+  'claude-opus-5': { label: 'Claude Opus 5', input: 5, output: 25, cacheRead: 0.5 },
+  'claude-opus-4-8': { label: 'Claude Opus 4.8', input: 5, output: 25, cacheRead: 0.5 },
 };
 
 export const PICKER_MODELS = ['claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-opus-5-5'];
@@ -77,7 +76,6 @@ export function getAiSettings(): AiSettings {
     coachEffort: stored.coachEffort === undefined ? DEFAULT_EFFORT.coach : stored.coachEffort,
     programEffort: stored.programEffort === undefined ? DEFAULT_EFFORT.program : stored.programEffort,
     monthlyBudgetUsd: stored.monthlyBudgetUsd ?? null,
-    language: config.ai.language,
     timeoutMs: config.ai.timeoutMs,
   };
 }
@@ -101,7 +99,7 @@ export function aiSettingsView(): AiSettingsView {
     programEffort: s.programEffort,
     monthlyBudgetUsd: s.monthlyBudgetUsd,
     configured: aiConfigured(),
-    models: PICKER_MODELS.map((id) => ({ id, label: MODEL_PRICES[id].label, inputUsd: MODEL_PRICES[id].input, outputUsd: MODEL_PRICES[id].output, note: MODEL_PRICES[id].note })),
+    models: PICKER_MODELS.map((id) => ({ id, label: MODEL_PRICES[id].label, inputUsd: MODEL_PRICES[id].input, outputUsd: MODEL_PRICES[id].output })),
   };
 }
 

@@ -3,7 +3,8 @@
 // The AI never decides training weights. Every weight recommendation comes from this
 // function, based only on logged sets. That keeps advice reproducible and explainable.
 import type { Decision } from '../../shared/types.ts';
-import { floorToStep, formatKg, roundToStep } from './weights.ts';
+import { formatKg, setNumbers, loc, type Lang, type Localized } from '../i18n.ts';
+import { floorToStep, roundToStep } from './weights.ts';
 
 export interface SetResult {
   weight: number;
@@ -30,7 +31,8 @@ export interface ProgressionResult {
   decision: Exclude<Decision, 'start' | 'deload'>;
   nextWeight: number;
   repTargets: number[];
-  reason: string;
+  /** Why, in plain language; stored with both languages. */
+  reason: Localized;
 }
 
 /** Weight used for most sets; ties resolve to the heavier weight. */
@@ -50,12 +52,9 @@ export function workingWeight(sets: SetResult[], fallback: number): number {
 }
 
 const list = (nums: number[]) => nums.join('/');
-
-function setNumbers(indices: number[]): string {
-  const n = indices.map((i) => i + 1);
-  if (n.length === 1) return `Set ${n[0]}`;
-  return `Sets ${n.slice(0, -1).join(', ')} en ${n[n.length - 1]}`;
-}
+const en: Lang = 'en';
+const nl: Lang = 'nl';
+const kg = (w: number) => ({ en: formatKg(w, en), nl: formatKg(w, nl) });
 
 function fill(n: number, value: number): number[] {
   return Array.from({ length: n }, () => value);
@@ -79,7 +78,7 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
       decision: 'hold',
       nextWeight: input.prescribedWeight,
       repTargets: fill(sets, repMin),
-      reason: 'Er zijn geen sets gelogd, dus het doel blijft hetzelfde.',
+      reason: loc('No sets were logged, so the target stays the same.', 'Er zijn geen sets gelogd, dus het doel blijft hetzelfde.'),
     };
   }
 
@@ -103,14 +102,20 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
         decision: 'reps',
         nextWeight: weight,
         repTargets: fill(sets, repMax),
-        reason: `Alle sets haalden ${repMax} herhalingen (${list(reps)}). Maak het zwaarder: voeg gewicht toe, train langzamer of kies een zwaardere variant.`,
+        reason: loc(
+          `Every set reached ${repMax} reps (${list(reps)}). Make it harder: add weight, slow the tempo or pick a harder variation.`,
+          `Alle sets haalden ${repMax} herhalingen (${list(reps)}). Maak het zwaarder: voeg gewicht toe, train langzamer of kies een zwaardere variant.`,
+        ),
       };
     }
     return {
       decision: 'hold',
       nextWeight: weight,
       repTargets: nextRepTargets(),
-      reason: `Nog niet elke set haalde ${repMax} herhalingen (${list(reps)}). Mik op één herhaling meer per set.`,
+      reason: loc(
+        `Not every set reached ${repMax} reps yet (${list(reps)}). Aim for one more rep per set.`,
+        `Nog niet elke set haalde ${repMax} herhalingen (${list(reps)}). Mik op één herhaling meer per set.`,
+      ),
     };
   }
 
@@ -120,20 +125,32 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
         decision: 'hold',
         nextWeight: weight,
         repTargets: fill(sets, repMax),
-        reason: `Je haalde ${repMax} herhalingen in elke set (${list(reps)}), maar minstens één set ging tot falen. Herhaal ${formatKg(weight)} en haal dezelfde herhalingen met 1–2 over voordat het gewicht omhoog gaat.`,
+        reason: loc(
+          `You hit ${repMax} reps in every set (${list(reps)}), but at least one set went to failure. Repeat ${kg(weight).en} and get the same reps with 1–2 in reserve before the weight goes up.`,
+          `Je haalde ${repMax} herhalingen in elke set (${list(reps)}), maar minstens één set ging tot falen. Herhaal ${kg(weight).nl} en haal dezelfde herhalingen met 1–2 over voordat het gewicht omhoog gaat.`,
+        ),
       };
     }
     const clearlyEasy = session.every((s) => s.reps >= repMax + 2) && (minRir === null || minRir >= 2);
     const steps = clearlyEasy ? 2 : 1;
     const next = roundToStep(weight + steps * increment, increment);
-    const reserve = minRir !== null ? ` met minstens ${minRir} herhaling${minRir === 1 ? '' : 'en'} over` : '';
+    const reserve =
+      minRir !== null
+        ? { en: ` with at least ${minRir} rep${minRir === 1 ? '' : 's'} in reserve`, nl: ` met minstens ${minRir} herhaling${minRir === 1 ? '' : 'en'} over` }
+        : { en: '', nl: '' };
     return {
       decision: 'increase',
       nextWeight: next,
       repTargets: fill(sets, repMin),
       reason: clearlyEasy
-        ? `Elke set ging ruim boven de ${range} herhalingen (${list(reps)})${reserve}. Twee stappen omhoog: ${formatKg(weight)} → ${formatKg(next)}, en bouw weer op vanaf ${repMin} herhalingen.`
-        : `Alle ${sets} sets haalden de bovenkant van ${range} herhalingen (${list(reps)})${reserve}. Omhoog van ${formatKg(weight)} naar ${formatKg(next)} en bouw weer op vanaf ${repMin} herhalingen.`,
+        ? loc(
+            `Every set went well past ${range} reps (${list(reps)})${reserve.en}. Two steps up: ${kg(weight).en} → ${kg(next).en}, and build back up from ${repMin} reps.`,
+            `Elke set ging ruim boven de ${range} herhalingen (${list(reps)})${reserve.nl}. Twee stappen omhoog: ${kg(weight).nl} → ${kg(next).nl}, en bouw weer op vanaf ${repMin} herhalingen.`,
+          )
+        : loc(
+            `All ${sets} sets reached the top of ${range} reps (${list(reps)})${reserve.en}. Up from ${kg(weight).en} to ${kg(next).en}; build back up from ${repMin} reps.`,
+            `Alle ${sets} sets haalden de bovenkant van ${range} herhalingen (${list(reps)})${reserve.nl}. Omhoog van ${kg(weight).nl} naar ${kg(next).nl} en bouw weer op vanaf ${repMin} herhalingen.`,
+          ),
     };
   }
 
@@ -151,8 +168,14 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
         nextWeight: Math.max(0, next),
         repTargets: fill(sets, repMin + 1 <= repMax ? repMin + 1 : repMin),
         reason: clearlyTooHeavy
-          ? `De herhalingen lagen ruim onder ${range} (${list(reps)}), dus ${formatKg(weight)} is nu te zwaar. Ga naar ${formatKg(next)} en bouw weer op met goede herhalingen.`
-          : `Tweede training op rij onder ${repMin} herhalingen op ${formatKg(weight)} (${list(reps)}). Ga naar ${formatKg(next)} en bouw weer op met goede techniek.`,
+          ? loc(
+              `The reps were well below ${range} (${list(reps)}), so ${kg(weight).en} is too heavy for now. Go to ${kg(next).en} and build back up with good reps.`,
+              `De herhalingen lagen ruim onder ${range} (${list(reps)}), dus ${kg(weight).nl} is nu te zwaar. Ga naar ${kg(next).nl} en bouw weer op met goede herhalingen.`,
+            )
+          : loc(
+              `Second session in a row below ${repMin} reps at ${kg(weight).en} (${list(reps)}). Go to ${kg(next).en} and build back up with good technique.`,
+              `Tweede training op rij onder ${repMin} herhalingen op ${kg(weight).nl} (${list(reps)}). Ga naar ${kg(next).nl} en bouw weer op met goede techniek.`,
+            ),
       };
     }
 
@@ -160,7 +183,10 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
       decision: 'hold',
       nextWeight: weight,
       repTargets: nextRepTargets(),
-      reason: `${setNumbers(missed)} bleef onder ${repMin} herhalingen (${list(reps)}). Blijf op ${formatKg(weight)}; gebeurt dat de volgende training weer, dan gaat het gewicht omlaag.`,
+      reason: loc(
+        `${setNumbers(missed, en)} stayed below ${repMin} reps (${list(reps)}). Stay at ${kg(weight).en}; if it happens again next session, the weight goes down.`,
+        `${setNumbers(missed, nl)} bleef onder ${repMin} herhalingen (${list(reps)}). Blijf op ${kg(weight).nl}; gebeurt dat de volgende training weer, dan gaat het gewicht omlaag.`,
+      ),
     };
   }
 
@@ -169,7 +195,10 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
       decision: 'hold',
       nextWeight: weight,
       repTargets: nextRepTargets(),
-      reason: `Je deed ${session.length} van de ${sets} sets. Blijf op ${formatKg(weight)} en maak alle sets af.`,
+      reason: loc(
+        `You did ${session.length} of ${sets} sets. Stay at ${kg(weight).en} and finish all sets.`,
+        `Je deed ${session.length} van de ${sets} sets. Blijf op ${kg(weight).nl} en maak alle sets af.`,
+      ),
     };
   }
 
@@ -179,6 +208,9 @@ export function evaluateProgression(input: ProgressionInput): ProgressionResult 
     decision: 'hold',
     nextWeight: weight,
     repTargets: targets,
-    reason: `${shortOfTop.length === session.length ? `Nog geen set haalde ${repMax}` : `${setNumbers(shortOfTop)} haalde${shortOfTop.length === 1 ? '' : 'n'} ${repMax} nog niet`} (${list(reps)}). Blijf op ${formatKg(weight)} en mik op ${list(targets)}.`,
+    reason: loc(
+      `${shortOfTop.length === session.length ? `No set reached ${repMax} yet` : `${setNumbers(shortOfTop, en)} did not reach ${repMax} yet`} (${list(reps)}). Stay at ${kg(weight).en} and aim for ${list(targets)}.`,
+      `${shortOfTop.length === session.length ? `Nog geen set haalde ${repMax}` : `${setNumbers(shortOfTop, nl)} haalde${shortOfTop.length === 1 ? '' : 'n'} ${repMax} nog niet`} (${list(reps)}). Blijf op ${kg(weight).nl} en mik op ${list(targets)}.`,
+    ),
   };
 }
