@@ -90,3 +90,11 @@ export const IconBan = ({ size = 24 }: P) => (
     <path d="M6 6l12 12" />
   </svg>
 );
+
+/** Exercise library in the bottom menu. */
+export const IconExercises = ({ size = 24 }: P) => (
+  <svg {...base(size)}>
+    <path d="M8.2 10.6 7.6 7.9a2.6 2.6 0 0 1 2.55-3.15h3.7a2.6 2.6 0 0 1 2.55 3.15l-.6 2.7" />
+    <circle cx="12" cy="14.6" r="5.6" />
+  </svg>
+);

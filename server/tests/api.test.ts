@@ -90,11 +90,22 @@ test('full flow: profile, program, workout, progression, stats, export', async (
     await call('PUT', `/api/workouts/${workout.id}/sets`, { programExerciseId: second.programExerciseId, setIndex: i, weight: second.targetWeight, reps: Math.min(reps[i] ?? 10, second.repMax), rir: null });
   }
 
+  // Nothing counts as trained until the workout is finished.
+  assert.deepEqual((await call('GET', '/api/stats/exercise-usage')).body, {});
+
   const reloaded = await call('GET', `/api/workouts/${workout.id}`);
   assert.equal(reloaded.body.workout.exercises[0].logged.length, first.sets);
 
   const fin = await call('POST', `/api/workouts/${workout.id}/finish`);
   assert.equal(fin.status, 200);
+  // The library shows how often each exercise was trained and the heaviest set.
+  const usage = (await call('GET', '/api/stats/exercise-usage')).body;
+  assert.deepEqual(Object.keys(usage).sort(), [first.exerciseId, second.exerciseId].sort());
+  assert.equal(usage[first.exerciseId].sessions, 1);
+  assert.equal(usage[first.exerciseId].sets, first.sets);
+  assert.equal(usage[first.exerciseId].topWeight, first.targetWeight);
+  assert.equal(usage[first.exerciseId].topReps, first.repMax);
+  assert.ok(usage[first.exerciseId].lastDone);
   const outcomes = fin.body.summary.outcomes;
   assert.equal(outcomes.length, 2);
   assert.equal(outcomes[0].decision, first.increment > 0 ? 'increase' : 'reps');

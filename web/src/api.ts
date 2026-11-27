@@ -8,6 +8,7 @@ import type {
   ExerciseHistory,
   ExercisePreference,
   ExercisePreferences,
+  ExerciseUsage,
   LibraryExercise,
   PreferenceUpdate,
   Profile,
@@ -79,6 +80,7 @@ export const api = {
     ),
 
   stats: () => request<StatsResponse>('GET', '/api/stats'),
+  exerciseUsage: () => request<Record<string, ExerciseUsage>>('GET', '/api/stats/exercise-usage'),
   exerciseHistory: (exerciseId: string) => request<ExerciseHistory>('GET', `/api/stats/exercises/${encodeURIComponent(exerciseId)}`),
 
   coachMessages: () => request<{ messages: CoachMessage[] }>('GET', '/api/coach/messages'),
