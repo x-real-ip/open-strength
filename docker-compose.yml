@@ -10,8 +10,12 @@ services:
       - "8080:8080"
     env_file: .env
     environment:
-      # The db service below refuses to start without POSTGRES_PASSWORD.
-      DATABASE_URL: "postgres://${POSTGRES_USER:-overload}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-overload}"
+      # Standard libpq variables; the app reads these when DATABASE_URL is unset.
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: ${POSTGRES_USER:-overload}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      PGDATABASE: ${POSTGRES_DB:-overload}
     depends_on:
       db:
         condition: service_healthy
