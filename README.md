@@ -93,6 +93,8 @@ npm run import:exercises     # re-import free-exercise-db from the fork (optiona
 
 `npm test` needs no running database. `npm run test:e2e` runs the main flow (profile → program → workout → summary, in English and Dutch, on a phone and a desktop viewport) in Chromium; it starts the app itself, wipes the database in `E2E_DATABASE_URL` before every test, and runs in CI before the image is built. Install the browser once with `npx playwright install chromium`. To use an existing test database, set `TEST_DATABASE_URL`. Note: its `public` schema is wiped.
 
+Dependabot opens weekly PRs for npm packages (server and web) and GitHub Actions; minor and patch updates are grouped. The node base image is watched by the *Check releases* workflow.
+
 Agreements for whoever (or whatever) works on the code are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Configuration
