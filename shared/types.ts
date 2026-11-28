@@ -414,3 +414,23 @@ export interface AiUsageSummary {
   /** True when some calls used a model without a known price. */
   hasUnpricedCalls: boolean;
 }
+
+/** The link with Open Nutrilog, for the PWA (GET /api/linked/nutrition). */
+export interface LinkedNutrition {
+  status: 'off' | 'ok' | 'unreachable';
+  phase: {
+    phase: 'cut' | 'maintain' | 'bulk';
+    ratePctPerWeek: number;
+    estimatedTdee: number | null;
+    proteinGPerKg: number;
+    avgProteinGPerKg14d: number | null;
+    avgEnergyBalance14d: number | null;
+    loggedDays14d: number;
+  } | null;
+  facts: string | null;
+  clash: string | null;
+  /** exerciseId → a plain-language note when eating explains a stall. */
+  stallNotes: Record<string, string>;
+  /** Weigh-ins waiting to be sent. */
+  pendingWeights: number;
+}

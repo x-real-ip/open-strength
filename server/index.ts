@@ -3,6 +3,7 @@ import { initAuth } from './auth.ts';
 import { config } from './config.ts';
 import { aiConfigured, getAiSettings, loadAiSettings } from './services/aiSettings.ts';
 import { closeDb, openDb } from './db.ts';
+import { flushOutbox, linked, startOutboxRetry } from './services/nutrilog.ts';
 
 await openDb(undefined, { migrate: config.migrateOnStart });
 await initAuth();
@@ -14,6 +15,13 @@ app.log.info(
 );
 
 await app.listen({ port: config.port, host: config.host });
+
+// Weigh-ins that couldn't reach Open Nutrilog are retried now and every minute.
+if (linked()) {
+  app.log.info(`Open Nutrilog: ${config.integration.nutrilogUrl}`);
+  void flushOutbox().catch(() => {});
+  startOutboxRetry();
+}
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, async () => {

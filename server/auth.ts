@@ -112,7 +112,30 @@ export function resolveUser(req: FastifyRequest): SessionUser | null {
 
 const OPEN_PATHS = new Set(['/api/info', '/api/auth/login', '/api/auth/logout', '/api/auth/oidc/login', '/api/auth/oidc/callback']);
 
+// ---------- Integration (app to app) ----------
+
+export const INTEGRATION_PREFIX = '/api/integration/v1/';
+
+/** Constant-time comparison of a bearer token against the configured one (hashed first, so lengths don't leak). */
+export function bearerMatches(header: string | undefined, token: string): boolean {
+  const given = /^Bearer\s+(.+)$/i.exec(header ?? '')?.[1]?.trim() ?? '';
+  const a = crypto.createHash('sha256').update(given).digest();
+  const b = crypto.createHash('sha256').update(token).digest();
+  return given.length > 0 && crypto.timingSafeEqual(a, b);
+}
+
+/**
+ * /api/integration/v1/* is for the other app only: a bearer token, never a session or proxy header. Without a
+ * configured token these routes don't exist (404).
+ */
+function integrationAuth(req: FastifyRequest, reply: FastifyReply) {
+  if (!config.integration.token) return reply.code(404).send({ error: 'Not found' });
+  if (!bearerMatches(req.headers.authorization, config.integration.token)) return reply.code(401).send({ error: 'Invalid token' });
+  req.user = { username: 'integration' };
+}
+
 export async function authHook(req: FastifyRequest, reply: FastifyReply) {
+  if (req.url.startsWith(INTEGRATION_PREFIX)) return integrationAuth(req, reply);
   req.user = resolveUser(req);
   if (!req.url.startsWith('/api/')) return;
   if (OPEN_PATHS.has(req.url.split('?')[0])) return;

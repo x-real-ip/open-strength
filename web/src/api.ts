@@ -12,6 +12,7 @@ import type {
   ExerciseUsage,
   Language,
   LibraryExercise,
+  LinkedNutrition,
   PreferenceUpdate,
   Profile,
   Program,
@@ -103,6 +104,7 @@ export const api = {
   saveAiSettings: (update: AiSettingsUpdate) => request<AiSettingsView>('PUT', '/api/settings/ai', update),
   testAi: () => request<{ ok: true; reply: string; ms: number }>('POST', '/api/settings/ai/test'),
   usage: () => request<AiUsageSummary>('GET', '/api/usage'),
+  linkedNutrition: () => request<LinkedNutrition>('GET', '/api/linked/nutrition'),
 };
 
 // ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@ import { api } from '../api.ts';
 import { useInfo, useRefreshInfo, useSetLanguage } from '../App.tsx';
 import { ErrorState, Loading, toast, useLoad } from '../components/ui.tsx';
 import { versionLabel } from '../format.ts';
-import { getLang, t } from '../i18n.ts';
+import { decimal, getLang, t } from '../i18n.ts';
 import { disableNotifications, enableNotifications, notificationsOn, pushSupport } from '../notifications.ts';
 
 const equipmentOptions = (): { id: Equipment; label: string }[] => [
@@ -291,6 +291,7 @@ export default function ProfilePage() {
         )}
       </section>
 
+      {!isNew && <NutritionSection />}
       {!isNew && <NotificationsSection />}
       {!isNew && <DataSection />}
       <AboutSection />
@@ -299,6 +300,45 @@ export default function ProfilePage() {
 }
 
 /** Rest notifications through Web Push, per device. */
+/** The link with Open Nutrilog: its status, its phase, and a gentle note when goal and phase pull different ways. */
+function NutritionSection() {
+  const { data } = useLoad(() => api.linkedNutrition().catch(() => null));
+  if (!data) return null;
+  const p = data.phase;
+  const phaseText = p
+    ? {
+        cut: t(`Losing fat, ${decimal(p.ratePctPerWeek.toFixed(2).replace(/0$/, ''))} % a week`, `Afvallen, ${decimal(p.ratePctPerWeek.toFixed(2).replace(/0$/, ''))} % per week`),
+        maintain: t('Maintaining', 'Op gewicht'),
+        bulk: t(`Building, ${decimal(p.ratePctPerWeek.toFixed(2).replace(/0$/, ''))} % a week`, `Aankomen, ${decimal(p.ratePctPerWeek.toFixed(2).replace(/0$/, ''))} % per week`),
+      }[p.phase]
+    : null;
+  return (
+    <section className="section stack">
+      <h2>{t('Nutrition', 'Voeding')}</h2>
+      <div className="panel small stack" style={{ gap: 6 }}>
+        <div>
+          {data.status === 'ok'
+            ? t('Nutrition: linked with Open Nutrilog', 'Voeding: gekoppeld met Open Nutrilog')
+            : data.status === 'unreachable'
+              ? t('Nutrition: Open Nutrilog is not reachable right now', 'Voeding: Open Nutrilog is nu niet bereikbaar')
+              : t('Nutrition: not linked', 'Voeding: niet gekoppeld')}
+        </div>
+        {phaseText && <div className="muted">{phaseText}</div>}
+        {data.status !== 'off' && (
+          <div className="faint">
+            {t(
+              'Your weight is kept in Open Nutrilog; weigh-ins here are sent there too.',
+              'Je gewicht wordt bijgehouden in Open Nutrilog; wegingen hier gaan daar ook heen.',
+            )}
+            {data.pendingWeights > 0 && t(` ${data.pendingWeights} still waiting to be sent.`, ` Er wachten er nog ${data.pendingWeights} om verstuurd te worden.`)}
+          </div>
+        )}
+      </div>
+      {data.clash && <p className="notice small" style={{ margin: 0 }}>{data.clash}</p>}
+    </section>
+  );
+}
+
 function NotificationsSection() {
   const support = pushSupport();
   const [on, setOn] = useState(notificationsOn());

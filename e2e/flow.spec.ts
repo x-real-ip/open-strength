@@ -68,6 +68,10 @@ for (const lang of ['en', 'nl'] as const) {
     await page.getByRole('link', { name: T('Done', 'Klaar') }).click();
     await expect(page.getByText(T('Workout 2 of 12', 'Training 2 van 12'))).toBeVisible();
 
+    // Without Open Nutrilog configured the profile says so, and nothing else changes.
+    await page.goto('/profile');
+    await expect(page.getByText(T('Nutrition: not linked', 'Voeding: niet gekoppeld'))).toBeVisible();
+
     expect(errors).toEqual([]);
   });
 }

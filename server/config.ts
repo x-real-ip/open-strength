@@ -103,6 +103,17 @@ export const config = {
     // Thinking models can take a while to design a program.
     timeoutMs: num('AI_TIMEOUT_MS', 180_000),
   },
+  /**
+   * The link with Open Nutrilog. INTEGRATION_TOKEN is the token Open Nutrilog must send to /api/integration/v1/*
+   * (without it those routes don't exist); NUTRILOG_URL + NUTRILOG_TOKEN are how this app reaches Open Nutrilog.
+   * Each direction has its own token. Without them the app works as before.
+   */
+  integration: {
+    token: str('INTEGRATION_TOKEN') ?? '',
+    nutrilogUrl: (str('NUTRILOG_URL') ?? '').replace(/\/$/, ''),
+    nutrilogToken: str('NUTRILOG_TOKEN') ?? '',
+    timeoutMs: num('NUTRILOG_TIMEOUT_MS', 2000),
+  },
   version: appVersion(),
 };
 
